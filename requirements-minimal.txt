@@ -1,0 +1,17 @@
+# Core dependencies only (without heavy UI packages)
+# Use this for database setup and backend development
+
+# Database
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+# Utilities
+numpy>=1.24.0
+python-dotenv>=1.0.0
+tqdm>=4.66.0
+
+# For data processing
+opencv-python>=4.8.0
+
+# Note: Install full requirements.txt later when ready for UI development
+# pip install -r requirements.txt
