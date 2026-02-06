@@ -187,67 +187,7 @@ This project follows **Clean Architecture** principles with clear separation of 
 - **PostgreSQL** 17+
 - **Git**
 
-### 1️⃣ Clone the Repository
 
-```bash
-git clone https://github.com/yourusername/3D-Human-Motion-Comparison-System.git
-cd 3D-Human-Motion-Comparison-System
-```
-
-### 2️⃣ Backend Setup
-
-```bash
-# Navigate to backend
-cd backend
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Create PostgreSQL database
-createdb motion_compare_db
-
-# Set environment variables
-cp .env.example .env
-# Edit .env with your database credentials
-
-# Initialize database
-python scripts/init_database.py
-
-# Run the server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Backend will be available at: `http://localhost:8000`
-API documentation: `http://localhost:8000/docs`
-
-### 3️⃣ Frontend Setup
-
-```bash
-# Navigate to frontend
-cd frontend
-
-# Get Flutter dependencies
-flutter pub get
-
-# Run on your preferred platform
-flutter run              # Default device
-flutter run -d chrome    # Web
-flutter run -d macos     # macOS Desktop
-flutter run -d ios       # iOS Simulator
-```
-
-### 4️⃣ Load Training Data (Optional)
-
-```bash
-cd backend
-python scripts/load_training_data.py
-```
-
----
 
 ## 📚 Documentation
 
@@ -257,62 +197,10 @@ python scripts/load_training_data.py
 | [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) | Detailed folder organization and data flow |
 | [CLEAN_ARCHITECTURE_GUIDE.md](CLEAN_ARCHITECTURE_GUIDE.md) | Clean Architecture principles explained with examples |
 
-### API Documentation
 
-Once the backend is running, visit:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
 
 ---
 
-## 🎨 Features Roadmap
-
-### ✅ Completed
-- [x] Project restructuring (Clean Architecture)
-- [x] Flutter multi-platform setup
-- [x] FastAPI backend structure
-- [x] PostgreSQL + Filesystem storage strategy
-- [x] Starting page UI (responsive)
-- [x] Documentation (Tech Stack, Structure, Clean Architecture)
-
-### 🚧 In Progress
-- [ ] Authentication system (Signin, Signup)
-- [ ] Video upload and processing
-- [ ] BlazePose integration
-- [ ] SMPL-X fitting pipeline
-
-### 📋 Planned
-- [ ] 3D visualization (Flutter)
-- [ ] Motion comparison algorithm
-- [ ] Similarity scoring
-- [ ] Feedback generation
-- [ ] User dashboard
-- [ ] Exercise library
-- [ ] Progress tracking
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Here's how to get started:
-
-1. **Fork** the repository
-2. **Clone** your fork
-3. **Create a branch** for your feature: `git checkout -b feature/amazing-feature`
-4. **Make your changes** following Clean Architecture principles
-5. **Commit** your changes: `git commit -m 'Add amazing feature'`
-6. **Push** to your fork: `git push origin feature/amazing-feature`
-7. **Create a Pull Request**
-
-### Development Guidelines
-
-- Follow **Clean Architecture** structure (see [guide](CLEAN_ARCHITECTURE_GUIDE.md))
-- Write **tests** for new features
-- Use **meaningful commit messages**
-- Update **documentation** as needed
-- Follow **Dart** and **Python** style guides
-
----
 
 ## � License
 
@@ -322,7 +210,7 @@ This project is part of a Master's thesis (PFE) at [Your University].
 
 ## � Authors
 
-- **Ikram** - *Lead Developer* - [GitHub Profile](https://github.com/yourusername)
+- **Ikram** - *Lead Developer* - [GitHub Profile](https://github.com/ikramtlh)
 
 ---
 
@@ -338,14 +226,14 @@ This project is part of a Master's thesis (PFE) at [Your University].
 ## 📞 Contact
 
 For questions or collaboration:
-- **Email**: your.email@example.com
+- **Email**: talhaoui.ikram03@gmail.com
 - **GitHub Issues**: [Create an issue](https://github.com/yourusername/3D-Human-Motion-Comparison-System/issues)
 
 ---
 
 <div align="center">
 
-**Made with ❤️ using Flutter, FastAPI, and Deep Learning**
+**Made with ❤️ using Flutter, and Deep Learning**
 
 [⬆ Back to Top](#-motion-ai---3d-human-motion-comparison-system)
 
