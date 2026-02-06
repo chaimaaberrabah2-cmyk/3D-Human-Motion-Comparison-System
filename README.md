@@ -1,171 +1,156 @@
 # 3D Human Motion Comparison System
 
-A PySide6-based desktop application for comparing human movements in 3D using SMPL-X models.
+A multi-platform application for comparing human motion in 3D using SMPL-X models, built with **Flutter** (frontend) and **FastAPI** (backend).
 
-## Features
+## 🏗️ Architecture
 
-- 📊 Load and visualize 47 different exercise types from 8 subjects
-- 🎥 Multi-view video support (4 camera angles)
-- 🤖 SMPL-X 3D human body model integration
-- 📈 Interactive 3D visualization with Plotly
-- 💾 PostgreSQL database for efficient data management
-- 🔍 Compare user movements with reference exercises
-- ⚡ Optimized for Apple Silicon (M4 chip)
+This project follows **Clean Architecture** principles with clear separation between frontend and backend:
 
-## Prerequisites
+- **Frontend**: Flutter (Mobile, Web, Desktop)
+- **Backend**: Python FastAPI
+- **Database**: PostgreSQL + JSONB
+- **Storage**: Organized dataset for videos, keypoints, and SMPL data
 
+## 📁 Project Structure
+
+See [STRUCTURE.md](STRUCTURE.md) for the complete folder organization.
+
+```
+├── backend/          # Python FastAPI backend
+│   ├── app/         # Main application
+│   │   ├── api/     # REST endpoints
+│   │   ├── models/  # Database models
+│   │   ├── services/# Business logic
+│   │   └── ...
+│   └── ...
+│
+├── frontend/        # Flutter multi-platform app
+│   └── lib/
+│       ├── features/# Feature-based modules
+│       │   ├── starting/
+│       │   ├── auth/ (signin, signup, forget_password)
+│       │   ├── home/
+│       │   ├── analysis/
+│       │   └── settings/
+│       └── core/    # Shared utilities
+│
+└── dataset/         # Data storage
+    ├── videos/      # MP4 files
+    ├── keypoints/   # 3D pose data
+    └── smpl/        # SMPL-X parameters
+```
+
+## ✨ Features
+
+### Authentication
+- ✅ User signup and login
+- ✅ Password recovery
+- ✅ JWT token-based auth
+
+### Motion Analysis
+- 📹 Multi-view video upload
+- 🤖 BlazePose 3D pose estimation
+- 🎭 SMPL-X model fitting
+- 📊 Motion comparison with reference exercises
+- 📈 Similarity scoring
+
+### Multi-Platform Support
+- 📱 iOS & Android (Mobile)
+- 🌐 Web (Progressive Web App)
+- 💻 Windows, macOS, Linux (Desktop)
+
+## 🗄️ Database: PostgreSQL + JSONB
+
+**Why PostgreSQL?**
+- ✅ Relational structure for users and relationships
+- ✅ JSONB for flexible SMPL-X and keypoint storage
+- ✅ High performance with GIN indexes
+- ✅ ACID compliance
+
+**Main Tables:**
+- `users` - Authentication and profiles
+- `analyses` - User motion analysis results
+- `exercises` - Reference exercise library
+- `exercise_data` - SMPL-X parameters and keypoints
+
+## 🚀 Getting Started
+
+### Prerequisites
 - Python 3.9+
-- PostgreSQL 17.5
-- macOS (optimized for M4 chip)
+- Flutter 3.0+
+- PostgreSQL 17+
 
-**OR**
-
-- Docker Desktop (for containerized deployment)
-
-## Quick Start with Docker 🐳
-
-The easiest way to run the project is using Docker:
+### Backend Setup
 
 ```bash
-./deploy.sh
-```
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
 
-This will automatically:
-- Set up PostgreSQL database
-- Load all training data
-- Start the application
-
-For detailed Docker instructions, see [DOCKER.md](DOCKER.md).
-
-## Manual Installation
-
-### 1. Clone the repository
-
-```bash
-cd /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System
-```
-
-### 2. Run setup script
-
-```bash
-python setup.py
-```
-
-This will:
-- Create a virtual environment
-- Install all dependencies
-- Create `.env` configuration file
-
-### 3. Configure database credentials
-
-Edit the `.env` file and set your PostgreSQL password:
-
-```bash
-DB_PASSWORD=your_actual_password
-```
-
-### 4. Activate virtual environment
-
-```bash
-source venv/bin/activate
-```
-
-### 5. Initialize database
-
-```bash
+# Initialize database
 python scripts/init_database.py
+
+# Run server
+uvicorn app.main:app --reload
 ```
 
-### 6. Load training data
+### Frontend Setup
 
 ```bash
-python scripts/load_training_data.py
+cd frontend
+flutter pub get
+flutter run  # For mobile/desktop
+flutter run -d chrome  # For web
 ```
 
-This will load:
-- 8 subjects (s03-s11)
-- 47 exercise types
-- SMPL-X parameters for each subject/exercise
-- 3D joints data
-- Camera parameters for 4 views
+## 📚 Documentation
 
-## Project Structure
+- [Complete Structure](STRUCTURE.md) - Detailed folder organization
+- [Technical Justifications](backend/docs/justifications_techniques.md) - Architecture decisions
+- [API Documentation](http://localhost:8000/docs) - Swagger UI (when running)
 
-```
-3D-Human-Motion-Comparison-System/
-├── database/           # Database models and configuration
-│   ├── schema.sql     # PostgreSQL schema
-│   ├── models.py      # SQLAlchemy ORM models
-│   └── db_config.py   # Database connection
-├── smplx_utils/       # SMPL-X model utilities
-├── ui/                # PySide6 user interface
-├── scripts/           # Setup and data loading scripts
-├── models/            # SMPL-X model files
-│   └── smplx/        # MALE, FEMALE, NEUTRAL models
-├── train/             # Training data (8 subjects × 47 exercises)
-├── requirements.txt   # Python dependencies
-├── setup.py          # Setup automation script
-└── .env              # Environment configuration
-```
+## 🛠️ Technology Stack
 
-## Usage
+### Backend
+- **FastAPI** - Modern Python web framework
+- **SQLAlchemy** - ORM for PostgreSQL
+- **Pydantic** - Data validation
+- **BlazePose** - 3D pose estimation
+- **PyTorch** - SMPL-X model fitting
 
-### Launch the application
+### Frontend
+- **Flutter** - Cross-platform UI framework
+- **flutter_bloc** - State management
+- **dio** - HTTP client
+- **flutter_gl** - 3D visualization
+- **go_router** - Navigation
 
-```bash
-python main.py
-```
+### Database
+- **PostgreSQL 17** - Main database
+- **JSONB** - Flexible JSON storage
 
-### View exercise data
+## 📖 Development Guide
 
-1. Navigate to the "Viewer" tab
-2. Select an exercise from the dropdown
-3. Select a subject
-4. Click "Load Exercise"
-5. Use playback controls to view the 3D animation
+### Adding a New Feature (Frontend)
 
-### Compare movements
+1. Create feature folder: `frontend/lib/features/my_feature/`
+2. Add layers: `presentation/`, `domain/`, `data/`
+3. Implement pages in `presentation/pages/`
+4. Add widgets in `presentation/widgets/`
 
-1. Upload your multi-view videos
-2. Select a reference exercise
-3. View side-by-side comparison
-4. Review error feedback and suggestions
+### Adding a New API Endpoint (Backend)
 
-## Database Schema
+1. Create route in `backend/app/api/`
+2. Add schema in `backend/app/schemas/`
+3. Implement service in `backend/app/services/`
+4. Update model if needed in `backend/app/models/`
 
-- **subjects**: Subject metadata (s03-s11)
-- **exercises**: 47 exercise types with categories
-- **exercise_data**: SMPL-X parameters and 3D joints
-- **camera_views**: Multi-view camera parameters
-- **comparisons**: User comparison history
+## 📝 License
 
-## Technologies
+This project is part of a Master's thesis (M2 PFE).
 
-- **UI**: PySide6 (Qt for Python)
-- **3D Visualization**: Plotly
-- **Database**: PostgreSQL 17.5 + SQLAlchemy
-- **SMPL-X**: PyTorch with MPS (Apple Silicon)
-- **Video Processing**: OpenCV
-- **Pose Estimation**: MediaPipe
+## 👤 Author
 
-## Development
-
-### Run database tests
-
-```bash
-python -c "from database.db_config import test_connection; test_connection()"
-```
-
-### Query database
-
-```bash
-psql -U postgres -d motion_compare_db
-```
-
-## License
-
-MIT License
-
-## Author
-
-Ikram - M2 PFE Project
+**Ikram** - M2 PFE Project  
+January 2026
