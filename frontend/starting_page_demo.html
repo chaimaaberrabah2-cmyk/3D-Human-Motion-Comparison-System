@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOTION AI - Starting Page Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            min-height: 100vh;
+            background-image: url('../assets/images/network_bg.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .content {
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .title {
+            font-size: clamp(40px, 8vw, 80px);
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .title-motion {
+            color: white;
+        }
+
+        .title-ai {
+            color: #5B9FED;
+        }
+
+        .subtitle {
+            max-width: 700px;
+            font-size: clamp(14px, 2vw, 18px);
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            line-height: 1.6;
+            margin-bottom: 60px;
+            padding: 0 20px;
+        }
+
+        .launch-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 40px;
+            background: linear-gradient(135deg, #5B9FED 0%, #4A7FD9 100%);
+            color: white;
+            font-size: clamp(14px, 2vw, 18px);
+            font-weight: 600;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 10px 30px rgba(91, 159, 237, 0.4);
+            transition: all 0.3s ease;
+            margin-bottom: 100px;
+        }
+
+        .launch-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(91, 159, 237, 0.6);
+        }
+
+        .launch-button:active {
+            transform: translateY(0);
+        }
+
+        .arrow {
+            font-size: 20px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px;
+            padding: 0 20px;
+        }
+
+        .feature-card {
+            background: rgba(26, 35, 50, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(45, 62, 80, 0.5);
+            border-radius: 15px;
+            padding: 30px;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 40px;
+            margin-bottom: 20px;
+        }
+
+        .feature-title {
+            color: white;
+            font-size: clamp(16px, 2.5vw, 20px);
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .feature-description {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: clamp(12px, 1.8vw, 14px);
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            .launch-button {
+                margin-bottom: 60px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="content">
+            <h1 class="title">
+                <span class="title-motion">MOTION </span><span class="title-ai">AI</span>
+            </h1>
+
+            <p class="subtitle">
+                The world's most advanced 3D Human Motion Comparison System. Analyze, compare, and perfect every
+                movement with deep learning precision.
+            </p>
+
+            <a href="#" class="launch-button" onclick="alert('Navigation to Signin Page'); return false;">
+                Launch Analysis Engine
+                <span class="arrow">→</span>
+            </a>
+
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-title">Real-Time Analysis</div>
+                    <div class="feature-description">
+                        High-precision pose estimation using multi-view deep learning architecture.
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔷</div>
+                    <div class="feature-title">3D Reconstruction</div>
+                    <div class="feature-description">
+                        Generate accurate 3D skeletal models from standard 2D video feeds.
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">Comparative Analytics</div>
+                    <div class="feature-description">
+                        Compare your movements against professional benchmarks and targets.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
