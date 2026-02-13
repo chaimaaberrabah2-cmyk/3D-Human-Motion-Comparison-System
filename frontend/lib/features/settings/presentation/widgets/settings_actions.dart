@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class SettingsActions extends StatelessWidget {
   final VoidCallback onSave;
@@ -13,15 +14,17 @@ class SettingsActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         // Discard Button
         TextButton(
           onPressed: onDiscard,
-          child: const Text(
-            'Discard Changes',
-            style: TextStyle(
+          child: Text(
+            l10n.discardChanges,
+            style: const TextStyle(
               color: AppColors.textGray,
               fontSize: 14,
             ),
@@ -34,7 +37,7 @@ class SettingsActions extends StatelessWidget {
         ElevatedButton.icon(
           onPressed: onSave,
           icon: const Icon(Icons.save, size: 20),
-          label: const Text('Save Settings'),
+          label: Text(l10n.saveSettings),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF2563EB),
             foregroundColor: AppColors.textWhite,

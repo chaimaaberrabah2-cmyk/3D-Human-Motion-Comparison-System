@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class HomeHeader extends StatelessWidget {
   final String username;
@@ -14,20 +15,26 @@ class HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Welcome Text
-          Text(
-            'Welcome back, $username',
-            style: const TextStyle(
-              color: AppColors.textWhite,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+          Flexible(
+            child: Text(
+              l10n.welcomeBack(username),
+              style: const TextStyle(
+                color: AppColors.textWhite,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          const SizedBox(width: 16),
           
           // Start New Analysis Button
           ElevatedButton.icon(
@@ -41,7 +48,7 @@ class HomeHeader extends StatelessWidget {
                 BlendMode.srcIn,
               ),
             ),
-            label: const Text('Start New Analysis'),
+            label: Text(l10n.startNewAnalysis),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2563EB),
               foregroundColor: AppColors.textWhite,

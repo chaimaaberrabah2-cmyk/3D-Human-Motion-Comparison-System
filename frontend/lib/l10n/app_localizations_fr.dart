@@ -19,7 +19,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Gérez votre matériel MotionAI, vos modèles IA et vos préférences de compte.';
 
   @override
-  String get accountProfile => 'Profil du Compte';
+  String get accountProfile => 'Profil';
 
   @override
   String get cameraCalibration => 'Calibration Caméra';
@@ -46,7 +46,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get discardChanges => 'Annuler les Modifications';
 
   @override
-  String get saveSettings => 'Enregistrer les Paramètres';
+  String get saveSettings => 'Enregistrer';
 
   @override
   String welcomeBack(String username) {

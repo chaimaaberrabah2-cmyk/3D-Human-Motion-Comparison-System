@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class SearchFilterBar extends StatefulWidget {
   final Function(String) onSearchChanged;
@@ -22,6 +23,8 @@ class _SearchFilterBarState extends State<SearchFilterBar> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
@@ -38,7 +41,7 @@ class _SearchFilterBarState extends State<SearchFilterBar> {
               onChanged: widget.onSearchChanged,
               style: const TextStyle(color: AppColors.textWhite),
               decoration: InputDecoration(
-                hintText: 'Search exercises...',
+                hintText: l10n.searchExercises,
                 hintStyle: const TextStyle(color: AppColors.textGray),
                 prefixIcon: Padding(
                   padding: const EdgeInsets.all(12.0),
@@ -71,8 +74,26 @@ class _SearchFilterBarState extends State<SearchFilterBar> {
                 final filter = filters[index];
                 final isSelected = selectedFilter == filter;
                 
+                // Get translated filter name
+                String getFilterName(String filter) {
+                  switch (filter) {
+                    case 'All':
+                      return l10n.all;
+                    case 'Strength':
+                      return l10n.strength;
+                    case 'Mobility':
+                      return l10n.mobility;
+                    case 'BodyWeight':
+                      return l10n.bodyWeight;
+                    case 'Rehab':
+                      return l10n.rehab;
+                    default:
+                      return filter;
+                  }
+                }
+                
                 return FilterChip(
-                  label: Text(filter),
+                  label: Text(getFilterName(filter)),
                   selected: isSelected,
                   onSelected: (selected) {
                     setState(() {

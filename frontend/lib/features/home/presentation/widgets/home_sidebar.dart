@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class HomeSidebar extends StatelessWidget {
   const HomeSidebar({Key? key}) : super(key: key);
@@ -81,15 +82,17 @@ class HomeSidebar extends StatelessWidget {
           // Navigation Items
           _buildNavItem(
             iconPath: 'assets/icons/dashboard.svg',
-            label: 'Dashboard',
-            isSelected: true,
-            onTap: () {},
+            label: AppLocalizations.of(context)!.dashboard,
+            isSelected: ModalRoute.of(context)?.settings.name == '/',
+            onTap: () {
+              Navigator.pushNamed(context, '/');
+            },
           ),
           
           _buildNavItem(
             iconPath: 'assets/icons/setting.svg',
-            label: 'Settings',
-            isSelected: false,
+            label: AppLocalizations.of(context)!.settings,
+            isSelected: ModalRoute.of(context)?.settings.name == '/settings',
             onTap: () {
               Navigator.pushNamed(context, '/settings');
             },

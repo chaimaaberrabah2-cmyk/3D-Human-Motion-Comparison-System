@@ -1,26 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class PersonalInfoSection extends StatelessWidget {
   const PersonalInfoSection({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Section Title
         Row(
           children: [
-            const Icon(
-              Icons.person_outline,
-              color: AppColors.accentBlue,
-              size: 24,
+            SvgPicture.asset(
+              'assets/icons/user.svg',
+              width: 24,
+              height: 24,
+              colorFilter: const ColorFilter.mode(
+                AppColors.accentBlue,
+                BlendMode.srcIn,
+              ),
             ),
             const SizedBox(width: 12),
-            const Text(
-              'Personal Information',
-              style: TextStyle(
+            Text(
+              l10n.personalInformation,
+              style: const TextStyle(
                 color: AppColors.textWhite,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -43,7 +51,7 @@ class PersonalInfoSection extends StatelessWidget {
             children: [
               // Username Field
               _buildInfoField(
-                label: 'User',
+                label: l10n.user,
                 onEdit: () {},
               ),
               
@@ -59,7 +67,7 @@ class PersonalInfoSection extends StatelessWidget {
               
               // Change Password Button
               _buildInfoField(
-                label: 'Change password',
+                label: l10n.changePassword,
                 onEdit: () {},
               ),
             ],
@@ -91,10 +99,14 @@ class PersonalInfoSection extends StatelessWidget {
           ),
           IconButton(
             onPressed: onEdit,
-            icon: const Icon(
-              Icons.edit_outlined,
-              color: AppColors.textGray,
-              size: 20,
+            icon: SvgPicture.asset(
+              'assets/icons/edit.svg',
+              width: 20,
+              height: 20,
+              colorFilter: const ColorFilter.mode(
+                AppColors.textGray,
+                BlendMode.srcIn,
+              ),
             ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),

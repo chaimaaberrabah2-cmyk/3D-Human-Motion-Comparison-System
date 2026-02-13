@@ -7,6 +7,7 @@ class SettingsTabButton extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool applyColorFilter; // New parameter
 
   const SettingsTabButton({
     Key? key,
@@ -14,6 +15,7 @@ class SettingsTabButton extends StatelessWidget {
     required this.label,
     required this.isSelected,
     required this.onTap,
+    this.applyColorFilter = true, // Default to true
   }) : super(key: key);
 
   @override
@@ -27,15 +29,30 @@ class SettingsTabButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              SvgPicture.asset(
-                iconPath,
-                width: 20,
-                height: 20,
-                colorFilter: ColorFilter.mode(
-                  isSelected ? AppColors.accentBlue : AppColors.textGray,
-                  BlendMode.srcIn,
-                ),
-              ),
+              // Check file extension to determine rendering widget
+              iconPath.endsWith('.svg')
+                  ? SvgPicture.asset(
+                      iconPath,
+                      width: 20,
+                      height: 20,
+                      // Only apply color filter if enabled
+                      colorFilter: applyColorFilter
+                          ? ColorFilter.mode(
+                              isSelected ? AppColors.accentBlue : AppColors.textGray,
+                              BlendMode.srcIn,
+                            )
+                          : null,
+                    )
+                  : Image.asset(
+                      iconPath,
+                      width: 20,
+                      height: 20,
+                      // For PNGs, we typically don't apply a color filter unless requested
+                      // If applyColorFilter is true, we tint it. If false, we show original.
+                      color: applyColorFilter 
+                          ? (isSelected ? AppColors.accentBlue : AppColors.textGray)
+                          : null,
+                    ),
               const SizedBox(width: 12),
               Text(
                 label,
