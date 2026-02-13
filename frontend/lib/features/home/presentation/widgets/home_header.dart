@@ -47,7 +47,7 @@ class HomeHeader extends StatelessWidget {
               foregroundColor: AppColors.textWhite,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
                   color: const Color(0xFF1E3A8A).withOpacity(0.3),
                   width: 1,

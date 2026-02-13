@@ -27,7 +27,7 @@ class HomeSidebar extends StatelessWidget {
               children: [
                 // Logo
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   child: Image.asset(
                     'assets/images/logo.png',
                     width: 48,
@@ -40,7 +40,7 @@ class HomeSidebar extends StatelessWidget {
                         height: 48,
                         decoration: BoxDecoration(
                           color: AppColors.accentBlue,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Icon(
                           Icons.accessibility_new,
@@ -87,10 +87,12 @@ class HomeSidebar extends StatelessWidget {
           ),
           
           _buildNavItem(
-            iconPath: 'assets/icons/settings.svg',
+            iconPath: 'assets/icons/setting.svg',
             label: 'Settings',
             isSelected: false,
-            onTap: () {},
+            onTap: () {
+              Navigator.pushNamed(context, '/settings');
+            },
           ),
           
           const Spacer(),
@@ -111,12 +113,12 @@ class HomeSidebar extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: isSelected ? AppColors.accentDark1 : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isSelected ? AppColors.accentDark2 : Colors.transparent,
                 width: 1,

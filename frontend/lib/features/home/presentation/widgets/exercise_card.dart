@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/exercise.dart';
 
@@ -86,30 +87,28 @@ class ExerciseCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 
-                // Play Button
+                // Play Button (Square)
                 Align(
                   alignment: Alignment.centerRight,
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: onPlayTapped,
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.accentDark2,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.accentBlue.withOpacity(0.3),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.play_arrow,
-                          color: AppColors.accentBlue,
-                          size: 24,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1C293D),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: IconButton(
+                      onPressed: onPlayTapped,
+                      icon: SvgPicture.asset(
+                        'assets/icons/newanalysis.svg',
+                        width: 20,
+                        height: 20,
+                        colorFilter: const ColorFilter.mode(
+                          AppColors.textWhite,
+                          BlendMode.srcIn,
                         ),
                       ),
+                      padding: EdgeInsets.zero,
                     ),
                   ),
                 ),

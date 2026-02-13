@@ -31,7 +31,7 @@ class _SearchFilterBarState extends State<SearchFilterBar> {
             height: 50,
             decoration: BoxDecoration(
               color: AppColors.cardFill,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.cardStroke),
             ),
             child: TextField(

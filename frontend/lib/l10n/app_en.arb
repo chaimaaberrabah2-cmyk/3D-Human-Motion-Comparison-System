@@ -1,0 +1,33 @@
+{
+  "@@locale": "en",
+  "appTitle": "Motion AI",
+  "systemSettings": "System Settings",
+  "systemSettingsDesc": "Manage your MotionAI hardware, AI models, and account preferences.",
+  "accountProfile": "Account Profile",
+  "cameraCalibration": "Camera Calibration",
+  "aiProcessing": "Ai Processing",
+  "personalInformation": "Personal Information",
+  "user": "User",
+  "changePassword": "Change password",
+  "language": "Language",
+  "light": "Light",
+  "discardChanges": "Discard Changes",
+  "saveSettings": "Save Settings",
+  "welcomeBack": "Welcome back, {username}",
+  "@welcomeBack": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "startNewAnalysis": "Start New Analysis",
+  "searchExercises": "Search exercises...",
+  "all": "All",
+  "strength": "Strength",
+  "mobility": "Mobility",
+  "bodyWeight": "BodyWeight",
+  "rehab": "Rehab",
+  "dashboard": "Dashboard",
+  "settings": "Settings"
+}
