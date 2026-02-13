@@ -7,14 +7,17 @@ class HomeSidebar extends StatelessWidget {
   const HomeSidebar({Key? key}) : super(key: key);
 
   @override
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Container(
       width: 280,
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: theme.scaffoldBackgroundColor,
         border: Border(
           right: BorderSide(
-            color: AppColors.sidebarSeparator,
+            color: theme.dividerColor,
             width: 1,
           ),
         ),
@@ -40,12 +43,12 @@ class HomeSidebar extends StatelessWidget {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: AppColors.accentBlue,
+                          color: theme.primaryColor,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.accessibility_new,
-                          color: AppColors.textWhite,
+                          color: theme.colorScheme.onPrimary,
                           size: 28,
                         ),
                       );
@@ -55,21 +58,14 @@ class HomeSidebar extends StatelessWidget {
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
                       'MOTION AI',
-                      style: TextStyle(
-                        color: AppColors.textWhite,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: theme.textTheme.titleLarge?.copyWith(fontSize: 18),
                     ),
                     Text(
                       '3D Pose Analysis',
-                      style: TextStyle(
-                        color: AppColors.textGray,
-                        fontSize: 12,
-                      ),
+                      style: theme.textTheme.bodyMedium?.copyWith(fontSize: 12),
                     ),
                   ],
                 ),
@@ -81,6 +77,7 @@ class HomeSidebar extends StatelessWidget {
           
           // Navigation Items
           _buildNavItem(
+            context,
             iconPath: 'assets/icons/dashboard.svg',
             label: AppLocalizations.of(context)!.dashboard,
             isSelected: ModalRoute.of(context)?.settings.name == '/',
@@ -90,6 +87,7 @@ class HomeSidebar extends StatelessWidget {
           ),
           
           _buildNavItem(
+            context,
             iconPath: 'assets/icons/setting.svg',
             label: AppLocalizations.of(context)!.settings,
             isSelected: ModalRoute.of(context)?.settings.name == '/settings',
@@ -104,12 +102,18 @@ class HomeSidebar extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem({
+  Widget _buildNavItem(
+    BuildContext context, {
     required String iconPath,
     required String label,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final theme = Theme.of(context);
+    final iconColor = isSelected 
+        ? theme.primaryColor 
+        : (theme.textTheme.bodyMedium?.color ?? Colors.grey);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Material(
@@ -120,10 +124,10 @@ class HomeSidebar extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.accentDark1 : Colors.transparent,
+              color: isSelected ? theme.primaryColor.withOpacity(0.1) : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected ? AppColors.accentDark2 : Colors.transparent,
+                color: isSelected ? theme.primaryColor.withOpacity(0.2) : Colors.transparent,
                 width: 1,
               ),
             ),
@@ -134,16 +138,15 @@ class HomeSidebar extends StatelessWidget {
                   width: 20,
                   height: 20,
                   colorFilter: ColorFilter.mode(
-                    isSelected ? AppColors.accentBlue : AppColors.textGray,
+                    iconColor,
                     BlendMode.srcIn,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Text(
                   label,
-                  style: TextStyle(
-                    color: isSelected ? AppColors.accentBlue : AppColors.textGray,
-                    fontSize: 14,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isSelected ? theme.primaryColor : theme.textTheme.bodyLarge?.color,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),

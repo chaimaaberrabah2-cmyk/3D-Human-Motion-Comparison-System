@@ -79,4 +79,121 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settings => 'Settings';
+
+  @override
+  String get deepLearningBackend => 'Deep Learning Backend';
+
+  @override
+  String get status => 'Status';
+
+  @override
+  String get calibrated => 'Calibrated';
+
+  @override
+  String get processingModel => 'Processing Model';
+
+  @override
+  String get performanceMode => 'Performance Mode';
+
+  @override
+  String get computingDevice => 'Computing Device';
+
+  @override
+  String get highAccuracy => 'High Accuracy';
+
+  @override
+  String get balanced => 'Balanced';
+
+  @override
+  String get highSpeed => 'High Speed';
+
+  @override
+  String modifyCamera(String cameraName) {
+    return 'Modify $cameraName';
+  }
+
+  @override
+  String get updateDeviceSource =>
+      'Update device source and calibration parameters';
+
+  @override
+  String get chooseCameraSource => '1. CHOOSE CAMERA SOURCE';
+
+  @override
+  String get addCalibrationData => '2. ADD CALIBRATION DATA';
+
+  @override
+  String get clickToUpload => 'Click to upload calibration file';
+
+  @override
+  String get uploadDesc => 'or drag and drop your .bin or .json file here';
+
+  @override
+  String get applyChanges => 'Apply Changes';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get aiEngineDescription =>
+      'Select the AI engine for keypoint extraction and SMPL fitting.';
+
+  @override
+  String get legacyPose2DEngine => 'Lagacy Pose2D Engine';
+
+  @override
+  String get legacyPose2DDesc => 'Faster processing, reduced spatial accuracy.';
+
+  @override
+  String get deepLearningBackendDesc =>
+      'Optimized for high-fidelity posture tracking.';
+
+  @override
+  String get newMultiViewAnalysis => 'New Multi-View Analysis';
+
+  @override
+  String get newAnalysisSubtitle =>
+      'Upload synchronized video streams for 3D reconstruction and SMPL modeling';
+
+  @override
+  String get captureMethod => 'CAPTURE METHOD';
+
+  @override
+  String get uploadStreams => 'UPLOAD STREAMS';
+
+  @override
+  String get syncAndProcess => 'SYNC & PROCESS';
+
+  @override
+  String get uploadFiles => 'Upload Files';
+
+  @override
+  String get uploadFilesDesc =>
+      'Upload existing synchronized video files from up to 4 camera angles.';
+
+  @override
+  String get liveMultiCam => 'Live Multi-Cam';
+
+  @override
+  String get liveMultiCamDesc =>
+      'Stream directly from connected cameras for real-time analysis.';
+
+  @override
+  String get analysisInfoBanner =>
+      'For best results, ensure all cameras share the same frame rate and are calibrated using the provided calibration pattern.';
+
+  @override
+  String get cameraAngleFront => 'Camera Angle 1 - Front';
+
+  @override
+  String get cameraAngleLeft => 'Camera angle 2 - Left';
+
+  @override
+  String get cameraAngleBack => 'Camera Angle 3 - Back';
+
+  @override
+  String get cameraAngleRight => 'Camera Angle 4 - Right';
+
+  @override
+  String get back => 'Back';
 }

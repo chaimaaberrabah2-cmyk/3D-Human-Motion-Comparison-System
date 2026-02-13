@@ -9,6 +9,7 @@ class PersonalInfoSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -20,19 +21,15 @@ class PersonalInfoSection extends StatelessWidget {
               'assets/icons/user.svg',
               width: 24,
               height: 24,
-              colorFilter: const ColorFilter.mode(
-                AppColors.accentBlue,
+              colorFilter: ColorFilter.mode(
+                theme.primaryColor,
                 BlendMode.srcIn,
               ),
             ),
             const SizedBox(width: 12),
             Text(
               l10n.personalInformation,
-              style: const TextStyle(
-                color: AppColors.textWhite,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.titleLarge?.copyWith(fontSize: 18),
             ),
           ],
         ),
@@ -43,14 +40,15 @@ class PersonalInfoSection extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: const Color(0xFF0E172B),
+            color: theme.cardColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF1C293D)),
+            border: Border.all(color: theme.dividerColor),
           ),
           child: Column(
             children: [
               // Username Field
               _buildInfoField(
+                context,
                 label: l10n.user,
                 onEdit: () {},
               ),
@@ -59,6 +57,7 @@ class PersonalInfoSection extends StatelessWidget {
               
               // Email Field
               _buildInfoField(
+                context,
                 label: 'user@motionai.com',
                 onEdit: () {},
               ),
@@ -67,6 +66,7 @@ class PersonalInfoSection extends StatelessWidget {
               
               // Change Password Button
               _buildInfoField(
+                context,
                 label: l10n.changePassword,
                 onEdit: () {},
               ),
@@ -77,14 +77,17 @@ class PersonalInfoSection extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoField({
+  Widget _buildInfoField(
+    BuildContext context, {
     required String label,
     required VoidCallback onEdit,
   }) {
+    final theme = Theme.of(context);
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C293D).withOpacity(0.3),
+        color: theme.scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -92,9 +95,8 @@ class PersonalInfoSection extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              color: AppColors.textWhite,
-              fontSize: 14,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.textTheme.bodyLarge?.color,
             ),
           ),
           IconButton(
@@ -103,8 +105,8 @@ class PersonalInfoSection extends StatelessWidget {
               'assets/icons/edit.svg',
               width: 20,
               height: 20,
-              colorFilter: const ColorFilter.mode(
-                AppColors.textGray,
+              colorFilter: ColorFilter.mode(
+                theme.textTheme.bodyMedium?.color ?? Colors.grey,
                 BlendMode.srcIn,
               ),
             ),

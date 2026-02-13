@@ -237,6 +237,222 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get settings;
+
+  /// No description provided for @deepLearningBackend.
+  ///
+  /// In en, this message translates to:
+  /// **'Deep Learning Backend'**
+  String get deepLearningBackend;
+
+  /// No description provided for @status.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get status;
+
+  /// No description provided for @calibrated.
+  ///
+  /// In en, this message translates to:
+  /// **'Calibrated'**
+  String get calibrated;
+
+  /// No description provided for @processingModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing Model'**
+  String get processingModel;
+
+  /// No description provided for @performanceMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Performance Mode'**
+  String get performanceMode;
+
+  /// No description provided for @computingDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Computing Device'**
+  String get computingDevice;
+
+  /// No description provided for @highAccuracy.
+  ///
+  /// In en, this message translates to:
+  /// **'High Accuracy'**
+  String get highAccuracy;
+
+  /// No description provided for @balanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced'**
+  String get balanced;
+
+  /// No description provided for @highSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'High Speed'**
+  String get highSpeed;
+
+  /// No description provided for @modifyCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Modify {cameraName}'**
+  String modifyCamera(String cameraName);
+
+  /// No description provided for @updateDeviceSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Update device source and calibration parameters'**
+  String get updateDeviceSource;
+
+  /// No description provided for @chooseCameraSource.
+  ///
+  /// In en, this message translates to:
+  /// **'1. CHOOSE CAMERA SOURCE'**
+  String get chooseCameraSource;
+
+  /// No description provided for @addCalibrationData.
+  ///
+  /// In en, this message translates to:
+  /// **'2. ADD CALIBRATION DATA'**
+  String get addCalibrationData;
+
+  /// No description provided for @clickToUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Click to upload calibration file'**
+  String get clickToUpload;
+
+  /// No description provided for @uploadDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'or drag and drop your .bin or .json file here'**
+  String get uploadDesc;
+
+  /// No description provided for @applyChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply Changes'**
+  String get applyChanges;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @aiEngineDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Select the AI engine for keypoint extraction and SMPL fitting.'**
+  String get aiEngineDescription;
+
+  /// No description provided for @legacyPose2DEngine.
+  ///
+  /// In en, this message translates to:
+  /// **'Lagacy Pose2D Engine'**
+  String get legacyPose2DEngine;
+
+  /// No description provided for @legacyPose2DDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Faster processing, reduced spatial accuracy.'**
+  String get legacyPose2DDesc;
+
+  /// No description provided for @deepLearningBackendDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Optimized for high-fidelity posture tracking.'**
+  String get deepLearningBackendDesc;
+
+  /// No description provided for @newMultiViewAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'New Multi-View Analysis'**
+  String get newMultiViewAnalysis;
+
+  /// No description provided for @newAnalysisSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload synchronized video streams for 3D reconstruction and SMPL modeling'**
+  String get newAnalysisSubtitle;
+
+  /// No description provided for @captureMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'CAPTURE METHOD'**
+  String get captureMethod;
+
+  /// No description provided for @uploadStreams.
+  ///
+  /// In en, this message translates to:
+  /// **'UPLOAD STREAMS'**
+  String get uploadStreams;
+
+  /// No description provided for @syncAndProcess.
+  ///
+  /// In en, this message translates to:
+  /// **'SYNC & PROCESS'**
+  String get syncAndProcess;
+
+  /// No description provided for @uploadFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Files'**
+  String get uploadFiles;
+
+  /// No description provided for @uploadFilesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload existing synchronized video files from up to 4 camera angles.'**
+  String get uploadFilesDesc;
+
+  /// No description provided for @liveMultiCam.
+  ///
+  /// In en, this message translates to:
+  /// **'Live Multi-Cam'**
+  String get liveMultiCam;
+
+  /// No description provided for @liveMultiCamDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Stream directly from connected cameras for real-time analysis.'**
+  String get liveMultiCamDesc;
+
+  /// No description provided for @analysisInfoBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'For best results, ensure all cameras share the same frame rate and are calibrated using the provided calibration pattern.'**
+  String get analysisInfoBanner;
+
+  /// No description provided for @cameraAngleFront.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera Angle 1 - Front'**
+  String get cameraAngleFront;
+
+  /// No description provided for @cameraAngleLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera angle 2 - Left'**
+  String get cameraAngleLeft;
+
+  /// No description provided for @cameraAngleBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera Angle 3 - Back'**
+  String get cameraAngleBack;
+
+  /// No description provided for @cameraAngleRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera Angle 4 - Right'**
+  String get cameraAngleRight;
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
 }
 
 class _AppLocalizationsDelegate

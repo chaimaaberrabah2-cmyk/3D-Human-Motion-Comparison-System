@@ -20,50 +20,59 @@ class SettingsTabButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              // Check file extension to determine rendering widget
-              iconPath.endsWith('.svg')
-                  ? SvgPicture.asset(
-                      iconPath,
-                      width: 20,
-                      height: 20,
-                      // Only apply color filter if enabled
-                      colorFilter: applyColorFilter
-                          ? ColorFilter.mode(
-                              isSelected ? AppColors.accentBlue : AppColors.textGray,
-                              BlendMode.srcIn,
-                            )
-                          : null,
-                    )
-                  : Image.asset(
-                      iconPath,
-                      width: 20,
-                      height: 20,
-                      // For PNGs, we typically don't apply a color filter unless requested
-                      // If applyColorFilter is true, we tint it. If false, we show original.
-                      color: applyColorFilter 
-                          ? (isSelected ? AppColors.accentBlue : AppColors.textGray)
-                          : null,
-                    ),
-              const SizedBox(width: 12),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? AppColors.accentBlue : AppColors.textGray,
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                ),
+    final theme = Theme.of(context);
+    final iconColor = isSelected 
+        ? theme.primaryColor 
+        : (theme.textTheme.bodyMedium?.color ?? Colors.grey);
+        
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? theme.primaryColor.withOpacity(0.1) 
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            // Icon
+            iconPath.endsWith('.svg') 
+                ? SvgPicture.asset(
+                    iconPath,
+                    width: 20,
+                    height: 20,
+                    // Only apply color filter if enabled
+                    colorFilter: applyColorFilter
+                        ? ColorFilter.mode(
+                            iconColor,
+                            BlendMode.srcIn,
+                          )
+                        : null,
+                  )
+                : Image.asset(
+                    iconPath,
+                    width: 20,
+                    height: 20,
+                    // For PNGs, we typically don't apply a color filter unless requested
+                    color: applyColorFilter ? iconColor : null,
+                  ),
+            
+            const SizedBox(width: 12),
+            
+            // Label
+            Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isSelected 
+                    ? theme.primaryColor 
+                    : theme.textTheme.bodyLarge?.color,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

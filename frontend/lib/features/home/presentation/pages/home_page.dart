@@ -24,16 +24,15 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     filteredExercises = allExercises;
   }
-
+//filtre exos 
   void _filterExercises() {
     setState(() {
       filteredExercises = allExercises.where((exercise) {
-        // Filter by search query
+        
         final matchesSearch = exercise.name
             .toLowerCase()
             .contains(searchQuery.toLowerCase());
         
-        // Filter by category
         final matchesFilter = selectedFilter == 'All' ||
             exercise.category == selectedFilter;
         
@@ -41,17 +40,17 @@ class _HomePageState extends State<HomePage> {
       }).toList();
     });
   }
-
+//change dans search
   void _onSearchChanged(String query) {
     searchQuery = query;
     _filterExercises();
   }
-
+//filltre change
   void _onFilterChanged(String filter) {
     selectedFilter = filter;
     _filterExercises();
   }
-
+//fun quand on clique sur play de l'exo
   void _onExerciseTapped(Exercise exercise) {
     // TODO: Navigate to exercise detail page
     ScaffoldMessenger.of(context).showSnackBar(
@@ -61,21 +60,16 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
+//fun quand on clique sur new analysis
   void _onStartAnalysis() {
-    // TODO: Navigate to new analysis page
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Starting new analysis...'),
-        backgroundColor: AppColors.accentBlue,
-      ),
-    );
+    Navigator.pushNamed(context, '/new_analysis');
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isDesktop = constraints.maxWidth > 1200;
@@ -85,7 +79,7 @@ class _HomePageState extends State<HomePage> {
             // Desktop/Tablet: Sidebar + Main Content
             return Row(
               children: [
-                // Sidebar
+                // Sidebar menu
                 const HomeSidebar(),
                 
                 // Main Content
@@ -94,7 +88,7 @@ class _HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       HomeHeader(
-                        username: 'User', // TODO: Get from auth
+                        username: 'User', 
                         onStartAnalysis: _onStartAnalysis,
                       ),
                       
@@ -136,28 +130,30 @@ class _HomePageState extends State<HomePage> {
                 backgroundColor: AppColors.background,
                 child: const HomeSidebar(),
               ),
-              body: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  HomeHeader(
-                    username: 'User', // TODO: Get from auth
-                    onStartAnalysis: _onStartAnalysis,
-                  ),
-                  
-                  SearchFilterBar(
-                    onSearchChanged: _onSearchChanged,
-                    onFilterChanged: _onFilterChanged,
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  Expanded(
-                    child: ExerciseGrid(
-                      exercises: filteredExercises,
-                      onExerciseTapped: _onExerciseTapped,
+              body: SafeArea(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    HomeHeader(
+                      username: 'User', 
+                      onStartAnalysis: _onStartAnalysis,
                     ),
-                  ),
-                ],
+                    
+                    SearchFilterBar(
+                      onSearchChanged: _onSearchChanged,
+                      onFilterChanged: _onFilterChanged,
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    Expanded(
+                      child: ExerciseGrid(
+                        exercises: filteredExercises,
+                        onExerciseTapped: _onExerciseTapped,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }

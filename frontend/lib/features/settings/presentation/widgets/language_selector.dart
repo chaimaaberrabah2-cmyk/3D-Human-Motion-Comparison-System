@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/l10n/locale_provider.dart';
 import '../../../../l10n/app_localizations.dart';
 
@@ -15,20 +15,20 @@ class LanguageSelector extends StatefulWidget {
 }
 
 class _LanguageSelectorState extends State<LanguageSelector> {
-  bool isDarkMode = true;
   Locale? _selectedLocale;
 
   void _showLanguagePicker(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+    final theme = Theme.of(context);
     
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF0E172B),
-          title: const Text(
+          backgroundColor: theme.cardColor,
+          title: Text(
             'Select Language',
-            style: TextStyle(color: AppColors.textWhite),
+            style: theme.textTheme.titleLarge,
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -37,13 +37,13 @@ class _LanguageSelectorState extends State<LanguageSelector> {
               return ListTile(
                 title: Text(
                   L10n.getLanguageName(locale.languageCode),
-                  style: TextStyle(
-                    color: isSelected ? AppColors.accentBlue : AppColors.textWhite,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isSelected ? theme.primaryColor : theme.textTheme.bodyLarge?.color,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
                 trailing: isSelected
-                    ? const Icon(Icons.check, color: AppColors.accentBlue)
+                    ? Icon(Icons.check, color: theme.primaryColor)
                     : null,
                 onTap: () {
                   setState(() {
@@ -63,11 +63,14 @@ class _LanguageSelectorState extends State<LanguageSelector> {
   @override
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     
     return Column(
       children: [
         const SizedBox(height: 32),
-        const Divider(color: Color(0xFF1C293D)),
+        Divider(color: theme.dividerColor),
         const SizedBox(height: 32),
         
         // Language Selector
@@ -85,18 +88,15 @@ class _LanguageSelectorState extends State<LanguageSelector> {
                       'assets/icons/language.svg',
                       width: 24,
                       height: 24,
-                      colorFilter: const ColorFilter.mode(
-                        AppColors.textWhite,
+                      colorFilter: ColorFilter.mode(
+                        theme.iconTheme.color!,
                         BlendMode.srcIn,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      AppLocalizations.of(context)!.language,
-                      style: const TextStyle(
-                        color: AppColors.textWhite,
-                        fontSize: 14,
-                      ),
+                      l10n.language,
+                      style: theme.textTheme.bodyLarge,
                     ),
                   ],
                 ),
@@ -104,15 +104,12 @@ class _LanguageSelectorState extends State<LanguageSelector> {
                   children: [
                     Text(
                       L10n.getLanguageName((_selectedLocale ?? localeProvider.locale).languageCode),
-                      style: const TextStyle(
-                        color: AppColors.textGray,
-                        fontSize: 14,
-                      ),
+                      style: theme.textTheme.bodyMedium,
                     ),
                     const SizedBox(width: 8),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right,
-                      color: AppColors.textGray,
+                      color: theme.textTheme.bodyMedium?.color,
                       size: 20,
                     ),
                   ],
@@ -129,22 +126,22 @@ class _LanguageSelectorState extends State<LanguageSelector> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              AppLocalizations.of(context)!.light,
-              style: const TextStyle(
-                color: AppColors.textWhite,
-                fontSize: 14,
-              ),
+              l10n.light, // "Clair" or "Light Mode"
+              style: theme.textTheme.bodyLarge,
             ),
             Switch(
-              value: isDarkMode,
+              value: !themeProvider.isDarkMode, // Validating meaning: 'Light' label means switch ON = Light?
+              // Usually Switches are: "Dark Mode" -> ON=Dark.
+              // Here the label is "Light" (Clair).
+              // So if value is TRUE, it implies Light Mode is Active.
+              // themeProvider.isDarkMode is true -> Light Mode is false.
               onChanged: (value) {
-                setState(() {
-                  isDarkMode = value;
-                });
+                // If value is true (Light Mode requested), isDark should be false.
+                themeProvider.toggleTheme(!value);
               },
-              activeColor: AppColors.accentBlue,
-              inactiveThumbColor: AppColors.textGray,
-              inactiveTrackColor: const Color(0xFF1C293D),
+              activeColor: theme.primaryColor,
+              inactiveThumbColor: theme.textTheme.bodyMedium?.color,
+              inactiveTrackColor: theme.dividerColor,
             ),
           ],
         ),

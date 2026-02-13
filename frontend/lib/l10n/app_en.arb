@@ -29,5 +29,48 @@
   "bodyWeight": "BodyWeight",
   "rehab": "Rehab",
   "dashboard": "Dashboard",
-  "settings": "Settings"
+  "settings": "Settings",
+  "deepLearningBackend": "Deep Learning Backend",
+  "status": "Status",
+  "calibrated": "Calibrated",
+  "processingModel": "Processing Model",
+  "performanceMode": "Performance Mode",
+  "computingDevice": "Computing Device",
+  "highAccuracy": "High Accuracy",
+  "balanced": "Balanced",
+  "highSpeed": "High Speed",
+  "modifyCamera": "Modify {cameraName}",
+  "@modifyCamera": {
+    "placeholders": {
+      "cameraName": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDeviceSource": "Update device source and calibration parameters",
+  "chooseCameraSource": "1. CHOOSE CAMERA SOURCE",
+  "addCalibrationData": "2. ADD CALIBRATION DATA",
+  "clickToUpload": "Click to upload calibration file",
+  "uploadDesc": "or drag and drop your .bin or .json file here",
+  "applyChanges": "Apply Changes",
+  "cancel": "Cancel",
+  "aiEngineDescription": "Select the AI engine for keypoint extraction and SMPL fitting.",
+  "legacyPose2DEngine": "Lagacy Pose2D Engine",
+  "legacyPose2DDesc": "Faster processing, reduced spatial accuracy.",
+  "deepLearningBackendDesc": "Optimized for high-fidelity posture tracking.",
+  "newMultiViewAnalysis": "New Multi-View Analysis",
+  "newAnalysisSubtitle": "Upload synchronized video streams for 3D reconstruction and SMPL modeling",
+  "captureMethod": "CAPTURE METHOD",
+  "uploadStreams": "UPLOAD STREAMS",
+  "syncAndProcess": "SYNC & PROCESS",
+  "uploadFiles": "Upload Files",
+  "uploadFilesDesc": "Upload existing synchronized video files from up to 4 camera angles.",
+  "liveMultiCam": "Live Multi-Cam",
+  "liveMultiCamDesc": "Stream directly from connected cameras for real-time analysis.",
+  "analysisInfoBanner": "For best results, ensure all cameras share the same frame rate and are calibrated using the provided calibration pattern.",
+  "cameraAngleFront": "Camera Angle 1 - Front",
+  "cameraAngleLeft": "Camera angle 2 - Left",
+  "cameraAngleBack": "Camera Angle 3 - Back",
+  "cameraAngleRight": "Camera Angle 4 - Right",
+  "back": "Back"
 }

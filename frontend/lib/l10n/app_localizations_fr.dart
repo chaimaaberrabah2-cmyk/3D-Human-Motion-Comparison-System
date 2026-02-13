@@ -79,4 +79,122 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settings => 'Paramètres';
+
+  @override
+  String get deepLearningBackend => 'Backend Deep Learning';
+
+  @override
+  String get status => 'Statut';
+
+  @override
+  String get calibrated => 'Calibré';
+
+  @override
+  String get processingModel => 'Modèle de Traitement';
+
+  @override
+  String get performanceMode => 'Mode de Performance';
+
+  @override
+  String get computingDevice => 'Appareil de Calcul';
+
+  @override
+  String get highAccuracy => 'Haute Précision';
+
+  @override
+  String get balanced => 'Équilibré';
+
+  @override
+  String get highSpeed => 'Haute Vitesse';
+
+  @override
+  String modifyCamera(String cameraName) {
+    return 'Modify $cameraName';
+  }
+
+  @override
+  String get updateDeviceSource =>
+      'Update device source and calibration parameters';
+
+  @override
+  String get chooseCameraSource => '1. CHOOSE CAMERA SOURCE';
+
+  @override
+  String get addCalibrationData => '2. ADD CALIBRATION DATA';
+
+  @override
+  String get clickToUpload => 'Click to upload calibration file';
+
+  @override
+  String get uploadDesc => 'or drag and drop your .bin or .json file here';
+
+  @override
+  String get applyChanges => 'Apply Changes';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get aiEngineDescription =>
+      'Sélectionnez le moteur IA pour l\'extraction des points clés et l\'ajustement SMPL.';
+
+  @override
+  String get legacyPose2DEngine => 'Moteur Legacy Pose2D';
+
+  @override
+  String get legacyPose2DDesc =>
+      'Traitement plus rapide, précision spatiale réduite.';
+
+  @override
+  String get deepLearningBackendDesc =>
+      'Optimisé pour le suivi des postures haute fidélité.';
+
+  @override
+  String get newMultiViewAnalysis => 'Nouvelle Analyse Multi-Vues';
+
+  @override
+  String get newAnalysisSubtitle =>
+      'Téléchargez des flux vidéo synchronisés pour la reconstruction 3D et la modélisation SMPL';
+
+  @override
+  String get captureMethod => 'MÉTHODE DE CAPTURE';
+
+  @override
+  String get uploadStreams => 'TÉLÉCHARGER LES FLUX';
+
+  @override
+  String get syncAndProcess => 'SYNC & TRAITEMENT';
+
+  @override
+  String get uploadFiles => 'Télécharger des Fichiers';
+
+  @override
+  String get uploadFilesDesc =>
+      'Téléchargez des fichiers vidéo synchronisés existants à partir de 4 angles de caméra maximum.';
+
+  @override
+  String get liveMultiCam => 'Multi-Caméra en Direct';
+
+  @override
+  String get liveMultiCamDesc =>
+      'Diffusez directement à partir des caméras connectées pour une analyse en temps réel.';
+
+  @override
+  String get analysisInfoBanner =>
+      'Pour de meilleurs résultats, assurez-vous que toutes les caméras partagent la même fréquence d\'images et sont calibrées à l\'aide du modèle de calibration fourni.';
+
+  @override
+  String get cameraAngleFront => 'Angle Caméra 1 - Face';
+
+  @override
+  String get cameraAngleLeft => 'Angle Caméra 2 - Gauche';
+
+  @override
+  String get cameraAngleBack => 'Angle Caméra 3 - Arrière';
+
+  @override
+  String get cameraAngleRight => 'Angle Caméra 4 - Droite';
+
+  @override
+  String get back => 'Retour';
 }

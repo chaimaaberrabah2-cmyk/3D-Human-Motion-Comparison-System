@@ -20,18 +20,14 @@ class ExerciseGrid extends StatelessWidget {
         int crossAxisCount;
         double childAspectRatio;
         
-        if (constraints.maxWidth > 1200) {
-          // Desktop: 3 columns
+        if (constraints.maxWidth > 700) {
+          // Desktop & Web: 3 columns
           crossAxisCount = 3;
-          childAspectRatio = 0.75;
-        } else if (constraints.maxWidth > 600) {
-          // Tablet: 2 columns
-          crossAxisCount = 2;
-          childAspectRatio = 0.8;
+          childAspectRatio = 0.85; // Slightly taller to fit content well in 3 columns
         } else {
           // Mobile: 1 column
           crossAxisCount = 1;
-          childAspectRatio = 1.0;
+          childAspectRatio = 1.1; // Wider for single column mobile view
         }
 
         return GridView.builder(

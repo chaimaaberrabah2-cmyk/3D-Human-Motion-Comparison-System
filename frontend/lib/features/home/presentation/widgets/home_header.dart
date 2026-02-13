@@ -16,6 +16,7 @@ class HomeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -26,10 +27,9 @@ class HomeHeader extends StatelessWidget {
           Flexible(
             child: Text(
               l10n.welcomeBack(username),
-              style: const TextStyle(
-                color: AppColors.textWhite,
-                fontSize: 28,
+              style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
+                color: theme.textTheme.bodyLarge?.color,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -43,22 +43,18 @@ class HomeHeader extends StatelessWidget {
               'assets/icons/newanalysis.svg',
               width: 20,
               height: 20,
-              colorFilter: const ColorFilter.mode(
-                AppColors.textWhite,
+              colorFilter: ColorFilter.mode(
+                theme.colorScheme.onPrimary,
                 BlendMode.srcIn,
               ),
             ),
             label: Text(l10n.startNewAnalysis),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2563EB),
-              foregroundColor: AppColors.textWhite,
+              backgroundColor: theme.primaryColor,
+              foregroundColor: theme.colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: BorderSide(
-                  color: const Color(0xFF1E3A8A).withOpacity(0.3),
-                  width: 1,
-                ),
               ),
               elevation: 0,
             ),

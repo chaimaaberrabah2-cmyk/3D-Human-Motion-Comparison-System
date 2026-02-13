@@ -24,6 +24,7 @@ class _SearchFilterBarState extends State<SearchFilterBar> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -33,24 +34,24 @@ class _SearchFilterBarState extends State<SearchFilterBar> {
           Container(
             height: 50,
             decoration: BoxDecoration(
-              color: AppColors.cardFill,
+              color: theme.cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.cardStroke),
+              border: Border.all(color: theme.dividerColor),
             ),
             child: TextField(
               onChanged: widget.onSearchChanged,
-              style: const TextStyle(color: AppColors.textWhite),
+              style: theme.textTheme.bodyLarge,
               decoration: InputDecoration(
                 hintText: l10n.searchExercises,
-                hintStyle: const TextStyle(color: AppColors.textGray),
+                hintStyle: theme.textTheme.bodyMedium,
                 prefixIcon: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: SvgPicture.asset(
                     'assets/icons/search.svg',
                     width: 20,
                     height: 20,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.textGray,
+                    colorFilter: ColorFilter.mode(
+                      theme.iconTheme.color ?? Colors.grey,
                       BlendMode.srcIn,
                     ),
                   ),
@@ -101,14 +102,15 @@ class _SearchFilterBarState extends State<SearchFilterBar> {
                     });
                     widget.onFilterChanged(filter);
                   },
-                  backgroundColor: const Color(0xFF0E172B),
-                  selectedColor: const Color(0xFF165DFC),
+                  backgroundColor: theme.cardColor,
+                  selectedColor: theme.primaryColor,
+                  checkmarkColor: theme.colorScheme.onPrimary,
                   labelStyle: TextStyle(
-                    color: isSelected ? AppColors.textWhite : AppColors.textGray,
+                    color: isSelected ? theme.colorScheme.onPrimary : theme.textTheme.bodyMedium?.color,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
                   side: BorderSide(
-                    color: const Color(0xFF1C293D),
+                    color: isSelected ? Colors.transparent : theme.dividerColor,
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 );

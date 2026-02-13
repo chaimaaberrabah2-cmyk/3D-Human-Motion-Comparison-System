@@ -15,11 +15,13 @@ class ExerciseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardFill,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardStroke, width: 1),
+        border: Border.all(color: theme.dividerColor, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -29,7 +31,7 @@ class ExerciseCard extends StatelessWidget {
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: theme.scaffoldBackgroundColor,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
@@ -46,12 +48,12 @@ class ExerciseCard extends StatelessWidget {
                   errorBuilder: (context, error, stackTrace) {
                     // Placeholder when image not found
                     return Container(
-                      color: AppColors.accentDark2,
-                      child: const Center(
+                      color: theme.primaryColor.withOpacity(0.1),
+                      child: Center(
                         child: Icon(
                           Icons.fitness_center,
                           size: 64,
-                          color: AppColors.textGray,
+                          color: theme.iconTheme.color?.withOpacity(0.5),
                         ),
                       ),
                     );
@@ -69,9 +71,7 @@ class ExerciseCard extends StatelessWidget {
               children: [
                 Text(
                   exercise.name,
-                  style: const TextStyle(
-                    color: AppColors.textWhite,
-                    fontSize: 16,
+                  style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                   maxLines: 2,
@@ -80,10 +80,7 @@ class ExerciseCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   exercise.mode,
-                  style: const TextStyle(
-                    color: AppColors.textGray,
-                    fontSize: 12,
-                  ),
+                  style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 12),
                 
@@ -94,7 +91,7 @@ class ExerciseCard extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1C293D),
+                      color: theme.primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: IconButton(
@@ -103,8 +100,8 @@ class ExerciseCard extends StatelessWidget {
                         'assets/icons/newanalysis.svg',
                         width: 20,
                         height: 20,
-                        colorFilter: const ColorFilter.mode(
-                          AppColors.textWhite,
+                        colorFilter: ColorFilter.mode(
+                          theme.primaryColor,
                           BlendMode.srcIn,
                         ),
                       ),
