@@ -21,6 +21,9 @@ dependencies:
   # Network & API
   dio: ^5.4.0
   retrofit: ^4.0.3
+  
+  # SVG Support
+  flutter_svg: ^2.0.9
   json_annotation: ^4.8.1
   
   # Local Storage

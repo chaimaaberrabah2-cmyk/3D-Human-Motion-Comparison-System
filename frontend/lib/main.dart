@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'features/starting/presentation/pages/starting_page.dart';
+import 'features/home/presentation/pages/home_page.dart';
 
 void main() {
   runApp(const MotionAIApp());
@@ -15,14 +15,11 @@ class MotionAIApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        primaryColor: const Color(0xFF5B9FED),
-        scaffoldBackgroundColor: const Color(0xFF0A0E1A),
+        primaryColor: const Color(0xFF52A2FF),
+        scaffoldBackgroundColor: const Color(0xFF020617),
         fontFamily: 'Segoe UI',
       ),
-      home: const StartingPage(),
-      routes: {
-        '/signin': (context) => const Placeholder(), // TODO: Replace with SigninPage
-      },
+      home: const HomePage(),
     );
   }
 }
