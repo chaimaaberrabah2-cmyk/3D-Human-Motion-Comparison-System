@@ -232,6 +232,102 @@ abstract class AppLocalizations {
   /// **'Dashboard'**
   String get dashboard;
 
+  /// No description provided for @history.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get history;
+
+  /// No description provided for @recentActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Activity'**
+  String get recentActivity;
+
+  /// No description provided for @viewAllRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'View All Records'**
+  String get viewAllRecords;
+
+  /// No description provided for @totalSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Sessions'**
+  String get totalSessions;
+
+  /// No description provided for @avgAccuracy.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg. Accuracy'**
+  String get avgAccuracy;
+
+  /// No description provided for @processingTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing Time'**
+  String get processingTime;
+
+  /// No description provided for @activeCameras.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Cameras'**
+  String get activeCameras;
+
+  /// No description provided for @sessionId.
+  ///
+  /// In en, this message translates to:
+  /// **'Session ID'**
+  String get sessionId;
+
+  /// No description provided for @dateTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Date & Time'**
+  String get dateTime;
+
+  /// No description provided for @deviceSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Source'**
+  String get deviceSource;
+
+  /// No description provided for @duration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get duration;
+
+  /// No description provided for @score.
+  ///
+  /// In en, this message translates to:
+  /// **'SCORE'**
+  String get score;
+
+  /// No description provided for @performancePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get performancePreview;
+
+  /// No description provided for @completedStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get completedStatus;
+
+  /// No description provided for @failedStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get failedStatus;
+
+  /// No description provided for @stable.
+  ///
+  /// In en, this message translates to:
+  /// **'Stable'**
+  String get stable;
+
   /// No description provided for @settings.
   ///
   /// In en, this message translates to:
@@ -313,7 +409,7 @@ abstract class AppLocalizations {
   /// No description provided for @addCalibrationData.
   ///
   /// In en, this message translates to:
-  /// **'2. ADD CALIBRATION DATA'**
+  /// **'ADD CALIBRATION DATA'**
   String get addCalibrationData;
 
   /// No description provided for @clickToUpload.
@@ -453,6 +549,336 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back'**
   String get back;
+
+  /// No description provided for @addNewCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Add New Camera'**
+  String get addNewCamera;
+
+  /// No description provided for @deleteCameraTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Camera?'**
+  String get deleteCameraTitle;
+
+  /// No description provided for @deleteCameraMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete {cameraName}? This action cannot be undone.'**
+  String deleteCameraMessage(String cameraName);
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @minimumCamerasWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'You must have at least 4 cameras'**
+  String get minimumCamerasWarning;
+
+  /// No description provided for @languageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'(Language)'**
+  String get languageLabel;
+
+  /// No description provided for @unsavedChangesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsaved Changes'**
+  String get unsavedChangesTitle;
+
+  /// No description provided for @unsavedChangesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes. What would you like to do?'**
+  String get unsavedChangesMessage;
+
+  /// No description provided for @saveAndContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Save & Continue'**
+  String get saveAndContinue;
+
+  /// No description provided for @discardAndContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard & Continue'**
+  String get discardAndContinue;
+
+  /// No description provided for @cameraSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera Source'**
+  String get cameraSource;
+
+  /// No description provided for @calibrationFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Calibration File'**
+  String get calibrationFile;
+
+  /// No description provided for @uploadCalibration.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Calibration'**
+  String get uploadCalibration;
+
+  /// No description provided for @dragDropHint.
+  ///
+  /// In en, this message translates to:
+  /// **'or drag and drop your .bin or .json file here'**
+  String get dragDropHint;
+
+  /// No description provided for @statusCalibrated.
+  ///
+  /// In en, this message translates to:
+  /// **'Status: Calibrated'**
+  String get statusCalibrated;
+
+  /// No description provided for @aiAlgorithm.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Algorithm'**
+  String get aiAlgorithm;
+
+  /// No description provided for @blazePose.
+  ///
+  /// In en, this message translates to:
+  /// **'MediaPipe (BlazePose)'**
+  String get blazePose;
+
+  /// No description provided for @openPose.
+  ///
+  /// In en, this message translates to:
+  /// **'OpenPose'**
+  String get openPose;
+
+  /// No description provided for @yolo.
+  ///
+  /// In en, this message translates to:
+  /// **'YOLO'**
+  String get yolo;
+
+  /// No description provided for @pavllo.
+  ///
+  /// In en, this message translates to:
+  /// **'Pavllo'**
+  String get pavllo;
+
+  /// No description provided for @blazePoseDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Fast & lightweight. Best for real-time mobile use.'**
+  String get blazePoseDesc;
+
+  /// No description provided for @openPoseDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'High accuracy. Resource heavy.'**
+  String get openPoseDesc;
+
+  /// No description provided for @yoloDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Rapid object & pose detection. Balanced speed/accuracy.'**
+  String get yoloDesc;
+
+  /// No description provided for @pavlloDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Specialized 3D human pose lifting from 2D video.'**
+  String get pavlloDesc;
+
+  /// No description provided for @startRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Recording'**
+  String get startRecording;
+
+  /// No description provided for @rec.
+  ///
+  /// In en, this message translates to:
+  /// **'REC'**
+  String get rec;
+
+  /// No description provided for @start.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get start;
+
+  /// No description provided for @newAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'New Analysis'**
+  String get newAnalysis;
+
+  /// No description provided for @selectExercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Select exercice'**
+  String get selectExercise;
+
+  /// No description provided for @pleaseSelectExercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select your reference exercice'**
+  String get pleaseSelectExercise;
+
+  /// No description provided for @userReconstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'USER RECONSTRUCTION'**
+  String get userReconstruction;
+
+  /// No description provided for @analysisResultsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysis Results'**
+  String get analysisResultsTitle;
+
+  /// No description provided for @exportPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Export PDF'**
+  String get exportPdf;
+
+  /// No description provided for @exportingPdfMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Exporting PDF... (Feature in development)'**
+  String get exportingPdfMessage;
+
+  /// No description provided for @syncVideoStreams.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronizing video streams...'**
+  String get syncVideoStreams;
+
+  /// No description provided for @extractingKeypoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Extracting 2D keypoints (BlazePose)...'**
+  String get extractingKeypoints;
+
+  /// No description provided for @fittingSmpl.
+  ///
+  /// In en, this message translates to:
+  /// **'Fitting SMPL-X body model...'**
+  String get fittingSmpl;
+
+  /// No description provided for @optimizingMesh.
+  ///
+  /// In en, this message translates to:
+  /// **'Optimizing 3D mesh reconstruction...'**
+  String get optimizingMesh;
+
+  /// No description provided for @generatingReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating comparison reports...'**
+  String get generatingReports;
+
+  /// No description provided for @remainingTimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining time: {time}s'**
+  String remainingTimeLabel(int time);
+
+  /// No description provided for @logAnalysisStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'ANALYSIS STARTED'**
+  String get logAnalysisStarted;
+
+  /// No description provided for @logSyncOk.
+  ///
+  /// In en, this message translates to:
+  /// **'SYCHRONIZING STREAMS - OK'**
+  String get logSyncOk;
+
+  /// No description provided for @logExtractionProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'KEYPOINT EXTRACTION IN PROGRESS'**
+  String get logExtractionProgress;
+
+  /// No description provided for @logSmplActive.
+  ///
+  /// In en, this message translates to:
+  /// **'SMPL-X MESH FITTING ACTIVE'**
+  String get logSmplActive;
+
+  /// No description provided for @analysisFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Comparing your movement with {exerciseName}. Initial analysis shows 85% form accuracy. Focus on lowering your hips further during the eccentric phase.'**
+  String analysisFeedback(String exerciseName);
+
+  /// No description provided for @strengthAnalysisMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Strength Analysis Mode'**
+  String get strengthAnalysisMode;
+
+  /// No description provided for @mobilityAnalysisMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobility Analysis Mode'**
+  String get mobilityAnalysisMode;
+
+  /// No description provided for @beginner.
+  ///
+  /// In en, this message translates to:
+  /// **'Beginner'**
+  String get beginner;
+
+  /// No description provided for @intermediate.
+  ///
+  /// In en, this message translates to:
+  /// **'Intermediate'**
+  String get intermediate;
+
+  /// No description provided for @advanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get advanced;
+
+  /// No description provided for @descriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get descriptionLabel;
+
+  /// No description provided for @instructionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Instructions'**
+  String get instructionsLabel;
+
+  /// No description provided for @motionVisualization.
+  ///
+  /// In en, this message translates to:
+  /// **'3D Motion Visualization'**
+  String get motionVisualization;
+
+  /// No description provided for @motionVisualizationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ideal motion comparison will appear here'**
+  String get motionVisualizationSubtitle;
+
+  /// No description provided for @startAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Analysis'**
+  String get startAnalysis;
 }
 
 class _AppLocalizationsDelegate

@@ -32,6 +32,7 @@ data_loading.log
 dataset/videos/user_uploads/
 dataset/keypoints/user_uploads/
 dataset/smpl/user_uploads/
+dataset/
 
 # Keep structure
 !dataset/videos/user_uploads/.gitkeep

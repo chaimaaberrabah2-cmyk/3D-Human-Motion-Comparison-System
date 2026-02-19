@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'features/home/presentation/pages/home_page.dart';
 import 'features/settings/presentation/pages/settings_page.dart';
 import 'features/analysis/presentation/pages/new_analysis_page.dart';
+import 'features/history/presentation/pages/history_page.dart';
 import 'core/l10n/locale_provider.dart';
 import 'l10n/app_localizations.dart';
 import 'core/theme/theme_provider.dart';
@@ -49,6 +50,9 @@ class MotionAIApp extends StatelessWidget {
                     break;
                   case '/settings':
                     page = const SettingsPage();
+                    break;
+                  case '/history':
+                    page = const HistoryPage();
                     break;
                   case '/new_analysis':
                     page = const NewAnalysisPage();

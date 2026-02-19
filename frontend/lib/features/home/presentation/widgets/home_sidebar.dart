@@ -4,7 +4,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class HomeSidebar extends StatelessWidget {
-  const HomeSidebar({Key? key}) : super(key: key);
+  final Future<void> Function(String)? onNavigate;
+  
+  const HomeSidebar({Key? key, this.onNavigate}) : super(key: key);
 
   @override
   @override
@@ -81,8 +83,26 @@ class HomeSidebar extends StatelessWidget {
             iconPath: 'assets/icons/dashboard.svg',
             label: AppLocalizations.of(context)!.dashboard,
             isSelected: ModalRoute.of(context)?.settings.name == '/',
-            onTap: () {
-              Navigator.pushNamed(context, '/');
+            onTap: () async {
+              if (onNavigate != null) {
+                await onNavigate!('/');
+              } else {
+                Navigator.pushNamed(context, '/');
+              }
+            },
+          ),
+          
+          _buildNavItem(
+            context,
+            iconPath: 'assets/icons/historyicon.svg',
+            label: AppLocalizations.of(context)!.history,
+            isSelected: ModalRoute.of(context)?.settings.name == '/history',
+            onTap: () async {
+              if (onNavigate != null) {
+                await onNavigate!('/history');
+              } else {
+                Navigator.pushNamed(context, '/history');
+              }
             },
           ),
           
@@ -91,8 +111,12 @@ class HomeSidebar extends StatelessWidget {
             iconPath: 'assets/icons/setting.svg',
             label: AppLocalizations.of(context)!.settings,
             isSelected: ModalRoute.of(context)?.settings.name == '/settings',
-            onTap: () {
-              Navigator.pushNamed(context, '/settings');
+            onTap: () async {
+              if (onNavigate != null) {
+                await onNavigate!('/settings');
+              } else {
+                Navigator.pushNamed(context, '/settings');
+              }
             },
           ),
           
@@ -104,7 +128,8 @@ class HomeSidebar extends StatelessWidget {
 
   Widget _buildNavItem(
     BuildContext context, {
-    required String iconPath,
+    String? iconPath,
+    IconData? iconData,
     required String label,
     required bool isSelected,
     required VoidCallback onTap,
@@ -133,15 +158,22 @@ class HomeSidebar extends StatelessWidget {
             ),
             child: Row(
               children: [
-                SvgPicture.asset(
-                  iconPath,
-                  width: 20,
-                  height: 20,
-                  colorFilter: ColorFilter.mode(
-                    iconColor,
-                    BlendMode.srcIn,
+                if (iconPath != null)
+                  SvgPicture.asset(
+                    iconPath,
+                    width: 20,
+                    height: 20,
+                    colorFilter: ColorFilter.mode(
+                      iconColor,
+                      BlendMode.srcIn,
+                    ),
+                  )
+                else if (iconData != null)
+                  Icon(
+                    iconData,
+                    size: 20,
+                    color: iconColor,
                   ),
-                ),
                 const SizedBox(width: 12),
                 Text(
                   label,

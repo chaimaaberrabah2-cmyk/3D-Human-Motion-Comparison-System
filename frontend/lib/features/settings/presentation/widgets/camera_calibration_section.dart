@@ -2,35 +2,56 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:desktop_drop/desktop_drop.dart';
+import 'package:cross_file/cross_file.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class CameraCalibrationSection extends StatefulWidget {
   const CameraCalibrationSection({Key? key}) : super(key: key);
 
   @override
-  State<CameraCalibrationSection> createState() => _CameraCalibrationSectionState();
+  CameraCalibrationSectionState createState() => CameraCalibrationSectionState();
 }
 
-class _CameraCalibrationSectionState extends State<CameraCalibrationSection> {
+class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
   String? modifyingCamera;
+
+  void resetView() {
+    if (modifyingCamera != null) {
+      setState(() {
+        modifyingCamera = null;
+        _controller?.dispose();
+        _controller = null;
+        _isCameraInitialized = false;
+      });
+    }
+  }
   List<CameraDescription> _availableCameras = [];
   CameraController? _controller;
   bool _isCameraInitialized = false;
   String? _errorMessage;
   
-  // Per-camera settings storage
-  // Key: Camera Name (e.g. 'Motion Cam 1'), Value: Map of settings
-  final Map<String, Map<String, dynamic>> _cameraSettings = {
-    'Motion Cam 1': {'source': 'Camera Source A (FHD)', 'isUploaded': true, 'file': 'calib_001.bin'},
-    'Motion Cam 2': {'source': 'Camera Source B (HD)', 'isUploaded': true, 'file': 'calib_002.bin'},
-    'Motion Cam 3': {'source': 'External USB Camera', 'isUploaded': false, 'file': null},
-    'Motion Cam 4': {'source': 'Virtual Stream 01', 'isUploaded': false, 'file': null},
-  };
+  // Camera model class for better structure
+  int _cameraCounter = 4; // Start from 5 for new cameras
+  
+  // Dynamic camera list
+  List<Map<String, dynamic>> _cameras = [
+    {'id': '1', 'name': 'Motion Cam 1', 'source': 'Camera Source A (FHD)', 'isUploaded': true, 'file': 'calib_001.bin'},
+    {'id': '2', 'name': 'Motion Cam 2', 'source': 'Camera Source B (HD)', 'isUploaded': true, 'file': 'calib_002.bin'},
+    {'id': '3', 'name': 'Motion Cam 3', 'source': 'External USB Camera', 'isUploaded': false, 'file': null},
+    {'id': '4', 'name': 'Motion Cam 4', 'source': 'Virtual Stream 01', 'isUploaded': false, 'file': null},
+  ];
 
   // Temporary state for the modify view
   String _tempSelectedSource = '';
   bool _tempIsUploaded = false;
   String? _tempFile;
+  
+  // Shared calibration state (applies to all cameras)
+  String _selectedSource = 'Camera Source A (FHD)';
+  bool _isCalibrationUploaded = false;
+  String? _calibrationFile;
   
   // Static sources for the UI
   final List<String> _staticSources = [
@@ -130,17 +151,33 @@ class _CameraCalibrationSectionState extends State<CameraCalibrationSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section Title
-        Text(
-          l10n.deepLearningBackend,
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: theme.textTheme.bodyMedium?.color,
-          ),
+        // Section Title with Add Button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              l10n.deepLearningBackend,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.textTheme.bodyMedium?.color,
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: _addNewCamera,
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(l10n.addNewCamera),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
         ),
         
         const SizedBox(height: 16),
         
-        // Cameras Container (Hardcoded for management, but source will be real)
+        // Cameras Container (Dynamic)
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -148,23 +185,89 @@ class _CameraCalibrationSectionState extends State<CameraCalibrationSection> {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: theme.dividerColor),
           ),
-          child: Column(
-            children: [
-              _buildCameraManagementItem(context, 'Motion Cam 1'),
-              const SizedBox(height: 16),
-              _buildCameraManagementItem(context, 'Motion Cam 2'),
-              const SizedBox(height: 16),
-              _buildCameraManagementItem(context, 'Motion Cam 3'),
-              const SizedBox(height: 16),
-              _buildCameraManagementItem(context, 'Motion Cam 4'),
-            ],
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _cameras.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 16),
+            itemBuilder: (context, index) {
+              final camera = _cameras[index];
+              return _buildCameraManagementItem(context, camera);
+            },
           ),
         ),
+        
+        const SizedBox(height: 32),
+        
+        // Shared Calibration Section
+        _buildSharedCalibrationSection(l10n, theme),
       ],
     );
   }
 
+  void _addNewCamera() {
+    setState(() {
+      _cameraCounter++;
+      _cameras.add({
+        'id': _cameraCounter.toString(),
+        'name': 'Motion Cam $_cameraCounter',
+        'source': 'Camera Source A (FHD)',
+        'isUploaded': false,
+        'file': null,
+      });
+    });
+  }
+
+  Future<void> _deleteCamera(Map<String, dynamic> camera) async {
+    final l10n = AppLocalizations.of(context)!;
+    
+    // Check minimum cameras
+    if (_cameras.length <= 4) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.minimumCamerasWarning),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.deleteCameraTitle),
+        content: Text(l10n.deleteCameraMessage(camera['name'])),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() {
+        _cameras.remove(camera);
+      });
+    }
+  }
+
   Widget _buildModifyView(BuildContext context, AppLocalizations l10n, ThemeData theme) {
+    // Find the camera being modified
+    final camera = _cameras.firstWhere(
+      (c) => c['name'] == modifyingCamera,
+      orElse: () => _cameras.first,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -299,91 +402,10 @@ class _CameraCalibrationSectionState extends State<CameraCalibrationSection> {
               ),
 
               const SizedBox(height: 32),
-              const Divider(),
-              const SizedBox(height: 32),
-
-              // 2. ADD CALIBRATION DATA
-              Text(
-                l10n.addCalibrationData,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              // Upload Area
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 32),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.dividerColor,
-                    style: BorderStyle.none, // Corrected from typo
-                  ),
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: theme.dividerColor),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: theme.primaryColor.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.cloud_upload_outlined, color: theme.primaryColor),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        l10n.clickToUpload,
-                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        l10n.uploadDesc,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              if (_tempIsUploaded) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.videocam_outlined, color: Color(0xFF10B981), size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _tempFile ?? 'calibration.bin',
-                          style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => setState(() => _tempIsUploaded = false),
-                        icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 20),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 32),
+              /* 
+               * Calibration section removed as per new design request.
+               * Calibration is now handled globally in the main view.
+               */
 
               // Action Buttons
               Row(
@@ -391,12 +413,14 @@ class _CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                         // SAVE changes to the map
-                         _cameraSettings[modifyingCamera!] = {
-                           'source': _tempSelectedSource,
-                           'isUploaded': _tempIsUploaded,
-                           'file': _tempIsUploaded ? (_tempFile ?? 'calibration.bin') : null,
-                         };
+                         // SAVE changes to the camera source only
+                         final cameraIndex = _cameras.indexWhere((c) => c['name'] == modifyingCamera);
+                         if (cameraIndex != -1) {
+                           _cameras[cameraIndex] = {
+                             ..._cameras[cameraIndex],
+                             'source': _tempSelectedSource,
+                           };
+                         }
 
                          _controller?.dispose();
                          _controller = null;
@@ -405,12 +429,13 @@ class _CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.primaryColor,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: Text(
                         l10n.applyChanges,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -424,11 +449,12 @@ class _CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                       setState(() => modifyingCamera = null);
                     },
                     style: TextButton.styleFrom(
+                      foregroundColor: theme.textTheme.bodyMedium?.color,
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     ),
                     child: Text(
                       l10n.cancel,
-                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -526,100 +552,95 @@ class _CameraCalibrationSectionState extends State<CameraCalibrationSection> {
     return '${camera.name}$lens';
   }
 
-  Widget _buildCameraManagementItem(BuildContext context, String cameraName) {
+  Widget _buildCameraManagementItem(BuildContext context, Map<String, dynamic> camera) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final canDelete = _cameras.length > 4;
+
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
+         // Use dark slate for dark mode, white/card color for light mode
+        color: isDark ? const Color(0xFF1E293B) : theme.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark 
+              ? theme.dividerColor.withOpacity(0.5) 
+              : theme.dividerColor,
+        ),
       ),
       child: Row(
         children: [
+          // Camera Icon on the left
           Container(
-            width: 48,
-            height: 48,
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: theme.cardColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.dividerColor),
+              color: theme.primaryColor.withOpacity(0.1),
+              shape: BoxShape.circle,
             ),
-            child: Center(
-              child: SvgPicture.asset(
-                'assets/icons/video.svg',
-                width: 24,
-                height: 24,
-                colorFilter: ColorFilter.mode(
-                  theme.textTheme.bodyMedium?.color ?? Colors.grey,
-                  BlendMode.srcIn,
-                ),
+            child: SvgPicture.asset(
+              'assets/icons/video.svg',
+              width: 20,
+              height: 20,
+              colorFilter: ColorFilter.mode(
+                theme.primaryColor,
+                BlendMode.srcIn,
               ),
             ),
           ),
           
           const SizedBox(width: 16),
           
+          // Name and Status
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  cameraName,
+                  camera['name'],
                   style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      '${l10n.status}: ',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                         color: theme.textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                    Text(
-                      l10n.calibrated,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF10B981),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: theme.primaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        _cameraSettings[cameraName]?['source'] ?? 'No Source',
-                        style: TextStyle(
-                          color: theme.primaryColor,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  l10n.statusCalibrated,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF10B981), // Green text
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
           ),
           
+          // Delete Button (subtle)
+          if (canDelete)
+            IconButton(
+              onPressed: () => _deleteCamera(camera),
+              icon: Icon(
+                Icons.delete_outline,
+                size: 20,
+                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+              ),
+              tooltip: l10n.delete,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            ),
+          
+          const SizedBox(width: 4),
+          
+          // Edit Icon (pencil) on the right
           IconButton(
             onPressed: () {
               _discoverCameras();
               setState(() {
-                modifyingCamera = cameraName;
-                // Initialize temporary state from current settings
-                final settings = _cameraSettings[cameraName]!;
-                _tempSelectedSource = settings['source'];
-                _tempIsUploaded = settings['isUploaded'];
-                _tempFile = settings['file'];
+                modifyingCamera = camera['name'];
+                _tempSelectedSource = camera['source'];
+                _tempIsUploaded = camera['isUploaded'];
+                _tempFile = camera['file'];
               });
             },
             icon: SvgPicture.asset(
@@ -631,9 +652,238 @@ class _CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                 BlendMode.srcIn,
               ),
             ),
+            tooltip: l10n.modifyCamera(camera['name']),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildSharedCalibrationSection(AppLocalizations l10n, ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Header
+          Text(
+            '2. ${l10n.addCalibrationData}',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Drag and Drop Upload Area
+          _isCalibrationUploaded
+              ? Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.insert_drive_file,
+                          color: Color(0xFF10B981),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _calibrationFile ?? 'calib_001.bin',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.textTheme.bodyLarge?.color,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, size: 20),
+                        onPressed: () {
+                          setState(() {
+                            _isCalibrationUploaded = false;
+                            _calibrationFile = null;
+                          });
+                        },
+                        color: theme.textTheme.bodyMedium?.color,
+                        tooltip: l10n.delete,
+                      ),
+                    ],
+                  ),
+                )
+              : DropTarget(
+                  onDragDone: (detail) {
+                    if (detail.files.isNotEmpty) {
+                      setState(() {
+                        _isCalibrationUploaded = true;
+                        _calibrationFile = detail.files.first.name;
+                      });
+                    }
+                  },
+                  onDragEntered: (detail) {
+                    setState(() {
+                      // optional: add visual feedback state
+                    });
+                  },
+                  onDragExited: (detail) {
+                    setState(() {
+                      // optional: remove visual feedback state
+                    });
+                  },
+                  child: InkWell(
+                    onTap: _pickCalibrationFile,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                      decoration: BoxDecoration(
+                        color: theme.brightness == Brightness.dark 
+                            ? theme.scaffoldBackgroundColor.withOpacity(0.5)
+                            : theme.scaffoldBackgroundColor, // Solid background for light mode
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: theme.dividerColor,
+                          width: 2,
+                          strokeAlign: BorderSide.strokeAlignInside,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: theme.primaryColor.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.cloud_upload_outlined,
+                              size: 32,
+                              color: theme.primaryColor,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            l10n.clickToUpload,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.textTheme.bodyLarge?.color,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.dragDropHint,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+          
+          const SizedBox(height: 24),
+          
+          // Action Buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _isCalibrationUploaded = false;
+                    _calibrationFile = null;
+                  });
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.textTheme.bodyMedium?.color,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                child: Text(l10n.cancel),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: _isCalibrationUploaded
+                    ? () {
+                        // Simulate file upload
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.saveSettings)),
+                        );
+                      }
+                    : () {
+                        // Simulate file selection
+                        setState(() {
+                          _isCalibrationUploaded = true;
+                          _calibrationFile = 'calib_001.bin';
+                        });
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  _isCalibrationUploaded ? l10n.applyChanges : l10n.uploadCalibration,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickCalibrationFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['bin', 'json', 'yml', 'yaml'],
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        if (mounted) {
+          setState(() {
+            _isCalibrationUploaded = true;
+            _calibrationFile = file.name;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking file: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

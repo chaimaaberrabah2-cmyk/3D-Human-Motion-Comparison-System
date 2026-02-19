@@ -78,6 +78,54 @@ class AppLocalizationsFr extends AppLocalizations {
   String get dashboard => 'Tableau de Bord';
 
   @override
+  String get history => 'Historique';
+
+  @override
+  String get recentActivity => 'Activité Récente';
+
+  @override
+  String get viewAllRecords => 'Tout Afficher';
+
+  @override
+  String get totalSessions => 'Total des Sessions';
+
+  @override
+  String get avgAccuracy => 'Précision Moyenne';
+
+  @override
+  String get processingTime => 'Temps de Traitement';
+
+  @override
+  String get activeCameras => 'Caméras Actives';
+
+  @override
+  String get sessionId => 'ID de Session';
+
+  @override
+  String get dateTime => 'Date et Heure';
+
+  @override
+  String get deviceSource => 'Source du Dispositif';
+
+  @override
+  String get duration => 'Durée';
+
+  @override
+  String get score => 'SCORE';
+
+  @override
+  String get performancePreview => 'Aperçu';
+
+  @override
+  String get completedStatus => 'Terminé';
+
+  @override
+  String get failedStatus => 'Échoué';
+
+  @override
+  String get stable => 'Stable';
+
+  @override
   String get settings => 'Paramètres';
 
   @override
@@ -120,16 +168,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get chooseCameraSource => '1. CHOOSE CAMERA SOURCE';
 
   @override
-  String get addCalibrationData => '2. ADD CALIBRATION DATA';
+  String get addCalibrationData => 'AJOUTER DES DONNÉES DE CALIBRATION';
 
   @override
-  String get clickToUpload => 'Click to upload calibration file';
+  String get clickToUpload =>
+      'Cliquez pour télécharger le fichier de calibration';
 
   @override
   String get uploadDesc => 'or drag and drop your .bin or .json file here';
 
   @override
-  String get applyChanges => 'Apply Changes';
+  String get applyChanges => 'Appliquer les modifications';
 
   @override
   String get cancel => 'Cancel';
@@ -197,4 +246,182 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get back => 'Retour';
+
+  @override
+  String get addNewCamera => 'Ajouter';
+
+  @override
+  String get deleteCameraTitle => 'Supprimer la Caméra?';
+
+  @override
+  String deleteCameraMessage(String cameraName) {
+    return 'Êtes-vous sûr de vouloir supprimer $cameraName? Cette action ne peut pas être annulée.';
+  }
+
+  @override
+  String get delete => 'Supprimer';
+
+  @override
+  String get minimumCamerasWarning => 'Vous devez avoir au moins 4 caméras';
+
+  @override
+  String get languageLabel => '(Language)';
+
+  @override
+  String get unsavedChangesTitle => 'Modifications Non Enregistrées';
+
+  @override
+  String get unsavedChangesMessage =>
+      'Vous avez des modifications non enregistrées. Que souhaitez-vous faire?';
+
+  @override
+  String get saveAndContinue => 'Enregistrer et Continuer';
+
+  @override
+  String get discardAndContinue => 'Annuler et Continuer';
+
+  @override
+  String get cameraSource => 'Source de la caméra';
+
+  @override
+  String get calibrationFile => 'Fichier de calibration';
+
+  @override
+  String get uploadCalibration => 'Télécharger ';
+
+  @override
+  String get dragDropHint =>
+      'ou glissez-déposez votre fichier .bin ou .json ici';
+
+  @override
+  String get statusCalibrated => 'Statut: Calibré';
+
+  @override
+  String get aiAlgorithm => 'Algorithme IA';
+
+  @override
+  String get blazePose => 'MediaPipe (BlazePose)';
+
+  @override
+  String get openPose => 'OpenPose';
+
+  @override
+  String get yolo => 'YOLO';
+
+  @override
+  String get pavllo => 'Pavllo';
+
+  @override
+  String get blazePoseDesc =>
+      'Rapide et léger. Idéal pour mobile en temps réel.';
+
+  @override
+  String get openPoseDesc => 'Haute précision. Gourmand en ressources.';
+
+  @override
+  String get yoloDesc => 'Détection rapide d\'objets et de poses. Équilibré.';
+
+  @override
+  String get pavlloDesc =>
+      'Lifting de pose 3D spécialisé à partir de vidéo 2D.';
+
+  @override
+  String get startRecording => 'Enregistrement';
+
+  @override
+  String get rec => 'ENR';
+
+  @override
+  String get start => 'Démarrer';
+
+  @override
+  String get newAnalysis => 'Nouvelle Analyse';
+
+  @override
+  String get selectExercise => 'Choisir l\'exercice';
+
+  @override
+  String get pleaseSelectExercise =>
+      'Veuillez sélectionner votre exercice de référence';
+
+  @override
+  String get userReconstruction => 'RECONSTRUCTION UTILISATEUR';
+
+  @override
+  String get analysisResultsTitle => 'Résultats de l\'Analyse';
+
+  @override
+  String get exportPdf => 'Exporter en PDF';
+
+  @override
+  String get exportingPdfMessage =>
+      'Exportation PDF... (Fonctionnalité en développement)';
+
+  @override
+  String get syncVideoStreams => 'Synchronisation des flux vidéo...';
+
+  @override
+  String get extractingKeypoints => 'Extraction des points clés (BlazePose)...';
+
+  @override
+  String get fittingSmpl => 'Ajustement du modèle corporel SMPL-X...';
+
+  @override
+  String get optimizingMesh => 'Optimisation de la reconstruction 3D...';
+
+  @override
+  String get generatingReports => 'Génération des rapports de comparaison...';
+
+  @override
+  String remainingTimeLabel(int time) {
+    return 'Temps restant : ${time}s';
+  }
+
+  @override
+  String get logAnalysisStarted => 'ANALYSE DÉMARRÉE';
+
+  @override
+  String get logSyncOk => 'SYNCHRONISATION DES FLUX - OK';
+
+  @override
+  String get logExtractionProgress => 'EXTRACTION DES POINTS CLÉS EN COURS';
+
+  @override
+  String get logSmplActive => 'AJUSTEMENT DU MAILLAGE SMPL-X ACTIF';
+
+  @override
+  String analysisFeedback(String exerciseName) {
+    return 'Comparaison de votre mouvement avec $exerciseName. L\'analyse initiale montre une précision de forme de 85 %. Concentrez-vous sur l\'abaissement de vos hanches pendant la phase excentrique.';
+  }
+
+  @override
+  String get strengthAnalysisMode => 'Mode d\'Analyse de Force';
+
+  @override
+  String get mobilityAnalysisMode => 'Mode d\'Analyse de Mobilité';
+
+  @override
+  String get beginner => 'Débutant';
+
+  @override
+  String get intermediate => 'Intermédiaire';
+
+  @override
+  String get advanced => 'Avancé';
+
+  @override
+  String get descriptionLabel => 'Description';
+
+  @override
+  String get instructionsLabel => 'Instructions';
+
+  @override
+  String get motionVisualization => 'Visualisation du Mouvement 3D';
+
+  @override
+  String get motionVisualizationSubtitle =>
+      'La comparaison du mouvement idéal apparaîtra ici';
+
+  @override
+  String get startAnalysis => 'Démarrer l\'Analyse';
 }

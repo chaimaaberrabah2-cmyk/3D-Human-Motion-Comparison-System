@@ -5,6 +5,7 @@ import '../widgets/home_sidebar.dart';
 import '../widgets/home_header.dart';
 import '../widgets/search_filter_bar.dart';
 import '../widgets/exercise_grid.dart';
+import 'exercise_detail_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -50,13 +51,12 @@ class _HomePageState extends State<HomePage> {
     selectedFilter = filter;
     _filterExercises();
   }
-//fun quand on clique sur play de l'exo
+  //fun quand on clique sur play de l'exo
   void _onExerciseTapped(Exercise exercise) {
-    // TODO: Navigate to exercise detail page
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Opening ${exercise.name}...'),
-        backgroundColor: AppColors.accentBlue,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ExerciseDetailPage(exercise: exercise),
       ),
     );
   }
@@ -113,21 +113,21 @@ class _HomePageState extends State<HomePage> {
           } else {
             // Mobile: Drawer + Main Content
             return Scaffold(
-              backgroundColor: AppColors.background,
+              backgroundColor: theme.scaffoldBackgroundColor,
               appBar: AppBar(
-                backgroundColor: AppColors.background,
+                backgroundColor: theme.scaffoldBackgroundColor,
                 elevation: 0,
-                title: const Text(
+                title: Text(
                   'MOTION AI',
                   style: TextStyle(
-                    color: AppColors.textWhite,
+                    color: theme.textTheme.bodyLarge?.color,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                iconTheme: const IconThemeData(color: AppColors.textWhite),
+                iconTheme: IconThemeData(color: theme.iconTheme.color),
               ),
               drawer: Drawer(
-                backgroundColor: AppColors.background,
+                backgroundColor: theme.scaffoldBackgroundColor,
                 child: const HomeSidebar(),
               ),
               body: SafeArea(

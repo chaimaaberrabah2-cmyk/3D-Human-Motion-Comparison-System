@@ -78,6 +78,54 @@ class AppLocalizationsAr extends AppLocalizations {
   String get dashboard => 'لوحة التحكم';
 
   @override
+  String get history => 'السجل';
+
+  @override
+  String get recentActivity => 'النشاط الأخير';
+
+  @override
+  String get viewAllRecords => 'عرض جميع السجلات';
+
+  @override
+  String get totalSessions => 'إجمالي الجلسات';
+
+  @override
+  String get avgAccuracy => 'متوسط الدقة';
+
+  @override
+  String get processingTime => 'وقت المعالجة';
+
+  @override
+  String get activeCameras => 'الكاميرات النشطة';
+
+  @override
+  String get sessionId => 'معرف الجلسة';
+
+  @override
+  String get dateTime => 'التاريخ والوقت';
+
+  @override
+  String get deviceSource => 'مصدر الجهاز';
+
+  @override
+  String get duration => 'المدة';
+
+  @override
+  String get score => 'النتيجة';
+
+  @override
+  String get performancePreview => 'معاينة';
+
+  @override
+  String get completedStatus => 'مكتمل';
+
+  @override
+  String get failedStatus => 'فشل';
+
+  @override
+  String get stable => 'مستقر';
+
+  @override
   String get settings => 'الإعدادات';
 
   @override
@@ -120,16 +168,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get chooseCameraSource => '1. CHOOSE CAMERA SOURCE';
 
   @override
-  String get addCalibrationData => '2. ADD CALIBRATION DATA';
+  String get addCalibrationData => 'إضافة بيانات المعايرة';
 
   @override
-  String get clickToUpload => 'Click to upload calibration file';
+  String get clickToUpload => 'انقر لتحميل ملف المعايرة';
 
   @override
   String get uploadDesc => 'or drag and drop your .bin or .json file here';
 
   @override
-  String get applyChanges => 'Apply Changes';
+  String get applyChanges => 'تطبيق التغييرات';
 
   @override
   String get cancel => 'Cancel';
@@ -195,4 +243,177 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get back => 'رجوع';
+
+  @override
+  String get addNewCamera => 'إضافة كاميرا جديدة';
+
+  @override
+  String get deleteCameraTitle => 'حذف الكاميرا؟';
+
+  @override
+  String deleteCameraMessage(String cameraName) {
+    return 'هل أنت متأكد من رغبتك في حذف $cameraName؟ لا يمكن التراجع عن هذا الإجراء.';
+  }
+
+  @override
+  String get delete => 'حذف';
+
+  @override
+  String get minimumCamerasWarning => 'يجب أن يكون لديك 4 كاميرات على الأقل';
+
+  @override
+  String get languageLabel => '(Language)';
+
+  @override
+  String get unsavedChangesTitle => 'تغييرات غير محفوظة';
+
+  @override
+  String get unsavedChangesMessage =>
+      'لديك تغييرات غير محفوظة. ماذا تريد أن تفعل؟';
+
+  @override
+  String get saveAndContinue => 'حفظ ومتابعة';
+
+  @override
+  String get discardAndContinue => 'تجاهل ومتابعة';
+
+  @override
+  String get cameraSource => 'مصدر الكاميرا';
+
+  @override
+  String get calibrationFile => 'ملف المعايرة';
+
+  @override
+  String get uploadCalibration => 'تحميل المعايرة';
+
+  @override
+  String get dragDropHint => 'أو اسحب وأفلت ملف .bin أو .json هنا';
+
+  @override
+  String get statusCalibrated => 'الحالة: معاير';
+
+  @override
+  String get aiAlgorithm => 'خوارزمية الذكاء الاصطناعي';
+
+  @override
+  String get blazePose => 'MediaPipe (BlazePose)';
+
+  @override
+  String get openPose => 'OpenPose';
+
+  @override
+  String get yolo => 'YOLO';
+
+  @override
+  String get pavllo => 'Pavllo';
+
+  @override
+  String get blazePoseDesc => 'سريع وخفيف. الأفضل للاستخدام الفوري على الجوال.';
+
+  @override
+  String get openPoseDesc => 'دقة عالية. يستهلك موارد كثيرة.';
+
+  @override
+  String get yoloDesc => 'كشف سريع للكائنات والوضعيات. سرعة ودقة متوازنة.';
+
+  @override
+  String get pavlloDesc =>
+      'رفع متخصص للوضعيات ثلاثية الأبعاد من فيديو ثنائي الأبعاد.';
+
+  @override
+  String get startRecording => 'بدء التسجيل';
+
+  @override
+  String get rec => 'تسجيل';
+
+  @override
+  String get start => 'بدء';
+
+  @override
+  String get newAnalysis => 'تحليل جديد';
+
+  @override
+  String get selectExercise => 'اختر التمرين';
+
+  @override
+  String get pleaseSelectExercise => 'يرجى اختيار التمرين المرجعي الخاص بك';
+
+  @override
+  String get userReconstruction => 'إعادة بناء المستخدم';
+
+  @override
+  String get analysisResultsTitle => 'نتائج التحليل';
+
+  @override
+  String get exportPdf => 'تصدير PDF';
+
+  @override
+  String get exportingPdfMessage => 'تصدير PDF... (الميزة قيد التطوير)';
+
+  @override
+  String get syncVideoStreams => 'مزامنة تدفقات الفيديو...';
+
+  @override
+  String get extractingKeypoints => 'استخراج النقاط الرئيسية (BlazePose)...';
+
+  @override
+  String get fittingSmpl => 'ملاءمة نموذج الجسم SMPL-X...';
+
+  @override
+  String get optimizingMesh => 'تحسين إعادة البناء ثلاثي الأبعاد...';
+
+  @override
+  String get generatingReports => 'إنشاء تقارير المقارنة...';
+
+  @override
+  String remainingTimeLabel(int time) {
+    return 'الوقت المتبقي: $time ثانية';
+  }
+
+  @override
+  String get logAnalysisStarted => 'بدأت التحليلات';
+
+  @override
+  String get logSyncOk => 'مزامنة التدفقات - تم';
+
+  @override
+  String get logExtractionProgress => 'استخراج النقاط الرئيسية قيد التنفيذ';
+
+  @override
+  String get logSmplActive => 'ملاءمة شبكة SMPL-X نشطة';
+
+  @override
+  String analysisFeedback(String exerciseName) {
+    return 'مقارنة حركتك مع $exerciseName. يظهر التحليل الأولي دقة في الشكل بنسبة 85%. ركز على خفض وركيك أكثر خلال المرحلة اللامركزية.';
+  }
+
+  @override
+  String get strengthAnalysisMode => 'وضع تحليل القوة';
+
+  @override
+  String get mobilityAnalysisMode => 'وضع تحليل المرونة';
+
+  @override
+  String get beginner => 'مبتدئ';
+
+  @override
+  String get intermediate => 'متوسط';
+
+  @override
+  String get advanced => 'متقدم';
+
+  @override
+  String get descriptionLabel => 'الوصف';
+
+  @override
+  String get instructionsLabel => 'التعليمات';
+
+  @override
+  String get motionVisualization => 'تصوير الحركة ثلاثي الأبعاد';
+
+  @override
+  String get motionVisualizationSubtitle => 'مقارنة الحركة المثالية ستظهر هنا';
+
+  @override
+  String get startAnalysis => 'بدء التحليل';
 }

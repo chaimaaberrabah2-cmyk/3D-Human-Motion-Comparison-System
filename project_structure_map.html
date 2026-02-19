@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte du Projet - 3D Motion System</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #fdfdfd;
+            --text: #2d3436;
+            --folder: #fab1a0;
+            --file: #74b9ff;
+            --accent: #6c5ce7;
+            --border: #eaeeef;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .atlas {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 50px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border);
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 3px double var(--border);
+            margin-bottom: 50px;
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin: 0;
+            color: var(--accent);
+        }
+
+        .subtitle {
+            font-style: italic;
+            color: #636e72;
+        }
+
+        .note-intro {
+            background: #f1f2f6;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 40px;
+            font-size: 0.95rem;
+        }
+
+        h2 {
+            border-left: 5px solid var(--accent);
+            padding-left: 15px;
+            margin-top: 50px;
+            font-size: 1.4rem;
+            color: #2d3436;
+        }
+
+        .tree {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .folder {
+            color: #e67e22;
+            font-weight: 600;
+        }
+
+        .file {
+            color: #3498db;
+        }
+
+        .comment {
+            color: #95a5a6;
+            font-style: italic;
+            margin-left: 10px;
+        }
+
+        .explanation {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .exp-box {
+            padding: 15px;
+            background: #fff;
+            border: 1px dashed #d1d8e0;
+            border-radius: 5px;
+        }
+
+        .exp-box h3 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            color: var(--accent);
+        }
+
+        .exp-box p {
+            font-size: 0.9rem;
+            margin: 5px 0;
+        }
+
+        .btn-print {
+            float: right;
+            background: var(--accent);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        @media print {
+            .btn-print {
+                display: none;
+            }
+
+            body {
+                padding: 0;
+            }
+
+            .atlas {
+                box-shadow: none;
+                border: none;
+                width: 100%;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="atlas">
+        <a href="javascript:window.print()" class="btn-print">Imprimer la Carte 🗺️</a>
+
+        <header>
+            <h1>Où se trouve quoi ?</h1>
+            <p class="subtitle">Guide complet de l'arborescence du projet Motion 3D</p>
+        </header>
+
+        <div class="note-intro">
+            💡 <strong>Pourquoi ce guide ?</strong> Entre Flutter (Mobile), FastAPI (Serveur) et les modèles SMPL-X
+            (IA), on peut vite se perdre. Voici une carte précise du "territoire" pour savoir exactement où coder quoi.
+        </div>
+
+        <section>
+            <h2>1. Le Frontend (Flutter)</h2>
+            <p>C'est l'interface utilisateur. Multi-plateforme (iOS, Android, Web, Desktop). Tout se passe
+                principalement dans <code>lib/</code>.</p>
+
+            <div class="tree">
+                <span class="folder">frontend/</span><br>
+                ├── <span class="folder">android/</span>, <span class="folder">ios/</span>, <span
+                    class="folder">macos/</span>,... <span class="comment">// Configs par plateforme</span><br>
+                ├── <span class="folder">assets/</span> <span class="comment">// Images, Icônes et Polices</span><br>
+                ├── <span class="folder">lib/</span><br>
+                │ ├── <span class="file">main.dart</span> <span class="comment">// Le coeur qui lance tout</span><br>
+                │ ├── <span class="folder">core/</span> <span class="comment">// Thème, API Client,
+                    constantes</span><br>
+                │ └── <span class="folder">features/</span> <span class="comment">// Découpé par métier</span><br>
+                │ ├── <span class="folder">auth/</span> <span class="comment">// Login / Inscription</span><br>
+                │ ├── <span class="folder">home/</span> <span class="comment">// Dashboard principal</span><br>
+                │ ├── <span class="folder">analysis/</span> <span class="comment">// Upload & Vue 3D (Le plus
+                    important)</span><br>
+                │ └── <span class="folder">settings/</span> <span class="comment">// Profil & Options</span><br>
+                └── <span class="file">pubspec.yaml</span> <span class="comment">// Liste des packages (Dio, Bloc,
+                    etc.)</span>
+            </div>
+
+            <div class="explanation">
+                <div class="exp-box">
+                    <h3>Features</h3>
+                    <p>On utilise une archi propre (Clean Architecture). Chaque dossier a sa <strong>Data</strong>
+                        (API), son <strong>Domain</strong> (Règles) et sa <strong>Presentation</strong> (UI Widgets).
+                    </p>
+                </div>
+                <div class="exp-box">
+                    <h3>Core</h3>
+                    <p>Si tu veux changer la couleur principale de l'app ou l'adresse du serveur, c'est ici que ça se
+                        passe (<code>app_theme.dart</code> ou <code>api_client.dart</code>).</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>2. Le Backend (FastAPI Python)</h2>
+            <p>Le cerveau qui fait les calculs lourds (IA) et gère la base de données.</p>
+
+            <div class="tree">
+                <span class="folder">backend/</span><br>
+                ├── <span class="folder">app/</span><br>
+                │ ├── <span class="file">main.py</span> <span class="comment">// Point d'entrée du serveur</span><br>
+                │ ├── <span class="folder">api/</span> <span class="comment">// Les "Routes" (URL que Flutter
+                    appelle)</span><br>
+                │ ├── <span class="folder">models/</span> <span class="comment">// Structure des tables SQL
+                    (SQLAlchemy)</span><br>
+                │ ├── <span class="folder">schemas/</span> <span class="comment">// Format des données JSON
+                    (Pydantic)</span><br>
+                │ └── <span class="folder">services/</span> <span class="comment">// Logique (Traitement vidéo,
+                    SMPL-X)</span><br>
+                ├── <span class="folder">scripts/</span> <span class="comment">// Setup de la DB & Import de
+                    données</span><br>
+                ├── <span class="folder">smplx_utils/</span> <span class="comment">// Adaptateurs pour le modèle
+                    3D</span><br>
+                └── <span class="file">requirements.txt</span> <span class="comment">// Libs Python (FastAPI,
+                    PyTorch...)</span>
+            </div>
+
+            <div class="explanation">
+                <div class="exp-box">
+                    <h3>API / Routes</h3>
+                    <p>Chaque fichier correspond à un besoin : <code>auth.py</code> pour les comptes,
+                        <code>analysis.py</code> pour le traitement des vidéos.</p>
+                </div>
+                <div class="exp-box">
+                    <h3>Services</h3>
+                    <p>C'est ici qu'on appelle BlazePose ou qu'on génère le modèle SMPL-X à partir des vidéos reçues.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>3. Le Stockage (Dataset & Docs)</h2>
+            <p>Où dorment les vidéos et où on garde les preuves du design.</p>
+
+            <div class="tree">
+                <span class="folder">dataset/</span><br>
+                ├── <span class="folder">videos/</span><br>
+                │ ├── <span class="folder">reference/</span> <span class="comment">// Les vidéos "étalon"</span><br>
+                │ └── <span class="folder">user_uploads/</span> <span class="comment">// Les vidéos envoyées par les
+                    gens</span><br>
+                ├── <span class="folder">keypoints/</span> <span class="comment">// Export JSON des
+                    articulations</span><br>
+                └── <span class="folder">smpl/</span> <span class="comment">// Paramètres 3D finaux</span><br>
+                <br>
+                <span class="folder">docs/</span> <span class="comment">// Diagrams UML et Database Design</span>
+            </div>
+        </section>
+
+        <section>
+            <h2>Fichiers de Configuration (Racine)</h2>
+            <ul class="tech-list" style="list-style: none; padding: 0;">
+                <li>📄 <code>.env</code> : Cache tes secrets (mots de passe DB, clés API).</li>
+                <li>📄 <code>deploy.sh</code> : Petit script pour lancer tout le système d'un coup.</li>
+                <li>📄 <code>README.md</code> : Le mode d'emploi global.</li>
+            </ul>
+        </section>
+
+        <footer
+            style="margin-top: 50px; text-align: center; border-top: 1px solid var(--border); padding-top: 20px; font-size: 0.8rem; color: #95a5a6;">
+            Carte générée pour le Projet PFE - 3D Human Motion Comparison System
+        </footer>
+
+    </div>
+
+</body>
+
+</html>

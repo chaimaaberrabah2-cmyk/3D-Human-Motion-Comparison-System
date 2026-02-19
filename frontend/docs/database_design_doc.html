@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes DB - Projet Motion 3D</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Patrick+Hand&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #fafafa;
+            --text: #2d3436;
+            --accent: #0984e3;
+            --note-bg: #fff9db;
+            --border: #dfe6e9;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .notebook {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        header {
+            margin-bottom: 40px;
+            border-bottom: 2px solid var(--text);
+            padding-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        p.intro {
+            font-style: italic;
+            color: #636e72;
+            margin-top: 5px;
+        }
+
+        h2 {
+            font-size: 1.3rem;
+            margin-top: 30px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sticky-note {
+            background: var(--note-bg);
+            padding: 15px;
+            border-left: 5px solid #f1c40f;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1.1rem;
+            margin: 15px 0;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        ul.tech-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        ul.tech-list li {
+            margin-bottom: 12px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        ul.tech-list li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-weight: 600;
+            color: #b2bec3;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+
+        .type {
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #d63031;
+            background: #fab1a022;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .btn-print {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--text);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: opacity 0.2s;
+        }
+
+        .btn-print:hover {
+            opacity: 0.8;
+        }
+
+        @media print {
+            .btn-print {
+                display: none;
+            }
+
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .notebook {
+                box-shadow: none;
+                border: none;
+                width: 100%;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="notebook">
+        <a href="javascript:window.print()" class="btn-print">Imprimer / PDF</a>
+
+        <header>
+            <h1>Architecture DB - Projet Motion 3D</h1>
+            <p class="intro">Notes de travail sur la structure de la base de données.</p>
+        </header>
+
+        <section>
+            <h2>Les Choix Tech</h2>
+            <ul class="tech-list">
+                <li><strong>PostgreSQL + JSONB</strong> : C'est le plus simple pour gérer les coordonnées 3D
+                    (articulations) sans se prendre la tête avec un schéma rigide.</li>
+                <li><strong>Stockage Hybride</strong> : Les vidéos restent sur le disque (filesystem), la DB ne garde
+                    que le "chemin". On évite de faire exploser la taille de la base.</li>
+                <li><strong>FastAPI & SQLAlchemy</strong> : Pour que le code Python parle proprement à la DB.</li>
+            </ul>
+        </section>
+
+
+        <section>
+            <h2>Le Schéma (Tables)</h2>
+
+            <h3>Utilisateurs (users)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Champ</th>
+                        <th>Type</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>user_id</td>
+                        <td class="type">Serial (PK)</td>
+                        <td>Auto-incrément</td>
+                    </tr>
+                    <tr>
+                        <td>pseudo</td>
+                        <td class="type">Varchar(50)</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>email</td>
+                        <td class="type">Varchar(100)</td>
+                        <td>Login unique</td>
+                    </tr>
+                    <tr>
+                        <td>password</td>
+                        <td class="type">Text</td>
+                        <td>Haché !</td>
+                    </tr>
+                    <tr>
+                        <td>role</td>
+                        <td class="type">Enum</td>
+                        <td>User / Admin / Coach</td>
+                    </tr>
+                    <tr>
+                        <td>profile_json</td>
+                        <td class="type">JSONB</td>
+                        <td>Poids, taille, objectifs...</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Référentiels (movements)</h3>
+            <p style="font-size: 0.85rem; color: #636e72;">C'est ici qu'on stocke les mouvements "parfaits".</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Champ</th>
+                        <th>Type</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>name</td>
+                        <td class="type">Varchar</td>
+                        <td>Nom de l'exo</td>
+                    </tr>
+                    <tr>
+                        <td>category</td>
+                        <td class="type">Varchar</td>
+                        <td>C'est pour filtrer dans l'appli</td>
+                    </tr>
+                    <tr>
+                        <td>smpl_ref</td>
+                        <td class="type">JSONB</td>
+                        <td>Modèle 3D de base</td>
+                    </tr>
+                    <tr>
+                        <td>joints_3d</td>
+                        <td class="type">JSONB</td>
+                        <td>Les 33 points de référence</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Performances (performances)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Champ</th>
+                        <th>Type</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>user_id</td>
+                        <td class="type">Int (FK)</td>
+                        <td>Lien vers la table User</td>
+                    </tr>
+                    <tr>
+                        <td>video_path</td>
+                        <td class="type">Varchar</td>
+                        <td>Chemin vers le MP4</td>
+                    </tr>
+                    <tr>
+                        <td>score</td>
+                        <td class="type">Float</td>
+                        <td>% de réussite</td>
+                    </tr>
+                    <tr>
+                        <td>results_3d</td>
+                        <td class="type">JSONB</td>
+                        <td>Les 33 points calculés de l'utilisateur</td>
+                    </tr>
+                    <tr>
+                        <td>feedback_txt</td>
+                        <td class="type">Text</td>
+                        <td>Conseils du coach ou de l'IA</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Comment ça circule ?</h2>
+            <p style="font-size: 0.9rem;">
+                L'utilisateur upload sa vidéo via <strong>Flutter</strong>.
+                Le backend <strong>FastAPI</strong> fait mouliner l'IA (SMPL-X), extrait les 33 joints et calcule le
+                score par rapport au mouvement de référence.
+                Tout est rangé dans le champ <strong>JSONB</strong> pour pouvoir être ré-affiché plus tard sans refaire
+                les calculs.
+            </p>
+        </section>
+
+
+
+    </div>
+
+</body>
+
+</html>

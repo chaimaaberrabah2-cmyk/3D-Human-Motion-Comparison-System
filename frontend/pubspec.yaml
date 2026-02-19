@@ -41,6 +41,7 @@ dependencies:
   video_player: ^2.8.2
   image_picker: ^1.0.7
   file_picker: ^8.0.1
+  desktop_drop: ^0.4.4
   camera: ^0.10.5+9
   permission_handler: ^11.3.0
   

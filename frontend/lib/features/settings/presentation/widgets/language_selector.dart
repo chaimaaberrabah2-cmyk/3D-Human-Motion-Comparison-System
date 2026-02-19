@@ -7,15 +7,19 @@ import '../../../../l10n/app_localizations.dart';
 
 class LanguageSelector extends StatefulWidget {
   final Function(Locale)? onLanguageChanged;
+  final Function(bool)? onThemeChanged;
   
-  const LanguageSelector({Key? key, this.onLanguageChanged}) : super(key: key);
+  const LanguageSelector({
+    Key? key,
+    this.onLanguageChanged,
+    this.onThemeChanged,
+  }) : super(key: key);
 
   @override
   State<LanguageSelector> createState() => _LanguageSelectorState();
 }
 
 class _LanguageSelectorState extends State<LanguageSelector> {
-  Locale? _selectedLocale;
 
   void _showLanguagePicker(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
@@ -33,7 +37,7 @@ class _LanguageSelectorState extends State<LanguageSelector> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: L10n.all.map((locale) {
-              final isSelected = (_selectedLocale ?? localeProvider.locale) == locale;
+              final isSelected = localeProvider.locale == locale;
               return ListTile(
                 title: Text(
                   L10n.getLanguageName(locale.languageCode),
@@ -46,10 +50,12 @@ class _LanguageSelectorState extends State<LanguageSelector> {
                     ? Icon(Icons.check, color: theme.primaryColor)
                     : null,
                 onTap: () {
-                  setState(() {
-                    _selectedLocale = locale;
-                  });
+                  // Apply immediately to provider
+                  localeProvider.setLocale(locale);
+                  
+                  // Notify parent of change
                   widget.onLanguageChanged?.call(locale);
+                  
                   Navigator.pop(context);
                 },
               );
@@ -95,7 +101,7 @@ class _LanguageSelectorState extends State<LanguageSelector> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      l10n.language,
+                      '${l10n.language} ${l10n.languageLabel}',
                       style: theme.textTheme.bodyLarge,
                     ),
                   ],
@@ -103,7 +109,7 @@ class _LanguageSelectorState extends State<LanguageSelector> {
                 Row(
                   children: [
                     Text(
-                      L10n.getLanguageName((_selectedLocale ?? localeProvider.locale).languageCode),
+                      L10n.getLanguageName(localeProvider.locale.languageCode),
                       style: theme.textTheme.bodyMedium,
                     ),
                     const SizedBox(width: 8),
@@ -138,6 +144,9 @@ class _LanguageSelectorState extends State<LanguageSelector> {
               onChanged: (value) {
                 // If value is true (Light Mode requested), isDark should be false.
                 themeProvider.toggleTheme(!value);
+                
+                // Notify parent of change
+                widget.onThemeChanged?.call(!value);
               },
               activeColor: theme.primaryColor,
               inactiveThumbColor: theme.textTheme.bodyMedium?.color,
