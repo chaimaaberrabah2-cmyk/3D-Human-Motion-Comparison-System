@@ -12,6 +12,6 @@ class _StartingPageState extends State<StartingPage> {
   // Defined Color Palette
   final Color _brightBlue = const Color(0xFF2563EB);
   final Color _veryDarkBlue = const Color(0xFF182344);
-  final Color _lightBlue = const Color(0xFF52A2FF);
-  final Color _greyText = const Color(0xFF818182);
+  
 }
+
