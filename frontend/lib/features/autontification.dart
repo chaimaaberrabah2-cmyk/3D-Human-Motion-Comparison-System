@@ -11,7 +11,7 @@ class StartingPage extends StatefulWidget {
 class _StartingPageState extends State<StartingPage> {
   // Defined Color Palette
   final Color _brightBlue = const Color(0xFF2563EB);
-  final Color _veryDarkBlue = const Color(0xFF182344);
+  
   
 }
 
