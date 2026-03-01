@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encyclopédie du Projet - 3D Human Motion</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --sidebar-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent: #38bdf8;
+            --folder: #fbbf24;
+            --file: #cbd5e1;
+            --border: #334155;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+            width: 100%;
+        }
+
+        header {
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 30px;
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            color: var(--accent);
+        }
+
+        .version {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        .section-card {
+            background: var(--sidebar-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            margin-top: 0;
+            color: var(--accent);
+        }
+
+        h2::before {
+            content: "🔍";
+            margin-right: 15px;
+        }
+
+        .file-tree {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.7;
+            background: #020617;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .folder {
+            color: var(--folder);
+            font-weight: 600;
+        }
+
+        .file {
+            color: var(--file);
+        }
+
+        .desc {
+            color: var(--text-dim);
+            margin-left: 15px;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .item-info {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .item-info code {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .item-info p {
+            margin: 5px 0 0 0;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        .btn-print {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--accent);
+            color: #0f172a;
+            padding: 12px 25px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            box-shadow: 0 5px 15px rgba(56, 189, 248, 0.3);
+        }
+
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+
+            .btn-print {
+                display: none;
+            }
+
+            .section-card {
+                background: white;
+                border: 1px solid #ccc;
+                color: black;
+            }
+
+            .file-tree {
+                background: #f5f5f5;
+                color: black;
+                border: 1px solid #ccc;
+            }
+
+            .desc {
+                color: #555;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Explorateur de Code : Arborescence Totale</h1>
+            <p class="version">Projet : 3D Human Motion Comparison System | Dernière MaJ : Février 2026</p>
+        </header>
+
+        <!-- 1. RACINE DU PROJET -->
+        <div class="section-card">
+            <h2>Racine & Configuration Globale</h2>
+            <div class="file-tree">
+                <span class="file">.env.example</span> <span class="desc">// Modèle pour les variables d'environnement
+                    (mots de passe, ports)</span><br>
+                <span class="file">.gitignore</span> <span class="desc">// Empêche l'upload des dossiers lourds (venv,
+                    nodes_modules)</span><br>
+                <span class="file">.gitattributes</span> <span class="desc">// Force le format des retours à la ligne
+                    (Windows/Mac)</span><br>
+                <span class="file">README.md</span> <span class="desc">// Le manuel d'utilisation général</span><br>
+                <span class="file">CLEAN_ARCHITECTURE_GUIDE.md</span> <span class="desc">// Manuel pour garder le code
+                    propre et organisé</span><br>
+                <span class="file">TECH_STACK.md</span> <span class="desc">// Détail de toutes les technos
+                    utilisées</span><br>
+                <span class="file">deploy.sh</span> <span class="desc">// Script pour automatiser le lancement du
+                    projet</span><br>
+                <span class="folder">docs/</span> <span class="desc">// Dossier central de toute la doc technique</span>
+            </div>
+        </div>
+
+        <!-- 2. FRONTEND FLUTTER -->
+        <div class="section-card" style="border-left: 5px solid #45aaf2;">
+            <h2>Frontend (Flutter Mobile/Web/Desktop)</h2>
+            <p style="color:var(--text-dim)">Localisation : <code>/frontend</code>. Structure basée sur la Clean
+                Architecture.</p>
+
+            <div class="file-tree">
+                <span class="folder">lib/</span><br>
+                │ ├── <span class="file">main.dart</span> <span class="desc">// L'interrupteur qui allume
+                    l'application</span><br>
+                │ ├── <span class="folder">core/</span><br>
+                │ │ ├── <span class="folder">theme/</span> <span class="desc">// Couleurs, Thème Dark/Light
+                    (app_theme.dart)</span><br>
+                │ │ ├── <span class="folder">network/</span> <span class="desc">// Config des appels serveurs (Dio, API
+                    client)</span><br>
+                │ │ ├── <span class="folder">utils/</span> <span class="desc">// Fonctions d'aide (formatage de date,
+                    calculs)</span><br>
+                │ │ └── <span class="folder">widgets/</span> <span class="desc">// Boutons et champs de texte
+                    réutilisables</span><br>
+                │ ├── <span class="folder">features/</span><br>
+                │ │ ├── <span class="folder">starting/</span> <span class="desc">// Splash screen et introduction au
+                    démarrage</span><br>
+                │ │ ├── <span class="folder">auth/</span> <span class="desc">// Connexion (signin), Inscription
+                    (signup), Password perdu</span><br>
+                │ │ ├── <span class="folder">home/</span> <span class="desc">// Le Dashboard (exercices, recherche,
+                    sidebar)</span><br>
+                │ │ ├── <span class="folder">analysis/</span> <span class="desc">// Capture vidéo, Upload et Lecteur
+                    3D</span><br>
+                │ │ ├── <span class="folder">history/</span> <span class="desc">// Liste de toutes les anciennes
+                    analyses</span><br>
+                │ │ └── <span class="folder">settings/</span> <span class="desc">// Profil utilisateur et réglages de
+                    l'app</span><br>
+                │ └── <span class="folder">l10n/</span> <span class="desc">// Gestion des langues (Français, Anglais,
+                    Arabe)</span><br>
+                <span class="folder">assets/</span><br>
+                │ ├── <span class="folder">images/</span> <span class="desc">// Logo, fonds d'écran (logo.png,
+                    network_bg.png)</span><br>
+                │ └── <span class="folder">icons/</span> <span class="desc">// 12 icônes SVG (search, logout, user,
+                    trash, etc.)</span><br>
+                <span class="file">pubspec.yaml</span> <span class="desc">// Le fichier maitre des dépendances
+                    Flutter</span>
+            </div>
+        </div>
+
+        <!-- 3. BACKEND FASTAPI -->
+        <div class="section-card" style="border-left: 5px solid #20bf6b;">
+            <h2>Backend (FastAPI Python)</h2>
+            <p style="color:var(--text-dim)">Localisation : <code>/backend</code>. C'est ici que l'IA SMPL-X tourne.</p>
+
+            <div class="file-tree">
+                <span class="folder">app/</span><br>
+                │ ├── <span class="file">main.py</span> <span class="desc">// Point d'entrée du serveur API</span><br>
+                │ ├── <span class="folder">api/</span> <span class="desc">// Routes pour l'Auth, les Exercices et
+                    l'Analyse</span><br>
+                │ ├── <span class="folder">models/</span> <span class="desc">// SQL Alchemy (Définit les tables de la
+                    base de données)</span><br>
+                │ ├── <span class="folder">db/</span> <span class="desc">// Config de connexion et script SQL initial
+                    (db_config.py, schema.sql)</span><br>
+                │ ├── <span class="folder">schemas/</span> <span class="desc">// Validation des données
+                    entrantes/sortantes (Pydantic)</span><br>
+                │ └── <span class="folder">services/</span> <span class="desc">// Le "moteur" : traitement vidéo,
+                    conversion SMPL-X</span><br>
+                <span class="folder">scripts/</span><br>
+                │ ├── <span class="file">init_database.py</span> <span class="desc">// Script pour créer les tables la
+                    première fois</span><br>
+                │ └── <span class="file">load_training_data.py</span> <span class="desc">// Importe les exercices de
+                    référence dans la DB</span><br>
+                <span class="folder">smplx_utils/</span> <span class="desc">// Adaptateur mathématique pour le modèle
+                    humain 3D</span><br>
+                <span class="file">requirements.txt</span> <span class="desc">// Liste des bibliothèques Python
+                    nécessaires</span><br>
+                <span class="folder">venv/</span> <span class="desc">// Dossier invisible contenant l'environnement
+                    Python</span>
+            </div>
+        </div>
+
+        <!-- 4. DATASET -->
+        <div class="section-card" style="border-left: 5px solid #f7b731;">
+            <h2>Dataset (Le Vault de Données)</h2>
+            <p style="color:var(--text-dim)">Localisation : <code>/dataset</code>. Stockage physique des fichiers
+                lourds.</p>
+
+            <div class="file-tree">
+                <span class="folder">videos/</span><br>
+                │ ├── <span class="folder">s03, s11, .../</span> <span class="desc">// Dossiers par Sujet (S03 à
+                    S11)</span><br>
+                │ │ ├── <span class="folder">videos/</span> <span class="desc">// Vidéos MP4 originales</span><br>
+                │ │ ├── <span class="folder">smplx/</span> <span class="desc">// Paramètres de posture
+                    extraits</span><br>
+                │ │ ├── <span class="folder">joints3d_25/</span> <span class="desc">// Coordonnées des
+                    articulations</span><br>
+                │ │ └── <span class="folder">camera_parameters/</span> <span class="desc">// Données pour l'orientation
+                    3D</span><br>
+                │ └── <span class="folder">user_uploads/</span> <span class="desc">// Stocke les vidéos envoyées par les
+                    utilisateurs mobiles</span><br>
+                <span class="folder">smpl/</span><br>
+                │ └── <span class="folder">smplx/</span> <span class="desc">// Les fichiers .pkl et .npz (MALE, FEMALE,
+                    NEUTRAL)</span><br>
+                <span class="folder">keypoints/</span> <span class="desc">// Exports JSON rapides pour comparaison
+                    rapide</span>
+            </div>
+        </div>
+
+        <!-- 5. PLATEFORMES NATIVES -->
+        <div class="section-card">
+            <h2>Dossiers Natifs (Générés par Flutter)</h2>
+            <div class="detail-grid">
+                <div class="item-info"><code>/android</code>
+                    <p>Code spécifique Android (Manifest, icônes adaptables, permissions caméra).</p>
+                </div>
+                <div class="item-info"><code>/ios</code>
+                    <p>Code spécifique Apple (Info.plist, clés de signature, configuration CocoaPods).</p>
+                </div>
+                <div class="item-info"><code>/windows</code>
+                    <p>C++ pour faire tourner l'application en mode bureau (Desktop Windows).</p>
+                </div>
+                <div class="item-info"><code>/macos</code>
+                    <p>Configuration pour le déploiement sur les ordinateurs Apple.</p>
+                </div>
+            </div>
+        </div>
+
+        <footer style="margin-top: 50px; text-align: center; color: var(--text-dim); padding-bottom: 50px;">
+            <p>Designé pour l'équipe de développement PFE Ikram</p>
+        </footer>
+
+        <a href="javascript:window.print()" class="btn-print">Télécharger la Carte (PDF)</a>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,16 @@
+# PySide6 for UI (install separately when ready)
+PySide6>=6.10.0
+
+# 3D Visualization
+plotly>=5.18.0
+
+# Deep Learning & SMPL-X (install when needed)
+# torch>=2.1.0
+# smplx>=0.1.28
+
+# Computer Vision (install when needed)
+# opencv-python>=4.8.0
+# mediapipe>=0.10.0
+
+# Utilities
+numpy>=1.24.0

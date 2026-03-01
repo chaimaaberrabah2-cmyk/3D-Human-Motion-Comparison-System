@@ -1,0 +1,59 @@
+Running `(cd /Users/HP/.pub-cache/hosted/pub.dev/objective_c-9.3.0/; TMPDIR=/var/folders/06/sc3l53516xq2rnjhmf96z4zw0000gn/T/ PATH=/Users/HP/.antigravity/antigravity/bin:/Users/HP/.pyenv/shims:/Users/HP/development/flutter/bin:/Users/HP/.rbenv/shims:/Library/Frameworks/Python.framework/Versions/3.13/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pmk/env/global/bin:/Library/Apple/usr/bin:/Users/HP/.gem/bin HOME=/Users/HP /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --packages=/Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/package_config.json /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/objective_c/5f31b8d621e364a094b467a268c7b433/hook.dill --config=/Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/objective_c/5f31b8d621e364a094b467a268c7b433/input.json )`.
+INFO: 2026-02-19 11:28:09.077813: Running `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang --version`.
+
+INFO: 2026-02-19 11:28:09.097862: Running `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang --version`.
+
+INFO: 2026-02-19 11:28:09.118536: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -c /Users/HP/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/include/dart_api_dl.c -fpic -I src -o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/include/dart_api_dl.c.o
+
+INFO: 2026-02-19 11:28:09.119758: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/HP/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/input_stream_adapter.m -fpic -I src -o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-02-19 11:28:09.119945: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/HP/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c.m -fpic -I src -o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.m.o
+
+INFO: 2026-02-19 11:28:09.119216: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -c /Users/HP/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c.c -fpic -I src -o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.c.o
+
+INFO: 2026-02-19 11:28:09.120112: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/HP/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/observer.m -fpic -I src -o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/observer.m.o
+
+INFO: 2026-02-19 11:28:09.120282: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/HP/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/ns_number.m -fpic -I src -o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/ns_number.m.o
+
+INFO: 2026-02-19 11:28:09.120630: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/HP/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/protocol.m -fpic -I src -o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/protocol.m.o
+
+INFO: 2026-02-19 11:28:09.120849: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/HP/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c_bindings_generated.m -fpic -I src -o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-02-19 11:28:09.232627: 
+INFO: 2026-02-19 11:28:09.232793: 
+INFO: 2026-02-19 11:28:09.232851: Generated /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.c.o
+
+INFO: 2026-02-19 11:28:09.235016: 
+INFO: 2026-02-19 11:28:09.235181: 
+INFO: 2026-02-19 11:28:09.235221: Generated /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/include/dart_api_dl.c.o
+
+INFO: 2026-02-19 11:28:09.256453: 
+INFO: 2026-02-19 11:28:09.256552: 
+INFO: 2026-02-19 11:28:09.256578: Generated /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/test/util.c.o
+
+INFO: 2026-02-19 11:28:09.276666: 
+INFO: 2026-02-19 11:28:09.276726: 
+INFO: 2026-02-19 11:28:09.276753: Generated /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/observer.m.o
+
+INFO: 2026-02-19 11:28:09.280983: 
+INFO: 2026-02-19 11:28:09.281042: 
+INFO: 2026-02-19 11:28:09.281067: Generated /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/protocol.m.o
+
+INFO: 2026-02-19 11:28:09.718466: 
+INFO: 2026-02-19 11:28:09.718540: 
+INFO: 2026-02-19 11:28:09.718619: Generated /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/ns_number.m.o
+
+INFO: 2026-02-19 11:28:09.741034: 
+INFO: 2026-02-19 11:28:09.741143: 
+INFO: 2026-02-19 11:28:09.741169: Generated /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-02-19 11:28:09.776571: 
+INFO: 2026-02-19 11:28:09.776639: 
+INFO: 2026-02-19 11:28:09.776664: Generated /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-02-19 11:28:09.777306: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -shared -Wl,-encryptable -undefined dynamic_lookup -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/include/dart_api_dl.c.o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.c.o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/test/util.c.o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/input_stream_adapter.m.o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.m.o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/observer.m.o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/ns_number.m.o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/protocol.m.o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c_bindings_generated.m.o -o /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/objective_c.dylib
+
+INFO: 2026-02-19 11:28:09.839779: 
+INFO: 2026-02-19 11:28:09.839853: 
+INFO: 2026-02-19 11:28:09.839877: Generated /Users/HP/Desktop/ikram/M2/PFE/3D-Human-Motion-Comparison-System/frontend/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/objective_c.dylib
+

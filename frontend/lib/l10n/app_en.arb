@@ -1,0 +1,172 @@
+{
+  "@@locale": "en",
+  "appTitle": "Motion AI",
+  "systemSettings": "System Settings",
+  "systemSettingsDesc": "Manage your MotionAI hardware, AI models, and account preferences.",
+  "accountProfile": "Account Profile",
+  "cameraCalibration": "Camera Calibration",
+  "aiProcessing": "Ai Processing",
+  "personalInformation": "Personal Information",
+  "user": "User",
+  "changePassword": "Change password",
+  "language": "Language",
+  "light": "Light",
+  "discardChanges": "Discard Changes",
+  "saveSettings": "Save Settings",
+  "welcomeBack": "Welcome back, {username}",
+  "@welcomeBack": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "startNewAnalysis": "Start New Analysis",
+  "searchExercises": "Search exercises...",
+  "all": "All",
+  "strength": "Strength",
+  "mobility": "Mobility",
+  "bodyWeight": "BodyWeight",
+  "rehab": "Rehab",
+  "dashboard": "Dashboard",
+  "history": "History",
+  "recentActivity": "Recent Activity",
+  "viewAllRecords": "View All Records",
+  "totalSessions": "Total Sessions",
+  "avgAccuracy": "Avg. Accuracy",
+  "processingTime": "Processing Time",
+  "activeCameras": "Active Cameras",
+  "sessionId": "Session ID",
+  "dateTime": "Date & Time",
+  "deviceSource": "Device Source",
+  "duration": "Duration",
+  "score": "Score",
+  "performancePreview": "Preview",
+  "completedStatus": "Completed",
+  "failedStatus": "Failed",
+  "stable": "Stable",
+  "settings": "Settings",
+  "deepLearningBackend": "Deep Learning Backend",
+  "status": "Status",
+  "calibrated": "Calibrated",
+  "processingModel": "Processing Model",
+  "performanceMode": "Performance Mode",
+  "computingDevice": "Computing Device",
+  "highAccuracy": "High Accuracy",
+  "balanced": "Balanced",
+  "highSpeed": "High Speed",
+  "modifyCamera": "Modify {cameraName}",
+  "@modifyCamera": {
+    "placeholders": {
+      "cameraName": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDeviceSource": "Update device source and calibration parameters",
+  "chooseCameraSource": "1. CHOOSE CAMERA SOURCE",
+  "addCalibrationData": "2. ADD CALIBRATION DATA",
+  "clickToUpload": "Click to upload calibration file",
+  "uploadDesc": "or drag and drop your .bin or .json file here",
+  "applyChanges": "Apply Changes",
+  "cancel": "Cancel",
+  "aiEngineDescription": "Select the AI engine for keypoint extraction and SMPL fitting.",
+  "legacyPose2DEngine": "Lagacy Pose2D Engine",
+  "legacyPose2DDesc": "Faster processing, reduced spatial accuracy.",
+  "deepLearningBackendDesc": "Optimized for high-fidelity posture tracking.",
+  "newMultiViewAnalysis": "New Multi-View Analysis",
+  "newAnalysisSubtitle": "Upload synchronized video streams for 3D reconstruction and SMPL modeling",
+  "captureMethod": "CAPTURE METHOD",
+  "uploadStreams": "UPLOAD STREAMS",
+  "syncAndProcess": "SYNC & PROCESS",
+  "uploadFiles": "Upload Files",
+  "uploadFilesDesc": "Upload existing synchronized video files from up to 4 camera angles.",
+  "liveMultiCam": "Live Multi-Cam",
+  "liveMultiCamDesc": "Stream directly from connected cameras for real-time analysis.",
+  "analysisInfoBanner": "For best results, ensure all cameras share the same frame rate and are calibrated using the provided calibration pattern.",
+  "cameraAngleFront": "Camera Angle 1 - Front",
+  "cameraAngleLeft": "Camera angle 2 - Left",
+  "cameraAngleBack": "Camera Angle 3 - Back",
+  "cameraAngleRight": "Camera Angle 4 - Right",
+  "back": "Back",
+  "addNewCamera": "Add New Camera",
+  "deleteCameraTitle": "Delete Camera?",
+  "deleteCameraMessage": "Are you sure you want to delete {cameraName}? This action cannot be undone.",
+  "@deleteCameraMessage": {
+    "placeholders": {
+      "cameraName": {
+        "type": "String"
+      }
+    }
+  },
+  "delete": "Delete",
+  "minimumCamerasWarning": "You must have at least 4 cameras",
+  "languageLabel": "(Language)",
+  "unsavedChangesTitle": "Unsaved Changes",
+  "unsavedChangesMessage": "You have unsaved changes. What would you like to do?",
+  "saveAndContinue": "Save & Continue",
+  "discardAndContinue": "Discard & Continue",
+  "cameraSource": "Camera Source",
+  "calibrationFile": "Calibration File",
+  "uploadCalibration": "Upload Calibration",
+  "addCalibrationData": "ADD CALIBRATION DATA",
+  "clickToUpload": "Click to upload calibration file",
+  "dragDropHint": "or drag and drop your .bin or .json file here",
+  "applyChanges": "Apply Changes",
+  "statusCalibrated": "Status: Calibrated",
+  "aiAlgorithm": "AI Algorithm",
+  "blazePose": "MediaPipe (BlazePose)",
+  "openPose": "OpenPose",
+  "yolo": "YOLO",
+  "pavllo": "Pavllo",
+  "blazePoseDesc": "Fast & lightweight. Best for real-time mobile use.",
+  "openPoseDesc": "High accuracy. Resource heavy.",
+  "yoloDesc": "Rapid object & pose detection. Balanced speed/accuracy.",
+  "pavlloDesc": "Specialized 3D human pose lifting from 2D video.",
+  "startRecording": "Start Recording",
+  "rec": "REC",
+  "start": "Start",
+  "newAnalysis": "New Analysis",
+  "selectExercise": "Select exercice",
+  "pleaseSelectExercise": "Please select your reference exercice",
+  "userReconstruction": "USER RECONSTRUCTION",
+  "analysisResultsTitle": "Analysis Results",
+  "score": "SCORE",
+  "exportPdf": "Export PDF",
+  "exportingPdfMessage": "Exporting PDF... (Feature in development)",
+  "syncVideoStreams": "Synchronizing video streams...",
+  "extractingKeypoints": "Extracting 2D keypoints (BlazePose)...",
+  "fittingSmpl": "Fitting SMPL-X body model...",
+  "optimizingMesh": "Optimizing 3D mesh reconstruction...",
+  "generatingReports": "Generating comparison reports...",
+  "remainingTimeLabel": "Remaining time: {time}s",
+  "@remainingTimeLabel": {
+    "placeholders": {
+      "time": {
+        "type": "int"
+      }
+    }
+  },
+  "logAnalysisStarted": "ANALYSIS STARTED",
+  "logSyncOk": "SYCHRONIZING STREAMS - OK",
+  "logExtractionProgress": "KEYPOINT EXTRACTION IN PROGRESS",
+  "logSmplActive": "SMPL-X MESH FITTING ACTIVE",
+  "analysisFeedback": "Comparing your movement with {exerciseName}. Initial analysis shows 85% form accuracy. Focus on lowering your hips further during the eccentric phase.",
+  "@analysisFeedback": {
+    "placeholders": {
+      "exerciseName": {
+        "type": "String"
+      }
+    }
+  },
+  "strengthAnalysisMode": "Strength Analysis Mode",
+  "mobilityAnalysisMode": "Mobility Analysis Mode",
+  "beginner": "Beginner",
+  "intermediate": "Intermediate",
+  "advanced": "Advanced",
+  "descriptionLabel": "Description",
+  "instructionsLabel": "Instructions",
+  "motionVisualization": "3D Motion Visualization",
+  "motionVisualizationSubtitle": "Ideal motion comparison will appear here",
+  "startAnalysis": "Start Analysis"
+}

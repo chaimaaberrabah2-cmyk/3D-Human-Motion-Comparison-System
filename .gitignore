@@ -1,0 +1,40 @@
+# Ignore Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Ignore IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore OS
+.DS_Store
+Thumbs.db
+
+# Ignore env files
+.env
+.env.local
+
+# Ignore logs
+*.log
+data_loading.log
+
+# Ignore uploads
+dataset/videos/user_uploads/
+dataset/keypoints/user_uploads/
+dataset/smpl/user_uploads/
+dataset/
+
+# Keep structure
+!dataset/videos/user_uploads/.gitkeep
+!dataset/keypoints/user_uploads/.gitkeep
+!dataset/smpl/user_uploads/.gitkeep
