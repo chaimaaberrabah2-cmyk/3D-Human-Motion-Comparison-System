@@ -21,18 +21,19 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   String selectedTab = 'Account Profile';
-  final GlobalKey<CameraCalibrationSectionState> _calibrationKey = GlobalKey<CameraCalibrationSectionState>();
-  
+  final GlobalKey<CameraCalibrationSectionState> _calibrationKey =
+      GlobalKey<CameraCalibrationSectionState>();
+
   // Track original values on page load
   Locale? _originalLocale;
   bool? _originalIsDarkMode;
   String _originalEngine = 'deep_learning';
   String _originalAlgorithm = 'blaze_pose';
-  
+
   // Current values
   String _currentEngine = 'deep_learning';
   String _currentAlgorithm = 'blaze_pose';
-  
+
   // Track if changes were made
   bool _hasUnsavedChanges = false;
 
@@ -41,7 +42,8 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     // Capture original values when page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+      final localeProvider =
+          Provider.of<LocaleProvider>(context, listen: false);
       final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
       setState(() {
         _originalLocale = localeProvider.locale;
@@ -61,10 +63,12 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _revertChanges() {
     if (_originalLocale != null) {
-      Provider.of<LocaleProvider>(context, listen: false).setLocale(_originalLocale!);
+      Provider.of<LocaleProvider>(context, listen: false)
+          .setLocale(_originalLocale!);
     }
     if (_originalIsDarkMode != null) {
-      Provider.of<ThemeProvider>(context, listen: false).toggleTheme(_originalIsDarkMode!);
+      Provider.of<ThemeProvider>(context, listen: false)
+          .toggleTheme(_originalIsDarkMode!);
     }
     setState(() {
       _currentEngine = _originalEngine;
@@ -83,7 +87,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (_hasUnsavedChanges) {
       // Show confirmation dialog
       final result = await _showUnsavedChangesDialog();
-      
+
       if (result == 'save') {
         _onSave();
         setState(() => selectedTab = newTab);
@@ -146,17 +150,17 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     final theme = Theme.of(context);
-    
+
     return PopScope(
       canPop: !_hasUnsavedChanges,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        
+
         // Show unsaved changes dialog
         final result = await _showUnsavedChangesDialog();
-        
+
         if (result == 'save' && context.mounted) {
           _onSave();
           Navigator.of(context).pop();
@@ -172,7 +176,8 @@ class _SettingsPageState extends State<SettingsPage> {
         body: LayoutBuilder(
           builder: (context, constraints) {
             final isDesktop = constraints.maxWidth > 1200;
-            final isTablet = constraints.maxWidth > 600 && constraints.maxWidth <= 1200;
+            final isTablet =
+                constraints.maxWidth > 600 && constraints.maxWidth <= 1200;
 
             if (isDesktop || isTablet) {
               // Desktop/Tablet: Sidebar + Settings Content
@@ -180,7 +185,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   // Sidebar with navigation interception
                   HomeSidebar(onNavigate: _handleNavigation),
-                  
+
                   // Settings Content
                   Expanded(
                     child: _buildSettingsContent(l10n),
@@ -235,9 +240,9 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           ),
         ),
-        
+
         const SizedBox(height: 32),
-        
+
         // Responsive Layout Content
         Expanded(
           child: LayoutBuilder(
@@ -265,9 +270,9 @@ class _SettingsPageState extends State<SettingsPage> {
             width: 250,
             child: _buildDesktopTabs(l10n),
           ),
-          
+
           const SizedBox(width: 32),
-          
+
           // Right Panel: Scrollable Content
           Expanded(
             child: SingleChildScrollView(
@@ -311,9 +316,9 @@ class _SettingsPageState extends State<SettingsPage> {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 24),
-  
+
           // Scrollable Content
           Expanded(
             child: SingleChildScrollView(
@@ -329,7 +334,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildMobileTab(String label, String id, String iconPath) {
     final isSelected = selectedTab == id;
     final theme = Theme.of(context);
-    
+
     return InkWell(
       onTap: () => _onTabChanged(id),
       borderRadius: BorderRadius.circular(12),
@@ -341,13 +346,15 @@ class _SettingsPageState extends State<SettingsPage> {
           border: Border.all(
             color: isSelected ? Colors.transparent : theme.dividerColor,
           ),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: theme.primaryColor.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            )
-          ] : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: theme.primaryColor.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
         ),
         child: Row(
           children: [
@@ -356,7 +363,9 @@ class _SettingsPageState extends State<SettingsPage> {
               width: 18,
               height: 18,
               colorFilter: ColorFilter.mode(
-                isSelected ? theme.colorScheme.onPrimary : (theme.textTheme.bodyMedium?.color ?? Colors.grey),
+                isSelected
+                    ? theme.colorScheme.onPrimary
+                    : (theme.textTheme.bodyMedium?.color ?? Colors.grey),
                 BlendMode.srcIn,
               ),
             ),
@@ -364,7 +373,9 @@ class _SettingsPageState extends State<SettingsPage> {
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? theme.colorScheme.onPrimary : theme.textTheme.bodyLarge?.color,
+                color: isSelected
+                    ? theme.colorScheme.onPrimary
+                    : theme.textTheme.bodyLarge?.color,
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
@@ -428,7 +439,7 @@ class _SettingsPageState extends State<SettingsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CameraCalibrationSection(key: _calibrationKey),
-             const SizedBox(height: 32),
+            const SizedBox(height: 32),
             _buildActions(l10n),
           ],
         );
@@ -452,7 +463,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 });
               },
             ),
-             const SizedBox(height: 32),
+            const SizedBox(height: 32),
             _buildActions(l10n),
           ],
         );
@@ -464,7 +475,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _handleNavigation(String routeName) async {
     if (_hasUnsavedChanges) {
       final result = await _showUnsavedChangesDialog();
-      
+
       if (result == 'save' && mounted) {
         _onSave();
         Navigator.pushNamed(context, routeName);

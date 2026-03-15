@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../../../core/theme/app_colors.dart';
 
 class SettingsTabButton extends StatelessWidget {
   final String iconPath;
@@ -21,25 +20,25 @@ class SettingsTabButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final iconColor = isSelected 
-        ? theme.primaryColor 
+    final iconColor = isSelected
+        ? theme.primaryColor
         : (theme.textTheme.bodyMedium?.color ?? Colors.grey);
-        
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? theme.primaryColor.withOpacity(0.1) 
+          color: isSelected
+              ? theme.primaryColor.withValues(alpha: 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
             // Icon
-            iconPath.endsWith('.svg') 
+            iconPath.endsWith('.svg')
                 ? SvgPicture.asset(
                     iconPath,
                     width: 20,
@@ -59,15 +58,15 @@ class SettingsTabButton extends StatelessWidget {
                     // For PNGs, we typically don't apply a color filter unless requested
                     color: applyColorFilter ? iconColor : null,
                   ),
-            
+
             const SizedBox(width: 12),
-            
+
             // Label
             Text(
               label,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: isSelected 
-                    ? theme.primaryColor 
+                color: isSelected
+                    ? theme.primaryColor
                     : theme.textTheme.bodyLarge?.color,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),

@@ -8,7 +8,7 @@ import '../../../../l10n/app_localizations.dart';
 class LanguageSelector extends StatefulWidget {
   final Function(Locale)? onLanguageChanged;
   final Function(bool)? onThemeChanged;
-  
+
   const LanguageSelector({
     Key? key,
     this.onLanguageChanged,
@@ -20,11 +20,10 @@ class LanguageSelector extends StatefulWidget {
 }
 
 class _LanguageSelectorState extends State<LanguageSelector> {
-
   void _showLanguagePicker(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
     final theme = Theme.of(context);
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -42,8 +41,11 @@ class _LanguageSelectorState extends State<LanguageSelector> {
                 title: Text(
                   L10n.getLanguageName(locale.languageCode),
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isSelected ? theme.primaryColor : theme.textTheme.bodyLarge?.color,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: isSelected
+                        ? theme.primaryColor
+                        : theme.textTheme.bodyLarge?.color,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
                 trailing: isSelected
@@ -52,10 +54,10 @@ class _LanguageSelectorState extends State<LanguageSelector> {
                 onTap: () {
                   // Apply immediately to provider
                   localeProvider.setLocale(locale);
-                  
+
                   // Notify parent of change
                   widget.onLanguageChanged?.call(locale);
-                  
+
                   Navigator.pop(context);
                 },
               );
@@ -72,13 +74,13 @@ class _LanguageSelectorState extends State<LanguageSelector> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    
+
     return Column(
       children: [
         const SizedBox(height: 32),
         Divider(color: theme.dividerColor),
         const SizedBox(height: 32),
-        
+
         // Language Selector
         InkWell(
           onTap: () => _showLanguagePicker(context),
@@ -124,9 +126,9 @@ class _LanguageSelectorState extends State<LanguageSelector> {
             ),
           ),
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Light/Dark Mode Toggle
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -136,7 +138,8 @@ class _LanguageSelectorState extends State<LanguageSelector> {
               style: theme.textTheme.bodyLarge,
             ),
             Switch(
-              value: !themeProvider.isDarkMode, // Validating meaning: 'Light' label means switch ON = Light?
+              value: !themeProvider
+                  .isDarkMode, // Validating meaning: 'Light' label means switch ON = Light?
               // Usually Switches are: "Dark Mode" -> ON=Dark.
               // Here the label is "Light" (Clair).
               // So if value is TRUE, it implies Light Mode is Active.
@@ -144,11 +147,11 @@ class _LanguageSelectorState extends State<LanguageSelector> {
               onChanged: (value) {
                 // If value is true (Light Mode requested), isDark should be false.
                 themeProvider.toggleTheme(!value);
-                
+
                 // Notify parent of change
                 widget.onThemeChanged?.call(!value);
               },
-              activeColor: theme.primaryColor,
+              activeThumbColor: theme.primaryColor,
               inactiveThumbColor: theme.textTheme.bodyMedium?.color,
               inactiveTrackColor: theme.dividerColor,
             ),

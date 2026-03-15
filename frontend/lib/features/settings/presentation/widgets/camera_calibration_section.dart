@@ -4,14 +4,14 @@ import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:desktop_drop/desktop_drop.dart';
-import 'package:cross_file/cross_file.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class CameraCalibrationSection extends StatefulWidget {
   const CameraCalibrationSection({Key? key}) : super(key: key);
 
   @override
-  CameraCalibrationSectionState createState() => CameraCalibrationSectionState();
+  CameraCalibrationSectionState createState() =>
+      CameraCalibrationSectionState();
 }
 
 class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
@@ -27,32 +27,57 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
       });
     }
   }
+
   List<CameraDescription> _availableCameras = [];
   CameraController? _controller;
   bool _isCameraInitialized = false;
   String? _errorMessage;
-  
+
   // Camera model class for better structure
   int _cameraCounter = 4; // Start from 5 for new cameras
-  
+
   // Dynamic camera list
   List<Map<String, dynamic>> _cameras = [
-    {'id': '1', 'name': 'Motion Cam 1', 'source': 'Camera Source A (FHD)', 'isUploaded': true, 'file': 'calib_001.bin'},
-    {'id': '2', 'name': 'Motion Cam 2', 'source': 'Camera Source B (HD)', 'isUploaded': true, 'file': 'calib_002.bin'},
-    {'id': '3', 'name': 'Motion Cam 3', 'source': 'External USB Camera', 'isUploaded': false, 'file': null},
-    {'id': '4', 'name': 'Motion Cam 4', 'source': 'Virtual Stream 01', 'isUploaded': false, 'file': null},
+    {
+      'id': '1',
+      'name': 'Motion Cam 1',
+      'source': 'Camera Source A (FHD)',
+      'isUploaded': true,
+      'file': 'calib_001.bin'
+    },
+    {
+      'id': '2',
+      'name': 'Motion Cam 2',
+      'source': 'Camera Source B (HD)',
+      'isUploaded': true,
+      'file': 'calib_002.bin'
+    },
+    {
+      'id': '3',
+      'name': 'Motion Cam 3',
+      'source': 'External USB Camera',
+      'isUploaded': false,
+      'file': null
+    },
+    {
+      'id': '4',
+      'name': 'Motion Cam 4',
+      'source': 'Virtual Stream 01',
+      'isUploaded': false,
+      'file': null
+    },
   ];
 
   // Temporary state for the modify view
   String _tempSelectedSource = '';
   bool _tempIsUploaded = false;
   String? _tempFile;
-  
+
   // Shared calibration state (applies to all cameras)
   String _selectedSource = 'Camera Source A (FHD)';
   bool _isCalibrationUploaded = false;
   String? _calibrationFile;
-  
+
   // Static sources for the UI
   final List<String> _staticSources = [
     'Camera Source A (FHD)',
@@ -88,10 +113,11 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
       if (mounted) {
         setState(() {
           _availableCameras = cameras;
-          // We don't automatically set selectedDevice here anymore, 
+          // We don't automatically set selectedDevice here anymore,
           // it's managed per camera.
           if (cameras.isEmpty) {
-             _errorMessage = "No internal or external cameras were found by the system.";
+            _errorMessage =
+                "No internal or external cameras were found by the system.";
           }
         });
       }
@@ -100,9 +126,11 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
       if (mounted) {
         setState(() {
           if (e.toString().contains('MissingPluginException')) {
-             _errorMessage = "Plugin not initialized. Please STOP the app and run 'flutter run' again.";
+            _errorMessage =
+                "Plugin not initialized. Please STOP the app and run 'flutter run' again.";
           } else {
-             _errorMessage = "Could not access hardware. Please ensure camera permissions are granted in System Settings.";
+            _errorMessage =
+                "Could not access hardware. Please ensure camera permissions are granted in System Settings.";
           }
         });
       }
@@ -168,15 +196,17 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.primaryColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ],
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Cameras Container (Dynamic)
         Container(
           padding: const EdgeInsets.all(24),
@@ -196,9 +226,9 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
             },
           ),
         ),
-        
+
         const SizedBox(height: 32),
-        
+
         // Shared Calibration Section
         _buildSharedCalibrationSection(l10n, theme),
       ],
@@ -220,7 +250,7 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
 
   Future<void> _deleteCamera(Map<String, dynamic> camera) async {
     final l10n = AppLocalizations.of(context)!;
-    
+
     // Check minimum cameras
     if (_cameras.length <= 4) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -261,7 +291,8 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
     }
   }
 
-  Widget _buildModifyView(BuildContext context, AppLocalizations l10n, ThemeData theme) {
+  Widget _buildModifyView(
+      BuildContext context, AppLocalizations l10n, ThemeData theme) {
     // Find the camera being modified
     final camera = _cameras.firstWhere(
       (c) => c['name'] == modifyingCamera,
@@ -294,14 +325,14 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                     children: [
                       Icon(
                         Icons.videocam_off_outlined,
-                        color: theme.primaryColor.withOpacity(0.5),
+                        color: theme.primaryColor.withValues(alpha: 0.5),
                         size: 48,
                       ),
                       const SizedBox(height: 12),
                       Text(
                         'SELECT A SOURCE TO START PREVIEW',
                         style: TextStyle(
-                          color: theme.primaryColor.withOpacity(0.7),
+                          color: theme.primaryColor.withValues(alpha: 0.7),
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
@@ -313,7 +344,8 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                 top: 16,
                 left: 16,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: theme.primaryColor,
                     borderRadius: BorderRadius.circular(8),
@@ -377,9 +409,9 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // 1. CHOOSE CAMERA SOURCE
               Text(
                 l10n.chooseCameraSource,
@@ -389,7 +421,7 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -413,25 +445,27 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                         // SAVE changes to the camera source only
-                         final cameraIndex = _cameras.indexWhere((c) => c['name'] == modifyingCamera);
-                         if (cameraIndex != -1) {
-                           _cameras[cameraIndex] = {
-                             ..._cameras[cameraIndex],
-                             'source': _tempSelectedSource,
-                           };
-                         }
+                        // SAVE changes to the camera source only
+                        final cameraIndex = _cameras
+                            .indexWhere((c) => c['name'] == modifyingCamera);
+                        if (cameraIndex != -1) {
+                          _cameras[cameraIndex] = {
+                            ..._cameras[cameraIndex],
+                            'source': _tempSelectedSource,
+                          };
+                        }
 
-                         _controller?.dispose();
-                         _controller = null;
-                         _isCameraInitialized = false;
+                        _controller?.dispose();
+                        _controller = null;
+                        _isCameraInitialized = false;
                         setState(() => modifyingCamera = null);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.primaryColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       child: Text(
                         l10n.applyChanges,
@@ -450,7 +484,8 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                     },
                     style: TextButton.styleFrom(
                       foregroundColor: theme.textTheme.bodyMedium?.color,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 16),
                     ),
                     child: Text(
                       l10n.cancel,
@@ -475,7 +510,7 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
         setState(() {
           _tempSelectedSource = sourceName;
         });
-        
+
         // If we have real hardware discovered, let's use the first one for the preview
         // to keep the "Live Preview" functional as requested.
         if (_availableCameras.isNotEmpty && !_isCameraInitialized) {
@@ -486,7 +521,9 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? theme.primaryColor.withOpacity(0.05) : Colors.transparent,
+          color: isSelected
+              ? theme.primaryColor.withValues(alpha: 0.05)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? theme.primaryColor : theme.dividerColor,
@@ -497,7 +534,9 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
             Icon(
               Icons.videocam_outlined,
               size: 20,
-              color: isSelected ? theme.primaryColor : (theme.textTheme.bodyMedium?.color ?? Colors.grey),
+              color: isSelected
+                  ? theme.primaryColor
+                  : (theme.textTheme.bodyMedium?.color ?? Colors.grey),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -505,7 +544,9 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                 sourceName,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? theme.primaryColor : theme.textTheme.bodyLarge?.color,
+                  color: isSelected
+                      ? theme.primaryColor
+                      : theme.textTheme.bodyLarge?.color,
                 ),
               ),
             ),
@@ -519,16 +560,18 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                   width: 2,
                 ),
               ),
-              child: isSelected ? Center(
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: theme.primaryColor,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ) : null,
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: theme.primaryColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
           ],
         ),
@@ -552,7 +595,8 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
     return '${camera.name}$lens';
   }
 
-  Widget _buildCameraManagementItem(BuildContext context, Map<String, dynamic> camera) {
+  Widget _buildCameraManagementItem(
+      BuildContext context, Map<String, dynamic> camera) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final canDelete = _cameras.length > 4;
@@ -562,12 +606,12 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-         // Use dark slate for dark mode, white/card color for light mode
+        // Use dark slate for dark mode, white/card color for light mode
         color: isDark ? const Color(0xFF1E293B) : theme.cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark 
-              ? theme.dividerColor.withOpacity(0.5) 
+          color: isDark
+              ? theme.dividerColor.withValues(alpha: 0.5)
               : theme.dividerColor,
         ),
       ),
@@ -577,7 +621,7 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: theme.primaryColor.withOpacity(0.1),
+              color: theme.primaryColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: SvgPicture.asset(
@@ -590,9 +634,9 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
               ),
             ),
           ),
-          
+
           const SizedBox(width: 16),
-          
+
           // Name and Status
           Expanded(
             child: Column(
@@ -615,7 +659,7 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
               ],
             ),
           ),
-          
+
           // Delete Button (subtle)
           if (canDelete)
             IconButton(
@@ -623,15 +667,16 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
               icon: Icon(
                 Icons.delete_outline,
                 size: 20,
-                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                color:
+                    theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
               ),
               tooltip: l10n.delete,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             ),
-          
+
           const SizedBox(width: 4),
-          
+
           // Edit Icon (pencil) on the right
           IconButton(
             onPressed: () {
@@ -661,7 +706,8 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
     );
   }
 
-  Widget _buildSharedCalibrationSection(AppLocalizations l10n, ThemeData theme) {
+  Widget _buildSharedCalibrationSection(
+      AppLocalizations l10n, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -681,24 +727,25 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
               letterSpacing: 0.5,
             ),
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Drag and Drop Upload Area
           _isCalibrationUploaded
               ? Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.1),
+                    color: const Color(0xFF10B981).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                    border: Border.all(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withOpacity(0.2),
+                          color: const Color(0xFF10B981).withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(
@@ -754,11 +801,14 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                     onTap: _pickCalibrationFile,
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 48, horizontal: 24),
                       decoration: BoxDecoration(
-                        color: theme.brightness == Brightness.dark 
-                            ? theme.scaffoldBackgroundColor.withOpacity(0.5)
-                            : theme.scaffoldBackgroundColor, // Solid background for light mode
+                        color: theme.brightness == Brightness.dark
+                            ? theme.scaffoldBackgroundColor
+                                .withValues(alpha: 0.5)
+                            : theme
+                                .scaffoldBackgroundColor, // Solid background for light mode
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: theme.dividerColor,
@@ -771,7 +821,7 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: theme.primaryColor.withOpacity(0.1),
+                              color: theme.primaryColor.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -792,7 +842,8 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                           Text(
                             l10n.dragDropHint,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                              color: theme.textTheme.bodyMedium?.color
+                                  ?.withValues(alpha: 0.6),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -801,9 +852,9 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                     ),
                   ),
                 ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Action Buttons
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -817,7 +868,8 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                 },
                 style: TextButton.styleFrom(
                   foregroundColor: theme.textTheme.bodyMedium?.color,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
                 child: Text(l10n.cancel),
               ),
@@ -840,13 +892,16 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.primaryColor,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 child: Text(
-                  _isCalibrationUploaded ? l10n.applyChanges : l10n.uploadCalibration,
+                  _isCalibrationUploaded
+                      ? l10n.applyChanges
+                      : l10n.uploadCalibration,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
