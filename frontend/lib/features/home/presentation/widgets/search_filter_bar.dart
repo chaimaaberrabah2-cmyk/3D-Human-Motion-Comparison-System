@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class SearchFilterBar extends StatefulWidget {
   final Function(String) onSearchChanged;
   final Function(String) onFilterChanged;
-  
+
   const SearchFilterBar({
     Key? key,
     required this.onSearchChanged,
@@ -19,13 +18,19 @@ class SearchFilterBar extends StatefulWidget {
 
 class _SearchFilterBarState extends State<SearchFilterBar> {
   String selectedFilter = 'All';
-  final List<String> filters = ['All', 'Strength', 'Mobility', 'BodyWeight', 'Rehab'];
+  final List<String> filters = [
+    'All',
+    'Strength',
+    'Mobility',
+    'BodyWeight',
+    'Rehab'
+  ];
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
@@ -57,13 +62,14 @@ class _SearchFilterBarState extends State<SearchFilterBar> {
                   ),
                 ),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Filter Chips
           SizedBox(
             height: 40,
@@ -74,7 +80,7 @@ class _SearchFilterBarState extends State<SearchFilterBar> {
               itemBuilder: (context, index) {
                 final filter = filters[index];
                 final isSelected = selectedFilter == filter;
-                
+
                 // Get translated filter name
                 String getFilterName(String filter) {
                   switch (filter) {
@@ -92,7 +98,7 @@ class _SearchFilterBarState extends State<SearchFilterBar> {
                       return filter;
                   }
                 }
-                
+
                 return FilterChip(
                   label: Text(getFilterName(filter)),
                   selected: isSelected,
@@ -106,13 +112,17 @@ class _SearchFilterBarState extends State<SearchFilterBar> {
                   selectedColor: theme.primaryColor,
                   checkmarkColor: theme.colorScheme.onPrimary,
                   labelStyle: TextStyle(
-                    color: isSelected ? theme.colorScheme.onPrimary : theme.textTheme.bodyMedium?.color,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: isSelected
+                        ? theme.colorScheme.onPrimary
+                        : theme.textTheme.bodyMedium?.color,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
                   side: BorderSide(
                     color: isSelected ? Colors.transparent : theme.dividerColor,
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 );
               },
             ),

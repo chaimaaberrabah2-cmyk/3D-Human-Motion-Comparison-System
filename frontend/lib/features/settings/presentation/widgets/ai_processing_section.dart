@@ -44,11 +44,12 @@ class AiProcessingSection extends StatelessWidget {
               Text(
                 l10n.aiEngineDescription,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                  color:
+                      theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Deep Learning Backend Option
               _buildEngineCard(
                 context,
@@ -80,15 +81,18 @@ class AiProcessingSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Algorithm List
-              _buildAlgorithmCard(context, 'blaze_pose', l10n.blazePose, l10n.blazePoseDesc),
+              _buildAlgorithmCard(
+                  context, 'blaze_pose', l10n.blazePose, l10n.blazePoseDesc),
               const SizedBox(height: 12),
-              _buildAlgorithmCard(context, 'open_pose', l10n.openPose, l10n.openPoseDesc),
+              _buildAlgorithmCard(
+                  context, 'open_pose', l10n.openPose, l10n.openPoseDesc),
               const SizedBox(height: 12),
               _buildAlgorithmCard(context, 'yolo', l10n.yolo, l10n.yoloDesc),
               const SizedBox(height: 12),
-              _buildAlgorithmCard(context, 'pavllo', l10n.pavllo, l10n.pavlloDesc),
+              _buildAlgorithmCard(
+                  context, 'pavllo', l10n.pavllo, l10n.pavlloDesc),
             ],
           ),
         ),
@@ -96,7 +100,8 @@ class AiProcessingSection extends StatelessWidget {
     );
   }
 
-  Widget _buildAlgorithmCard(BuildContext context, String id, String title, String description) {
+  Widget _buildAlgorithmCard(
+      BuildContext context, String id, String title, String description) {
     final theme = Theme.of(context);
     final isSelected = selectedAlgorithm == id;
 
@@ -105,10 +110,14 @@ class AiProcessingSection extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? theme.primaryColor.withOpacity(0.05) : theme.scaffoldBackgroundColor.withOpacity(0.3),
+          color: isSelected
+              ? theme.primaryColor.withValues(alpha: 0.05)
+              : theme.scaffoldBackgroundColor.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? theme.primaryColor : theme.dividerColor.withOpacity(0.5),
+            color: isSelected
+                ? theme.primaryColor
+                : theme.dividerColor.withValues(alpha: 0.5),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -123,16 +132,19 @@ class AiProcessingSection extends StatelessWidget {
                     title,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: isSelected 
-                        ? (theme.brightness == Brightness.dark ? Colors.white : theme.primaryColor)
-                        : theme.textTheme.bodyLarge?.color,
+                      color: isSelected
+                          ? (theme.brightness == Brightness.dark
+                              ? Colors.white
+                              : theme.primaryColor)
+                          : theme.textTheme.bodyLarge?.color,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     description,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+                      color: theme.textTheme.bodySmall?.color
+                          ?.withValues(alpha: 0.7),
                       fontSize: 11,
                     ),
                   ),
@@ -153,16 +165,18 @@ class AiProcessingSection extends StatelessWidget {
                   width: 2,
                 ),
               ),
-              child: isSelected ? Center(
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: theme.primaryColor,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ) : null,
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: theme.primaryColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
           ],
         ),
@@ -179,13 +193,15 @@ class AiProcessingSection extends StatelessWidget {
     required bool isSelected,
   }) {
     final theme = Theme.of(context);
-    
+
     return GestureDetector(
       onTap: () => onEngineChanged(id),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? theme.primaryColor.withOpacity(0.05) : Colors.transparent,
+          color: isSelected
+              ? theme.primaryColor.withValues(alpha: 0.05)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? theme.primaryColor : theme.dividerColor,
@@ -198,18 +214,20 @@ class AiProcessingSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor.withOpacity(0.5),
+                color: theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: theme.dividerColor),
               ),
               child: Icon(
                 icon,
-                color: isSelected ? theme.primaryColor : theme.textTheme.bodyMedium?.color,
+                color: isSelected
+                    ? theme.primaryColor
+                    : theme.textTheme.bodyMedium?.color,
                 size: 24,
               ),
             ),
             const SizedBox(width: 16),
-            
+
             // Text Content
             Expanded(
               child: Column(
@@ -219,22 +237,25 @@ class AiProcessingSection extends StatelessWidget {
                     title,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: isSelected 
-                        ? (theme.brightness == Brightness.dark ? Colors.white : theme.primaryColor)
-                        : theme.textTheme.bodyLarge?.color,
+                      color: isSelected
+                          ? (theme.brightness == Brightness.dark
+                              ? Colors.white
+                              : theme.primaryColor)
+                          : theme.textTheme.bodyLarge?.color,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     description,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+                      color: theme.textTheme.bodySmall?.color
+                          ?.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             // Selection Indicator
             Container(
               width: 20,
@@ -246,16 +267,18 @@ class AiProcessingSection extends StatelessWidget {
                   width: 2,
                 ),
               ),
-              child: isSelected ? Center(
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: theme.primaryColor,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ) : null,
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: theme.primaryColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
           ],
         ),

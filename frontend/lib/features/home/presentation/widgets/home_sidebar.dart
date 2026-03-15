@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class HomeSidebar extends StatelessWidget {
   final Future<void> Function(String)? onNavigate;
-  
+
   const HomeSidebar({Key? key, this.onNavigate}) : super(key: key);
 
   @override
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
       width: 280,
       decoration: BoxDecoration(
@@ -74,9 +72,9 @@ class HomeSidebar extends StatelessWidget {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Navigation Items
           _buildNavItem(
             context,
@@ -91,7 +89,7 @@ class HomeSidebar extends StatelessWidget {
               }
             },
           ),
-          
+
           _buildNavItem(
             context,
             iconPath: 'assets/icons/historyicon.svg',
@@ -105,7 +103,7 @@ class HomeSidebar extends StatelessWidget {
               }
             },
           ),
-          
+
           _buildNavItem(
             context,
             iconPath: 'assets/icons/setting.svg',
@@ -119,7 +117,7 @@ class HomeSidebar extends StatelessWidget {
               }
             },
           ),
-          
+
           const Spacer(),
         ],
       ),
@@ -135,8 +133,8 @@ class HomeSidebar extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
-    final iconColor = isSelected 
-        ? theme.primaryColor 
+    final iconColor = isSelected
+        ? theme.primaryColor
         : (theme.textTheme.bodyMedium?.color ?? Colors.grey);
 
     return Padding(
@@ -149,10 +147,14 @@ class HomeSidebar extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isSelected ? theme.primaryColor.withOpacity(0.1) : Colors.transparent,
+              color: isSelected
+                  ? theme.primaryColor.withValues(alpha: 0.1)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected ? theme.primaryColor.withOpacity(0.2) : Colors.transparent,
+                color: isSelected
+                    ? theme.primaryColor.withValues(alpha: 0.2)
+                    : Colors.transparent,
                 width: 1,
               ),
             ),
@@ -178,8 +180,11 @@ class HomeSidebar extends StatelessWidget {
                 Text(
                   label,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isSelected ? theme.primaryColor : theme.textTheme.bodyLarge?.color,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: isSelected
+                        ? theme.primaryColor
+                        : theme.textTheme.bodyLarge?.color,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
               ],

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 
@@ -17,7 +16,7 @@ class ExerciseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
       decoration: BoxDecoration(
         color: theme.cardColor,
@@ -25,7 +24,7 @@ class ExerciseCard extends StatelessWidget {
         border: Border.all(color: theme.dividerColor, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -47,19 +46,21 @@ class ExerciseCard extends StatelessWidget {
                     color: theme.scaffoldBackgroundColor,
                   ),
                   child: Hero(
-                    tag: 'exercise_${exercise.id}', // Hero tag for smooth transition
+                    tag:
+                        'exercise_${exercise.id}', // Hero tag for smooth transition
                     child: Image.asset(
                       exercise.imagePath,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         // Placeholder when image not found
                         return Container(
-                          color: theme.primaryColor.withOpacity(0.1),
+                          color: theme.primaryColor.withValues(alpha: 0.1),
                           child: Center(
                             child: Icon(
                               Icons.fitness_center,
                               size: 64,
-                              color: theme.iconTheme.color?.withOpacity(0.5),
+                              color:
+                                  theme.iconTheme.color?.withValues(alpha: 0.5),
                             ),
                           ),
                         );
@@ -68,7 +69,7 @@ class ExerciseCard extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               // Exercise Info
               Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -87,33 +88,35 @@ class ExerciseCard extends StatelessWidget {
                     Text(
                       _getLocalizedMode(context, exercise.mode),
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                        color: theme.textTheme.bodyMedium?.color
+                            ?.withValues(alpha: 0.7),
                         fontSize: 12,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 12),
-                    
+
                     // Difficulty Badge & Action Icon
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                         Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: theme.primaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              _getLocalizedCategory(context, exercise.category),
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.primaryColor,
-                                fontWeight: FontWeight.bold,
-                              ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: theme.primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _getLocalizedCategory(context, exercise.category),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.primaryColor,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        
+                        ),
+
                         // Small Arrow Icon indicating navigation
                         Container(
                           width: 32,
@@ -125,7 +128,8 @@ class ExerciseCard extends StatelessWidget {
                           child: Icon(
                             Icons.arrow_forward_ios_rounded,
                             size: 14,
-                            color: theme.iconTheme.color?.withOpacity(0.7),
+                            color:
+                                theme.iconTheme.color?.withValues(alpha: 0.7),
                           ),
                         ),
                       ],

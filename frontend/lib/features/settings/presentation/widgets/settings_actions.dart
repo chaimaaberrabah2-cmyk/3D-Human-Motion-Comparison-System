@@ -15,7 +15,7 @@ class SettingsActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -30,9 +30,9 @@ class SettingsActions extends StatelessWidget {
             ),
           ),
         ),
-        
+
         const SizedBox(width: 16),
-        
+
         // Save Button
         ElevatedButton.icon(
           onPressed: onSave,
@@ -45,7 +45,7 @@ class SettingsActions extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(
-                color: const Color(0xFF1E3A8A).withOpacity(0.3),
+                color: const Color(0xFF1E3A8A).withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
