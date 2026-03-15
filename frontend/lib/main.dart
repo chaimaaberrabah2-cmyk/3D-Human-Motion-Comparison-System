@@ -5,6 +5,7 @@ import 'features/home/presentation/pages/home_page.dart';
 import 'features/settings/presentation/pages/settings_page.dart';
 import 'features/analysis/presentation/pages/new_analysis_page.dart';
 import 'features/history/presentation/pages/history_page.dart';
+import 'features/authentification/presentation/pages/sign_in_page.dart';
 import 'core/l10n/locale_provider.dart';
 import 'l10n/app_localizations.dart';
 import 'core/theme/theme_provider.dart';
@@ -42,9 +43,13 @@ class MotionAIApp extends StatelessWidget {
               theme: AppTheme.lightTheme,
               darkTheme: AppTheme.darkTheme,
               themeMode: themeProvider.themeMode,
+              initialRoute: '/sign-in',
               onGenerateRoute: (settings) {
                 Widget page;
                 switch (settings.name) {
+                  case '/sign-in':
+                    page = const SignInPage();
+                    break;
                   case '/':
                     page = const HomePage();
                     break;
@@ -58,9 +63,9 @@ class MotionAIApp extends StatelessWidget {
                     page = const NewAnalysisPage();
                     break;
                   default:
-                    page = const HomePage();
+                    page = const SignInPage();
                 }
-                
+
                 // Return route without animation
                 return PageRouteBuilder(
                   settings: settings,
