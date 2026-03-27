@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_svg/flutter_svg.dart';
-import 'dart:io';
+import 'dart:io' as io;
 import 'dart:async';
 import 'package:video_player/video_player.dart';
 import 'package:file_picker/file_picker.dart';
@@ -55,8 +56,8 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
                     // Main Content
                     Expanded(
                       child: isDesktop
-                          ? Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 0),
+                          ? SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
                               child: Center(
                                 child: constraints.maxWidth > 1000
                                     ? SizedBox(width: 800, child: _buildStepContent(l10n, theme))
@@ -1030,47 +1031,84 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
           onTap: () async {
             try {
               final result = await FilePicker.platform.pickFiles(
-                type: FileType.custom,
-                allowedExtensions: ['mp4', 'mov', 'avi', 'mkv', 'flv', 'wmv', 'webm'],
+                type: FileType.video, // Use FileType.video for better compatibility
                 allowMultiple: false,
-                dialogTitle: 'Select Video File',
+                dialogTitle: 'Select $title Video',
               );
 
-                  if (result != null && result.files.single.path != null) {
-                  setState(() {
-                    _selectedFiles[id] = result.files.single.path;
-                  });
+              if (result != null) {
+                String? videoSource;
+                
+                if (kIsWeb) {
+                  // On Web, use bytes and convert to data URI
+                  final bytes = result.files.single.bytes;
+                  if (bytes != null) {
+                    final extension = result.files.single.extension ?? 'mp4';
+                    videoSource = Uri.dataFromBytes(bytes, mimeType: 'video/$extension').toString();
+                  }
+                } else {
+                  // On native platforms, use the file path
+                  videoSource = result.files.single.path;
                 }
-              } catch (e) {
-                debugPrint('Error picking file: $e');
-                // Optionally show a snackbar to the user
+
+                if (videoSource != null) {
+                  setState(() {
+                    _selectedFiles[id] = videoSource;
+                  });
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Video uploaded for $title'),
+                        backgroundColor: theme.primaryColor,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                }
+              } else {
+                // User cancelled the picker
+                debugPrint('File picking cancelled');
               }
-            },
-            borderRadius: BorderRadius.circular(20),
-            child: isUploaded
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        // Video Preview
-                        _VideoPreview(videoPath: fileName!),
-                        
-                        // Overlay Gradient
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.black.withOpacity(0.3),
-                                Colors.transparent,
-                                Colors.black.withOpacity(0.7),
-                              ],
-                              stops: const [0.0, 0.4, 1.0],
-                            ),
+            } catch (e) {
+              debugPrint('Error picking file: $e');
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error selecting video: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: isUploaded
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Video Preview - Added ValueKey to force rebuild on file change
+                      _VideoPreview(
+                        key: ValueKey(fileName),
+                        videoPath: fileName!,
+                      ),
+                      
+                      // Overlay Gradient
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.3),
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.7),
+                            ],
+                            stops: const [0.0, 0.4, 1.0],
                           ),
                         ),
+                      ),
 
                         // Title (Top Left)
                         Positioned(
@@ -1103,7 +1141,7 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  fileName.split(Platform.pathSeparator).last,
+                                  fileName.split(RegExp(r'[/\\]')).last,
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w500,
@@ -1401,14 +1439,27 @@ class _VideoPreviewState extends State<_VideoPreview> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.file(File(widget.videoPath))
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() {
-            _initialized = true;
-          });
-        }
-      });
+    
+    // Initialize controller based on platform/source type
+    if (kIsWeb || widget.videoPath.startsWith('data:')) {
+      _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoPath));
+    } else {
+      // Use File safely - only on non-web
+      _controller = VideoPlayerController.file(io.File(widget.videoPath));
+    }
+
+    _controller.initialize().then((_) {
+      if (mounted) {
+        setState(() {
+          _initialized = true;
+        });
+        _controller.setLooping(true);
+        _controller.setVolume(0.0); // Mute for preview
+        _controller.play();
+      }
+    }).catchError((error) {
+      debugPrint('Error initializing video player: $error');
+    });
   }
 
   @override
@@ -1420,19 +1471,20 @@ class _VideoPreviewState extends State<_VideoPreview> {
   @override
   Widget build(BuildContext context) {
     if (_initialized) {
-      return FittedBox(
-        fit: BoxFit.cover,
-        child: SizedBox(
-          width: _controller.value.size.width,
-          height: _controller.value.size.height,
+      return Center(
+        child: AspectRatio(
+          aspectRatio: _controller.value.aspectRatio,
           child: VideoPlayer(_controller),
         ),
       );
     } else {
       return Container(
-        color: Colors.black12,
+        color: Colors.black.withOpacity(0.1),
         child: const Center(
-          child: CircularProgressIndicator(strokeWidth: 2),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
         ),
       );
     }

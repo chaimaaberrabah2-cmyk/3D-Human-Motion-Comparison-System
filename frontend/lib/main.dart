@@ -6,6 +6,12 @@ import 'features/settings/presentation/pages/settings_page.dart';
 import 'features/analysis/presentation/pages/new_analysis_page.dart';
 import 'features/history/presentation/pages/history_page.dart';
 import 'features/authentification/presentation/pages/sign_in_page.dart';
+import 'features/authentification/presentation/pages/sign_up_page.dart';
+import 'features/authentification/presentation/pages/forgot_password_page.dart';
+import 'features/authentification/presentation/pages/reset_password_page.dart';
+import 'features/authentification/presentation/pages/new_password_page.dart';
+import 'features/authentification/presentation/pages/success_page.dart';
+import 'features/authentification/presentation/pages/starting_page.dart';
 import 'core/l10n/locale_provider.dart';
 import 'l10n/app_localizations.dart';
 import 'core/theme/theme_provider.dart';
@@ -43,12 +49,30 @@ class MotionAIApp extends StatelessWidget {
               theme: AppTheme.lightTheme,
               darkTheme: AppTheme.darkTheme,
               themeMode: themeProvider.themeMode,
-              initialRoute: '/sign-in',
+              initialRoute: '/starting',
               onGenerateRoute: (settings) {
                 Widget page;
                 switch (settings.name) {
+                  case '/starting':
+                    page = const StartingPage();
+                    break;
                   case '/sign-in':
                     page = const SignInPage();
+                    break;
+                  case '/sign-up':
+                    page = const SignUpPage();
+                    break;
+                  case '/forgot-password':
+                    page = const ForgotPasswordPage();
+                    break;
+                  case '/reset-password':
+                    page = const ResetPasswordPage();
+                    break;
+                  case '/new-password':
+                    page = const NewPasswordPage();
+                    break;
+                  case '/success':
+                    page = const SuccessPage();
                     break;
                   case '/':
                     page = const HomePage();
@@ -63,7 +87,7 @@ class MotionAIApp extends StatelessWidget {
                     page = const NewAnalysisPage();
                     break;
                   default:
-                    page = const SignInPage();
+                    page = const StartingPage();
                 }
 
                 // Return route without animation
