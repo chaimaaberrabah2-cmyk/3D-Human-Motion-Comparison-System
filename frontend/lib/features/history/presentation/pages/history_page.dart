@@ -22,7 +22,9 @@ class HistoryPage extends StatelessWidget {
               children: [
                 const HomeSidebar(),
                 Expanded(
-                  child: _buildContent(context, l10n),
+                  child: SingleChildScrollView(
+                    child: _buildContent(context, l10n),
+                  ),
                 ),
               ],
             );
