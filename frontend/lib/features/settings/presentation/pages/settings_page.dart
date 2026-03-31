@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/navigation/navigation_provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../home/presentation/widgets/home_sidebar.dart';
 import '../widgets/settings_tab_button.dart';
 import '../widgets/personal_info_section.dart';
@@ -478,15 +479,15 @@ class _SettingsPageState extends State<SettingsPage> {
 
       if (result == 'save' && mounted) {
         _onSave();
-        Navigator.pushNamed(context, routeName);
+        context.read<NavigationProvider>().setIndexByRoute(routeName);
       } else if (result == 'discard' && mounted) {
         _revertChanges();
         setState(() => _hasUnsavedChanges = false);
-        Navigator.pushNamed(context, routeName);
+        context.read<NavigationProvider>().setIndexByRoute(routeName);
       }
       // If 'cancel', do nothing
     } else {
-      Navigator.pushNamed(context, routeName);
+      context.read<NavigationProvider>().setIndexByRoute(routeName);
     }
   }
 

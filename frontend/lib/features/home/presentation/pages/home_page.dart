@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../../core/navigation/navigation_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/exercise.dart';
 import '../widgets/home_sidebar.dart';
@@ -60,9 +62,8 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-//fun quand on clique sur new analysis
   void _onStartAnalysis() {
-    Navigator.pushNamed(context, '/new_analysis');
+    context.read<NavigationProvider>().setIndex(3);
   }
 
   @override
