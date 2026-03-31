@@ -38,3 +38,6 @@ dataset/
 !dataset/videos/user_uploads/.gitkeep
 !dataset/keypoints/user_uploads/.gitkeep
 !dataset/smpl/user_uploads/.gitkeep
+
+# Ignore backend uploaded videos and temp frames
+backend/data/
