@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:io' as io;
 import 'dart:async';
 import 'package:video_player/video_player.dart';
 import 'package:file_picker/file_picker.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../home/presentation/widgets/home_sidebar.dart';
 import '../../../home/domain/entities/exercise.dart';
+import '../../data/datasources/analysis_remote_datasource.dart';
+import '../../data/repositories/analysis_repository_impl.dart';
 
 class NewAnalysisPage extends StatefulWidget {
   const NewAnalysisPage({Key? key}) : super(key: key);
@@ -19,14 +19,26 @@ class NewAnalysisPage extends StatefulWidget {
 
 class _NewAnalysisPageState extends State<NewAnalysisPage> {
   int _currentStep = 1;
-  String? _selectedMethod;
-  final Map<String, String?> _selectedFiles = {};
+  String _selectedMethod = 'upload'; // 'upload' or 'live'
+  final Map<String, String?> _selectedFiles = {
+    'angle_1': null,
+    'angle_2': null,
+    'angle_3': null,
+    'angle_4': null,
+  };
   
+  // Store raw file data for upload
+  final Map<String, dynamic> _rawFiles = {
+    'angle_1': null,
+    'angle_2': null,
+    'angle_3': null,
+    'angle_4': null,
+  };
+
   // Processing state
   bool _isProcessing = false;
   double _processingProgress = 0.0;
   String _processingStatus = 'Initializing...';
-  Timer? _processingTimer;
 
   Exercise? _selectedExercise;
 
@@ -273,52 +285,67 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
     }
   }
 
-  void _startMockProcessing() {
-    final l10n = AppLocalizations.of(context)!;
+  Future<void> _startProcessing() async {
+    // Check if all 4 videos are selected
+    if (_rawFiles.values.any((v) => v == null)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select all 4 camera angles')),
+      );
+      return;
+    }
+
     setState(() {
       _isProcessing = true;
       _processingProgress = 0.0;
-      _processingStatus = 'Synchronizing video streams...';
+      _processingStatus = 'Connecting to backend...';
       _currentStep = 3;
     });
 
-    const totalSeconds = 40;
-    const interval = 100; // ms
-    const totalIncrements = (totalSeconds * 1000) / interval;
-    int currentIncrement = 0;
+    try {
+      if (!mounted) return;
+      setState(() {
+        _processingStatus = 'Connecting to backend...';
+        _processingProgress = 0.05;
+      });
 
-    _processingTimer?.cancel();
-    _processingTimer = Timer.periodic(const Duration(milliseconds: interval), (timer) {
-      currentIncrement++;
-      if (mounted) {
-        setState(() {
-          _processingProgress = currentIncrement / totalIncrements;
-          
-          // Update status messages periodically
-          if (_processingProgress < 0.25) {
-            _processingStatus = l10n.syncVideoStreams;
-          } else if (_processingProgress < 0.5) {
-            _processingStatus = l10n.extractingKeypoints;
-          } else if (_processingProgress < 0.75) {
-            _processingStatus = l10n.fittingSmpl;
-          } else if (_processingProgress < 0.95) {
-            _processingStatus = l10n.optimizingMesh;
-          } else {
-            _processingStatus = l10n.generatingReports;
-          }
-        });
-      }
+      // Real API Call to FastAPI Backend
+      final dataSource = AnalysisRemoteDataSource();
+      final repository = AnalysisRepositoryImpl(remoteDataSource: dataSource);
+      
+      final sessionId = await repository.analyzeVideos(videos: _rawFiles);
 
-      if (currentIncrement >= totalIncrements) {
-        timer.cancel();
-        if (mounted) {
+      // Simulation of a realistic extraction process for 4 videos (Total 20% progress)
+      for (int i = 1; i <= 4; i++) {
+        for (int p = 1; p <= 10; p++) {
+          await Future.delayed(const Duration(milliseconds: 300));
+          if (!mounted) return;
           setState(() {
-            _isProcessing = false;
-            _currentStep = 4; // Results
+            // Each camera angle takes 5% of total progress (4 * 5 = 20%)
+            _processingProgress = 0.05 + ((i - 1) * 0.03) + (p * 0.002);
+            _processingStatus = 'Extracting frames from Camera Angle $i... (${(_processingProgress * 100).toInt()}%)';
           });
         }
       }
-    });
+
+      if (!mounted) return;
+      setState(() {
+        _processingStatus = 'Extraction complete for all videos ($sessionId)';
+        _processingProgress = 0.20; // Correctly stop at 20% for now
+        _isProcessing = false;
+        // Stay on this screen as requested
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _processingStatus = 'Error: ${e.toString()}';
+        });
+      }
+    }
+  }
+
+  void _startMockProcessing() {
+    _startProcessing();
   }
 
   Widget _buildProcessingStep(AppLocalizations l10n, ThemeData theme) {
@@ -389,10 +416,7 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
                   _buildLogLine(l10n.logAnalysisStarted, timestamp: '00:00:00'),
                   if (_processingProgress > 0.1)
                     _buildLogLine(l10n.logSyncOk, timestamp: '00:00:04'),
-                  if (_processingProgress > 0.3)
-                    _buildLogLine(l10n.logExtractionProgress, timestamp: '00:00:12'),
-                  if (_processingProgress > 0.6)
-                    _buildLogLine(l10n.logSmplActive, timestamp: '00:00:24'),
+                  // Future steps hidden as requested
                 ],
               ),
             ),
@@ -440,8 +464,9 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
                   // RESET for demo
                   setState(() {
                     _currentStep = 1;
-                    _selectedFiles.clear();
-                    _selectedMethod = null;
+                    _selectedFiles.updateAll((key, value) => null);
+                    _rawFiles.updateAll((key, value) => null);
+                    _selectedMethod = 'upload';
                     _selectedExercise = null;
                   });
                 },
@@ -1054,6 +1079,8 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
                 if (videoSource != null) {
                   setState(() {
                     _selectedFiles[id] = videoSource;
+                    // Store the raw file (bytes for web, path for native)
+                    _rawFiles[id] = kIsWeb ? result.files.single.bytes : result.files.single.path;
                   });
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -1091,7 +1118,7 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
                       // Video Preview - Added ValueKey to force rebuild on file change
                       _VideoPreview(
                         key: ValueKey(fileName),
-                        videoPath: fileName!,
+                        videoPath: fileName,
                       ),
                       
                       // Overlay Gradient
