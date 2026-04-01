@@ -1,40 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../controllers/sign_in_controller.dart';
+import '../controllers/sign_up_controller.dart';
 
-class SignInPage extends StatefulWidget {
-  const SignInPage({Key? key}) : super(key: key);
+class SignUpPage extends StatefulWidget {
+  const SignUpPage({Key? key}) : super(key: key);
 
   @override
-  State<SignInPage> createState() => _SignInPageState();
+  State<SignUpPage> createState() => _SignUpPageState();
 }
 
-class _SignInPageState extends State<SignInPage> {
+class _SignUpPageState extends State<SignUpPage> {
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
-  late SignInController _controller;
+  late SignUpController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = SignInController();
+    _controller = SignUpController();
   }
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _controller.dispose();
     super.dispose();
   }
 
-  Future<void> _handleSignIn() async {
+  Future<void> _handleSignUp() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final success = await _controller.signIn(
+    final success = await _controller.signUp(
+      name: _nameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
     );
@@ -53,10 +56,7 @@ class _SignInPageState extends State<SignInPage> {
         body: LayoutBuilder(
           builder: (context, constraints) {
             final isMobile = constraints.maxWidth < 800;
-            if (isMobile) {
-              return _buildMobileLayout();
-            }
-            return _buildDesktopLayout();
+            return isMobile ? _buildMobileLayout() : _buildDesktopLayout();
           },
         ),
       ),
@@ -68,16 +68,8 @@ class _SignInPageState extends State<SignInPage> {
   Widget _buildDesktopLayout() {
     return Row(
       children: [
-        // Left branding panel
-        Expanded(
-          flex: 40,
-          child: _buildBrandingPanel(),
-        ),
-        // Right form panel
-        SizedBox(
-          width: 600,
-          child: _buildFormPanel(horizontalPadding: 60),
-        ),
+        Expanded(flex: 40, child: _buildBrandingPanel()),
+        SizedBox(width: 600, child: _buildFormPanel(horizontalPadding: 60)),
       ],
     );
   }
@@ -99,7 +91,7 @@ class _SignInPageState extends State<SignInPage> {
     );
   }
 
-  // ── Branding panel (left / top) ───────────────────────────────────────────
+  // ── Branding panel ────────────────────────────────────────────────────────
 
   Widget _buildBrandingPanel() {
     return Container(
@@ -107,22 +99,18 @@ class _SignInPageState extends State<SignInPage> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Background image
           FittedBox(
             fit: BoxFit.cover,
             alignment: const Alignment(-1.8, 0),
             child: Image.asset('assets/images/SignUp.png'),
           ),
-          // Dark overlay
-          Container(color: Colors.black.withValues(alpha: 0.45)),
-          // Text content
+          Container(color: Colors.black.withValues(alpha: 0.4)),
           Padding(
             padding: const EdgeInsets.fromLTRB(60, 300, 80, 60),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo row
                 Row(
                   children: [
                     Container(
@@ -172,9 +160,9 @@ class _SignInPageState extends State<SignInPage> {
                     height: 1.1,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 7),
                 Text(
-                  'Reconstruct, analyze, and optimize human motion\nwith enterprise-grade SMPL modeling.',
+                  'Reconstruct, analyze, and optimize human motion with\nenterprise-grade SMPL modeling.',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.white.withValues(alpha: 0.7),
@@ -189,15 +177,15 @@ class _SignInPageState extends State<SignInPage> {
     );
   }
 
-  // ── Form panel (right / bottom) ───────────────────────────────────────────
+  // ── Form panel ────────────────────────────────────────────────────────────
 
   Widget _buildFormPanel({required double horizontalPadding}) {
     return Container(
       color: AppColors.background,
       child: Center(
         child: SingleChildScrollView(
-          padding:
-              EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 40),
+          padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding, vertical: 40),
           child: Center(
             child: SizedBox(
               width: 430,
@@ -207,9 +195,8 @@ class _SignInPageState extends State<SignInPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Heading
                     const Text(
-                      'Welcome Back',
+                      'Create Account',
                       style: TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.w900,
@@ -218,13 +205,27 @@ class _SignInPageState extends State<SignInPage> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Enter your credentials to access your motion dashboard.',
+                      'Join the next generation.',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.white.withValues(alpha: 0.6),
                       ),
                     ),
                     const SizedBox(height: 40),
+
+                    // Name field
+                    _buildTextField(
+                      controller: _nameController,
+                      hint: 'Name',
+                      prefixIcon: Icons.person_outline,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Name is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
 
                     // Email field
                     _buildTextField(
@@ -233,8 +234,9 @@ class _SignInPageState extends State<SignInPage> {
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty)
+                        if (v == null || v.trim().isEmpty) {
                           return 'Email is required';
+                        }
                         if (!v.contains('@')) return 'Enter a valid email';
                         return null;
                       },
@@ -258,57 +260,46 @@ class _SignInPageState extends State<SignInPage> {
                             () => _obscurePassword = !_obscurePassword),
                       ),
                       validator: (v) {
-                        if (v == null || v.isEmpty)
+                        if (v == null || v.isEmpty) {
                           return 'Password is required';
+                        }
                         if (v.length < 6) return 'Minimum 6 characters';
                         return null;
                       },
                     ),
 
                     // Error message
-                    Consumer<SignInController>(
+                    Consumer<SignUpController>(
                       builder: (_, ctrl, __) {
-                        if (ctrl.status != SignInStatus.error)
+                        if (ctrl.status != SignUpStatus.error) {
                           return const SizedBox.shrink();
+                        }
                         return Padding(
                           padding: const EdgeInsets.only(top: 12),
                           child: Text(
                             ctrl.errorMessage ?? 'An error occurred.',
                             style: const TextStyle(
-                                color: Color(0xFFEF4444), fontSize: 13),
+                              color: Color(0xFFEF4444),
+                              fontSize: 13,
+                            ),
                           ),
                         );
                       },
                     ),
 
-                    // Forgot password
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/forgot-password'),
-                        child: const Text(
-                          'Forgot Password?',
-                          style: TextStyle(
-                            color: AppColors.accentBlue,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
+                    const SizedBox(height: 40),
 
-                    const SizedBox(height: 20),
-
-                    // Sign in button
-                    Consumer<SignInController>(
+                    // Sign Up button
+                    Consumer<SignUpController>(
                       builder: (_, ctrl, __) => ElevatedButton(
-                        onPressed: ctrl.isLoading ? null : _handleSignIn,
+                        onPressed: ctrl.isLoading ? null : _handleSignUp,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.accentBlue,
                           foregroundColor: Colors.white,
                           disabledBackgroundColor:
                               AppColors.accentBlue.withValues(alpha: 0.6),
-                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -324,7 +315,7 @@ class _SignInPageState extends State<SignInPage> {
                                 ),
                               )
                             : const Text(
-                                'Sign In',
+                                'Sign Up',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -340,11 +331,11 @@ class _SignInPageState extends State<SignInPage> {
                       children: [
                         Expanded(
                           child: Divider(
-                            color: Colors.white.withValues(alpha: 0.2),
-                          ),
+                              color: Colors.white.withValues(alpha: 0.2)),
                         ),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
                             'or continue with',
                             style: TextStyle(
@@ -355,21 +346,20 @@ class _SignInPageState extends State<SignInPage> {
                         ),
                         Expanded(
                           child: Divider(
-                            color: Colors.white.withValues(alpha: 0.2),
-                          ),
+                              color: Colors.white.withValues(alpha: 0.2)),
                         ),
                       ],
                     ),
 
                     const SizedBox(height: 30),
 
-                    // Google sign-in
+                    // Google sign up
                     Center(
                       child: SizedBox(
                         width: 250,
                         child: OutlinedButton.icon(
                           onPressed: () {
-                            // TODO: Implement Google sign-in
+                            // TODO: Implement Google sign-up
                           },
                           icon: const Icon(Icons.g_mobiledata, size: 28),
                           label: const Text('Google'),
@@ -378,7 +368,8 @@ class _SignInPageState extends State<SignInPage> {
                             side: BorderSide(
                               color: Colors.white.withValues(alpha: 0.2),
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -389,22 +380,22 @@ class _SignInPageState extends State<SignInPage> {
 
                     const SizedBox(height: 30),
 
-                    // Sign up link
+                    // Log in link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "Don't have an account? ",
+                          'Already have an account? ',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.6),
                             fontSize: 14,
                           ),
                         ),
                         TextButton(
-                          onPressed: () =>
-                              Navigator.pushNamed(context, '/sign-up'),
+                          onPressed: () => Navigator.pushReplacementNamed(
+                              context, '/sign-in'),
                           child: const Text(
-                            'Sign Up',
+                            'Log In',
                             style: TextStyle(
                               color: AppColors.accentBlue,
                               fontSize: 14,
@@ -450,10 +441,8 @@ class _SignInPageState extends State<SignInPage> {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-          prefixIcon: Icon(
-            prefixIcon,
-            color: Colors.white.withValues(alpha: 0.5),
-          ),
+          prefixIcon: Icon(prefixIcon,
+              color: Colors.white.withValues(alpha: 0.5)),
           suffixIcon: suffixIcon,
           border: InputBorder.none,
           contentPadding:

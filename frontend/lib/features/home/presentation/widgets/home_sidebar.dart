@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../core/navigation/navigation_provider.dart';
 
 class HomeSidebar extends StatelessWidget {
   final Future<void> Function(String)? onNavigate;
@@ -10,6 +12,7 @@ class HomeSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final currentIndex = context.watch<NavigationProvider>().currentIndex;
 
     return Container(
       width: 280,
@@ -80,12 +83,12 @@ class HomeSidebar extends StatelessWidget {
             context,
             iconPath: 'assets/icons/dashboard.svg',
             label: AppLocalizations.of(context)!.dashboard,
-            isSelected: ModalRoute.of(context)?.settings.name == '/',
+            isSelected: currentIndex == 0 || currentIndex == 3, // Highlight if Dashboard or New Analysis
             onTap: () async {
               if (onNavigate != null) {
                 await onNavigate!('/');
               } else {
-                Navigator.pushNamed(context, '/');
+                context.read<NavigationProvider>().setIndex(0);
               }
             },
           ),
@@ -94,12 +97,12 @@ class HomeSidebar extends StatelessWidget {
             context,
             iconPath: 'assets/icons/historyicon.svg',
             label: AppLocalizations.of(context)!.history,
-            isSelected: ModalRoute.of(context)?.settings.name == '/history',
+            isSelected: currentIndex == 1,
             onTap: () async {
               if (onNavigate != null) {
                 await onNavigate!('/history');
               } else {
-                Navigator.pushNamed(context, '/history');
+                context.read<NavigationProvider>().setIndex(1);
               }
             },
           ),
@@ -108,12 +111,12 @@ class HomeSidebar extends StatelessWidget {
             context,
             iconPath: 'assets/icons/setting.svg',
             label: AppLocalizations.of(context)!.settings,
-            isSelected: ModalRoute.of(context)?.settings.name == '/settings',
+            isSelected: currentIndex == 2,
             onTap: () async {
               if (onNavigate != null) {
                 await onNavigate!('/settings');
               } else {
-                Navigator.pushNamed(context, '/settings');
+                context.read<NavigationProvider>().setIndex(2);
               }
             },
           ),

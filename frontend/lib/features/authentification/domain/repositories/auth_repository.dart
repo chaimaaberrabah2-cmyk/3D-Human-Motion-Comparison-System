@@ -1,7 +1,17 @@
 import '../entities/auth_user.dart';
 
 abstract class AuthRepository {
-  /// Signs in a user with [email] and [password].
-  /// Returns an [AuthUser] on success or throws on failure.
   Future<AuthUser> signIn({required String email, required String password});
+
+  Future<AuthUser> signUp({
+    required String name,
+    required String email,
+    required String password,
+  });
+
+  /// Sends a password reset link to [email].
+  Future<void> requestPasswordReset({required String email});
+
+  /// Verifies the [code] sent to the user.
+  Future<void> verifyResetCode({required String code});
 }

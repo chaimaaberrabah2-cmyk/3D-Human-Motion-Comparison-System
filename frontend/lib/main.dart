@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'features/home/presentation/pages/home_page.dart';
-import 'features/settings/presentation/pages/settings_page.dart';
-import 'features/analysis/presentation/pages/new_analysis_page.dart';
-import 'features/history/presentation/pages/history_page.dart';
 import 'features/authentification/presentation/pages/sign_in_page.dart';
+import 'features/authentification/presentation/pages/sign_up_page.dart';
+import 'features/authentification/presentation/pages/forgot_password_page.dart';
+import 'features/authentification/presentation/pages/reset_password_page.dart';
+import 'features/authentification/presentation/pages/new_password_page.dart';
+import 'features/authentification/presentation/pages/success_page.dart';
+import 'features/authentification/presentation/pages/starting_page.dart';
 import 'core/l10n/locale_provider.dart';
 import 'l10n/app_localizations.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/theme/app_theme.dart';
+import 'core/navigation/navigation_provider.dart';
+import 'core/presentation/pages/main_layout.dart';
 
 void main() {
   runApp(const MotionAIApp());
@@ -24,6 +28,7 @@ class MotionAIApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => NavigationProvider()),
       ],
       child: Consumer2<LocaleProvider, ThemeProvider>(
         builder: (context, localeProvider, themeProvider, child) {
@@ -43,27 +48,48 @@ class MotionAIApp extends StatelessWidget {
               theme: AppTheme.lightTheme,
               darkTheme: AppTheme.darkTheme,
               themeMode: themeProvider.themeMode,
-              initialRoute: '/sign-in',
+              initialRoute: '/starting',
               onGenerateRoute: (settings) {
                 Widget page;
                 switch (settings.name) {
+                  case '/starting':
+                    page = const StartingPage();
+                    break;
                   case '/sign-in':
                     page = const SignInPage();
                     break;
+                  case '/sign-up':
+                    page = const SignUpPage();
+                    break;
+                  case '/forgot-password':
+                    page = const ForgotPasswordPage();
+                    break;
+                  case '/reset-password':
+                    page = const ResetPasswordPage();
+                    break;
+                  case '/new-password':
+                    page = const NewPasswordPage();
+                    break;
+                  case '/success':
+                    page = const SuccessPage();
+                    break;
                   case '/':
-                    page = const HomePage();
+                    // Root is now MainLayout which handles all the tab switching
+                    page = const MainLayout();
+                    break;
+                  // We can remove individual routed pages that are now tabs
+                  // because they will be shown inside MainLayout
+                  case '/history':
+                    page = const MainLayout(); // Fallback if pushed
                     break;
                   case '/settings':
-                    page = const SettingsPage();
-                    break;
-                  case '/history':
-                    page = const HistoryPage();
+                    page = const MainLayout();
                     break;
                   case '/new_analysis':
-                    page = const NewAnalysisPage();
+                    page = const MainLayout();
                     break;
                   default:
-                    page = const SignInPage();
+                    page = const StartingPage();
                 }
 
                 // Return route without animation
