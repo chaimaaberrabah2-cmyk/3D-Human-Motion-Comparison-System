@@ -1,3 +1,13 @@
+// ============================================================
+// lib/features/authentification/presentation/pages/forgot_password_page.dart
+// ============================================================
+// Page de demande de réinitialisation de mot de passe.
+//
+// L'utilisateur saisit son email pour recevoir un code OTP.
+// Géré par `ForgotPasswordController`. En cas de succès, navigue
+// vers `/reset-password` en passant l'email en argument.
+// ============================================================
+
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:provider/provider.dart';
@@ -35,7 +45,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         await _controller.requestReset(email: _emailController.text.trim());
 
     if (success && mounted) {
-      Navigator.pushNamed(context, '/reset-password');
+      Navigator.pushNamed(context, '/reset-password', arguments: _emailController.text.trim());
     }
   }
 

@@ -14,6 +14,13 @@
   "discardChanges": "Annuler les Modifications",
   "saveSettings": "Enregistrer",
   "welcomeBack": "Bon retour, {username}",
+  "@welcomeBack": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
   "startNewAnalysis": "Nouvelle Analyse",
   "searchExercises": "Rechercher des exercices...",
   "all": "Tous",
@@ -48,6 +55,16 @@
   "highAccuracy": "Haute Précision",
   "balanced": "Équilibré",
   "highSpeed": "Haute Vitesse",
+  "modifyCamera": "Modifier {cameraName}",
+  "@modifyCamera": {
+    "placeholders": {
+      "cameraName": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDeviceSource": "Mettre à jour la source et les paramètres de calibration",
+  "chooseCameraSource": "1. CHOISIR LA SOURCE DE LA CAMÉRA",
   "aiEngineDescription": "Sélectionnez le moteur IA pour l'extraction des points clés et l'ajustement SMPL.",
   "legacyPose2DEngine": "Moteur Legacy Pose2D",
   "legacyPose2DDesc": "Traitement plus rapide, précision spatiale réduite.",
@@ -70,6 +87,13 @@
   "addNewCamera": "Ajouter",
   "deleteCameraTitle": "Supprimer la Caméra?",
   "deleteCameraMessage": "Êtes-vous sûr de vouloir supprimer {cameraName}? Cette action ne peut pas être annulée.",
+  "@deleteCameraMessage": {
+    "placeholders": {
+      "cameraName": {
+        "type": "String"
+      }
+    }
+  },
   "delete": "Supprimer",
   "minimumCamerasWarning": "Vous devez avoir au moins 4 caméras",
   "languageLabel": "(Language)",
@@ -83,6 +107,8 @@
   "addCalibrationData": "AJOUTER DES DONNÉES DE CALIBRATION",
   "clickToUpload": "Cliquez pour télécharger le fichier de calibration",
   "dragDropHint": "ou glissez-déposez votre fichier .bin ou .json ici",
+  "uploadDesc": "ou glissez-déposez votre fichier .bin ou .json ici",
+  "cancel": "Annuler",
   "applyChanges": "Appliquer les modifications",
   "statusCalibrated": "Statut: Calibré",
   "aiAlgorithm": "Algorithme IA",
@@ -123,6 +149,13 @@
   "logExtractionProgress": "EXTRACTION DES POINTS CLÉS EN COURS",
   "logSmplActive": "AJUSTEMENT DU MAILLAGE SMPL-X ACTIF",
   "analysisFeedback": "Comparaison de votre mouvement avec {exerciseName}. L'analyse initiale montre une précision de forme de 85 %. Concentrez-vous sur l'abaissement de vos hanches pendant la phase excentrique.",
+  "@analysisFeedback": {
+    "placeholders": {
+      "exerciseName": {
+        "type": "String"
+      }
+    }
+  },
   "@analysisFeedback": {
     "placeholders": {
       "exerciseName": {

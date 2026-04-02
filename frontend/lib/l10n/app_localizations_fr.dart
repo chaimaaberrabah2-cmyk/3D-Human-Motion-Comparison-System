@@ -157,15 +157,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String modifyCamera(String cameraName) {
-    return 'Modify $cameraName';
+    return 'Modifier $cameraName';
   }
 
   @override
   String get updateDeviceSource =>
-      'Update device source and calibration parameters';
+      'Mettre à jour la source et les paramètres de calibration';
 
   @override
-  String get chooseCameraSource => '1. CHOOSE CAMERA SOURCE';
+  String get chooseCameraSource => '1. CHOISIR LA SOURCE DE LA CAMÉRA';
 
   @override
   String get addCalibrationData => 'AJOUTER DES DONNÉES DE CALIBRATION';
@@ -175,13 +175,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cliquez pour télécharger le fichier de calibration';
 
   @override
-  String get uploadDesc => 'or drag and drop your .bin or .json file here';
+  String get uploadDesc => 'ou glissez-déposez votre fichier .bin ou .json ici';
 
   @override
   String get applyChanges => 'Appliquer les modifications';
 
   @override
-  String get cancel => 'Cancel';
+  String get cancel => 'Annuler';
 
   @override
   String get aiEngineDescription =>

@@ -1,3 +1,19 @@
+// ============================================================
+// lib/features/settings/presentation/pages/settings_page.dart
+// ============================================================
+// Page des paramètres de l'application.
+//
+// Permet à l'utilisateur de configurer :
+//   - Son profil (Informations personnelles, Changer de mot de passe)
+//   - L'application (Langue FR/EN/AR, Thème Sombre/Clair, Déconnexion)
+//   - Le matériel (Calibration de la caméra)
+//   - L'analyse IA (Paramètres de traitement, Modèle d'IA, Exportation)
+//
+// Structure :
+//   Utilise des onglets (TabBar) pour séparer "Profil", "Application",
+//   "Matériel" et "Analyse IA".
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/navigation/navigation_provider.dart';

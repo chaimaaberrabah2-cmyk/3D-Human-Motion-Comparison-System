@@ -1,3 +1,14 @@
+// ============================================================
+// lib/features/authentification/presentation/pages/success_page.dart
+// ============================================================
+// Page de confirmation générique.
+//
+// Affichée après le succès de certaines opérations (comme la
+// création d'un compte ou la réinitialisation d'un mot de passe).
+// Informe l'utilisateur que l'action a réussi et propose un bouton
+// pour retourner à la page de connexion (`/sign-in`).
+// ============================================================
+
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 

@@ -1,3 +1,21 @@
+// ============================================================
+// lib/features/analysis/presentation/pages/new_analysis_page.dart
+// ============================================================
+// Page permettant à l'utilisateur de lancer une nouvelle analyse vidéo 3D.
+//
+// Processus :
+//   1. Sélection de l'exercice à analyser depuis une liste déroulante.
+//   2. Importation de 4 vidéos (Front, Left, Right, Back).
+//      Sur le Web, les vidéos sont chargées en mémoire (bytes).
+//      Sur le bureau/mobile, les chemins des fichiers sont enregistrés.
+//   3. Ajustement de la plage d'analyse via un slider (début/fin).
+//   4. Lancement de l'analyse en envoyant les données via le
+//      AnalysisRepository vers le backend FastAPI.
+//
+// Contient toute la logique de sélection de fichiers et de lecture vidéo
+// (via video_player) pour la prévisualisation.
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' as io;

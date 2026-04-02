@@ -24,6 +24,7 @@ dependencies:
   # Network & API
   dio: ^5.4.0
   retrofit: ^4.0.3
+  google_sign_in: ^6.2.1
   
   # SVG Support
   flutter_svg: ^2.0.9
@@ -48,6 +49,7 @@ dependencies:
   # Utils
   intl: ^0.20.2
   logger: ^2.0.2
+  camera_macos: ^0.0.9
 
 dev_dependencies:
   flutter_test:

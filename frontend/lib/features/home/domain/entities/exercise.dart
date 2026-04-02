@@ -1,11 +1,43 @@
+// ============================================================
+// lib/features/home/domain/entities/exercise.dart
+// ============================================================
+// Définit le modèle de données `Exercise` (entité domaine).
+//
+// Chaque exercice représente une activité physique disponible
+// dans la bibliothèque d'exercices de l'application. Il contient
+// toutes les métadonnées nécessaires pour l'affichage et l'analyse.
+//
+// Champs :
+//   id           identifiant unique de l'exercice
+//   name         nom de l'exercice (ex. "Squat avec barre")
+//   category     catégorie (ex. "Force", "Mobilité", "Rééducation")
+//   imagePath    chemin vers l'image de démonstration
+//   mode         mode d'analyse utilisé (ex. "Mode Analyse Force")
+//   description  description complète de l'exercice
+//   difficulty   niveau (ex. "Débutant", "Intermédiaire", "Avancé")
+//   instructions liste d'étapes à suivre pour réaliser l'exercice
+//
+// `getMockExercises()` : retourne une liste de données fictives
+// utilisées pendant le développement, avant la connexion au backend.
+// ============================================================
+
+/// Représente un exercice physique dans la bibliothèque de l'application.
 class Exercise {
+  /// Identifiant unique de l'exercice.
   final int id;
+  /// Nom de l'exercice affiché dans l'interface.
   final String name;
+  /// Catégorie de l'exercice (Force, Mobilité, Rééducation…).
   final String category;
+  /// Chemin vers l'image de démonstration dans les assets.
   final String imagePath;
+  /// Mode d'analyse Mocap associé à cet exercice.
   final String mode;
+  /// Description complète de l'exercice.
   final String description;
+  /// Niveau de difficulté (Débutant, Intermédiaire, Avancé).
   final String difficulty;
+  /// Liste des étapes d'exécution de l'exercice.
   final List<String> instructions;
 
   Exercise({
@@ -20,7 +52,8 @@ class Exercise {
   });
 }
 
-// Mock data for now
+/// Retourne une liste d'exercices fictifs pour le développement et la démonstration.
+/// À remplacer par un vrai appel API quand le backend sera prêt.
 List<Exercise> getMockExercises() {
   return [
     Exercise(

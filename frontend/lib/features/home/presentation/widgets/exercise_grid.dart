@@ -1,3 +1,20 @@
+// ============================================================
+// lib/features/home/presentation/widgets/exercise_grid.dart
+// ============================================================
+// Grille responsive affichant la bibliothèque d'exercices.
+//
+// Ce widget utilise `LayoutBuilder` pour s'adapter automatiquement :
+//   - Largeur > 700px (Desktop/Web) → 3 colonnes
+//   - Largeur ≤ 700px (Mobile)      → 1 colonne
+//
+// Il reçoit :
+//   - [exercises] : la liste filtrée des exercices à afficher
+//   - [onExerciseTapped] : callback déclenché quand l'utilisateur
+//     clique sur une carte → navigue vers ExerciseDetailPage
+//
+// Chaque élément est rendu par le widget `ExerciseCard`.
+// ============================================================
+
 import 'package:flutter/material.dart';
 import '../../domain/entities/exercise.dart';
 import '../widgets/exercise_card.dart';

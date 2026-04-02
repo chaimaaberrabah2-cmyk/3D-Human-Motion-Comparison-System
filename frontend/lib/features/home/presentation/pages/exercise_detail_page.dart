@@ -1,3 +1,15 @@
+// ============================================================
+// lib/features/home/presentation/pages/exercise_detail_page.dart
+// ============================================================
+// Page affichant les détails complets d'un exercice spécifique.
+//
+// Affiche une grande image d'en-tête (avec Hero animation depuis la Home),
+// le nom, la difficulté, le mode d'analyse, la description et les
+// instructions étape par étape.
+// Un bouton "Démarrer l'analyse" permet de basculer vers l'onglet
+// Nouvelle Analyse (sélectionne l'index 3 du NavigationProvider).
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';

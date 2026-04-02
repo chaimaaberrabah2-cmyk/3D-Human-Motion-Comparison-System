@@ -39,6 +39,25 @@
   "failedStatus": "فشل",
   "stable": "مستقر",
   "settings": "الإعدادات",
+  "deepLearningBackend": "محرك التعلم العميق",
+  "status": "الحالة",
+  "calibrated": "معاير",
+  "processingModel": "نموذج المعالجة",
+  "performanceMode": "وضع الأداء",
+  "computingDevice": "جهاز الحوسبة",
+  "highAccuracy": "دقة عالية",
+  "balanced": "متوازن",
+  "highSpeed": "سرعة عالية",
+  "modifyCamera": "تعديل {cameraName}",
+  "@modifyCamera": {
+    "placeholders": {
+      "cameraName": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDeviceSource": "تحديث مصدر الجهاز ومعاملات المعايرة",
+  "chooseCameraSource": "١. اختيار مصدر الكاميرا",
   "aiEngineDescription": "حدد محرك الذكاء الاصطناعي لاستخراج النقاط الرئيسية وملاءمة SMPL.",
   "legacyPose2DEngine": "محرك Pose2D القديم",
   "legacyPose2DDesc": "معالجة أسرع، دقة مكانية مخفضة.",
@@ -61,6 +80,13 @@
   "addNewCamera": "إضافة كاميرا جديدة",
   "deleteCameraTitle": "حذف الكاميرا؟",
   "deleteCameraMessage": "هل أنت متأكد من رغبتك في حذف {cameraName}؟ لا يمكن التراجع عن هذا الإجراء.",
+  "@deleteCameraMessage": {
+    "placeholders": {
+      "cameraName": {
+        "type": "String"
+      }
+    }
+  },
   "delete": "حذف",
   "minimumCamerasWarning": "يجب أن يكون لديك 4 كاميرات على الأقل",
   "languageLabel": "(Language)",
@@ -74,6 +100,8 @@
   "addCalibrationData": "إضافة بيانات المعايرة",
   "clickToUpload": "انقر لتحميل ملف المعايرة",
   "dragDropHint": "أو اسحب وأفلت ملف .bin أو .json هنا",
+  "uploadDesc": "أو اسحب وأفلت ملف .bin أو .json هنا",
+  "cancel": "إلغاء",
   "applyChanges": "تطبيق التغييرات",
   "statusCalibrated": "الحالة: معاير",
   "aiAlgorithm": "خوارزمية الذكاء الاصطناعي",

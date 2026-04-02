@@ -30,5 +30,18 @@
 	<string>NSApplication</string>
 	<key>NSCameraUsageDescription</key>
 	<string>This app needs camera access to perform motion analysis and calibration.</string>
+	<key>GIDClientID</key>
+	<string>551021597507-eh1r6gr4lagin2mtt4a0becp52gfr32d.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.551021597507-eh1r6gr4lagin2mtt4a0becp52gfr32d</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

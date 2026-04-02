@@ -1,3 +1,20 @@
+// ============================================================
+// lib/features/home/presentation/widgets/search_filter_bar.dart
+// ============================================================
+// Barre de recherche et de filtrage pour la bibliothèque d'exercices.
+//
+// Ce widget contient deux composants :
+//   1. Champ de recherche texte : filtre les exercices par nom en temps réel
+//      → notifie la page parente via [onSearchChanged]
+//
+//   2. Puces de filtre (FilterChip) : filtre par catégorie
+//      → Tout / Force / Mobilité / Poids du corps / Rééducation
+//      → notifie la page parente via [onFilterChanged]
+//
+// Les labels des puces sont localisés (FR, EN, AR) via AppLocalizations.
+// L'état du filtre sélectionné est géré localement dans _SearchFilterBarState.
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../l10n/app_localizations.dart';

@@ -1,3 +1,17 @@
+// ============================================================
+// lib/features/home/presentation/widgets/home_header.dart
+// ============================================================
+// En-tête de la page d'accueil affichant le message de bienvenue
+// et le bouton "Démarrer une nouvelle analyse".
+//
+// Ce widget reçoit deux paramètres :
+//   - [username] : le nom de l'utilisateur affiché dans le message d'accueil
+//   - [onStartAnalysis] : callback déclenché quand le bouton est pressé
+//     → navigue vers l'onglet Nouvelle Analyse (index 3 dans MainLayout)
+//
+// Le texte de bienvenue est localisé via AppLocalizations.
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../l10n/app_localizations.dart';

@@ -1,5 +1,22 @@
+// ============================================================
+// lib/features/authentification/presentation/pages/sign_in_page.dart
+// ============================================================
+// Page de connexion de l'application.
+//
+// Permet à un utilisateur existant de s'authentifier avec son email
+// et son mot de passe.
+// L'état et la logique métier sont gérés par `SignInController`.
+//
+// Fonctionnalités :
+//   - Validation basique du formulaire (champs non vides)
+//   - Affichage d'un indicateur de chargement pendant la requête
+//   - Redirection vers le MainLayout (`/`) en cas de succès
+//   - Liens vers l'inscription et la récupération de mot de passe
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../controllers/sign_in_controller.dart';
 
@@ -15,12 +32,29 @@ class _SignInPageState extends State<SignInPage> {
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
+  bool _rememberMe = false;
   late SignInController _controller;
 
   @override
   void initState() {
     super.initState();
     _controller = SignInController();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('saved_email');
+    final savedPassword = prefs.getString('saved_password');
+    if (savedEmail != null && savedPassword != null) {
+      if (mounted) {
+        setState(() {
+          _emailController.text = savedEmail;
+          _passwordController.text = savedPassword;
+          _rememberMe = true;
+        });
+      }
+    }
   }
 
   @override
@@ -34,11 +68,29 @@ class _SignInPageState extends State<SignInPage> {
   Future<void> _handleSignIn() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
     final success = await _controller.signIn(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
+      email: email,
+      password: password,
     );
 
+    if (success && mounted) {
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe) {
+        await prefs.setString('saved_email', email);
+        await prefs.setString('saved_password', password);
+      } else {
+        await prefs.remove('saved_email');
+        await prefs.remove('saved_password');
+      }
+      Navigator.pushReplacementNamed(context, '/');
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    final success = await _controller.signInWithGoogle();
     if (success && mounted) {
       Navigator.pushReplacementNamed(context, '/');
     }
@@ -70,12 +122,10 @@ class _SignInPageState extends State<SignInPage> {
       children: [
         // Left branding panel
         Expanded(
-          flex: 40,
           child: _buildBrandingPanel(),
         ),
         // Right form panel
-        SizedBox(
-          width: 600,
+        Expanded(
           child: _buildFormPanel(horizontalPadding: 60),
         ),
       ],
@@ -117,7 +167,7 @@ class _SignInPageState extends State<SignInPage> {
           Container(color: Colors.black.withValues(alpha: 0.45)),
           // Text content
           Padding(
-            padding: const EdgeInsets.fromLTRB(60, 300, 80, 60),
+            padding: const EdgeInsets.all(40),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -260,7 +310,7 @@ class _SignInPageState extends State<SignInPage> {
                       validator: (v) {
                         if (v == null || v.isEmpty)
                           return 'Password is required';
-                        if (v.length < 6) return 'Minimum 6 characters';
+                        if (v.length < 4) return 'Minimum 4 characters';
                         return null;
                       },
                     ),
@@ -281,20 +331,53 @@ class _SignInPageState extends State<SignInPage> {
                       },
                     ),
 
-                    // Forgot password
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/forgot-password'),
-                        child: const Text(
-                          'Forgot Password?',
-                          style: TextStyle(
-                            color: AppColors.accentBlue,
-                            fontSize: 14,
+                    // Stay connected & Forgot password
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Theme(
+                                data: Theme.of(context).copyWith(
+                                  unselectedWidgetColor: Colors.white.withValues(alpha: 0.5),
+                                ),
+                                child: Checkbox(
+                                  value: _rememberMe,
+                                  activeColor: AppColors.accentBlue,
+                                  checkColor: Colors.white,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _rememberMe = value ?? false;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const Flexible(
+                                child: Text(
+                                  'Stay connected',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/forgot-password'),
+                          child: const Text(
+                            'Forgot Password?',
+                            style: TextStyle(
+                              color: AppColors.accentBlue,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 20),
@@ -367,20 +450,20 @@ class _SignInPageState extends State<SignInPage> {
                     Center(
                       child: SizedBox(
                         width: 250,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            // TODO: Implement Google sign-in
-                          },
-                          icon: const Icon(Icons.g_mobiledata, size: 28),
-                          label: const Text('Google'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.2),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        child: Consumer<SignInController>(
+                          builder: (_, ctrl, __) => OutlinedButton.icon(
+                            onPressed: ctrl.isLoading ? null : _handleGoogleSignIn,
+                            icon: const Icon(Icons.g_mobiledata, size: 28),
+                            label: const Text('Google'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.2),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ),

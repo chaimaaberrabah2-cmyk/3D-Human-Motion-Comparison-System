@@ -1,3 +1,24 @@
+// ============================================================
+// lib/features/home/presentation/widgets/exercise_card.dart
+// ============================================================
+// Carte visuelle représentant un exercice dans la grille de la page d'accueil.
+//
+// Chaque carte affiche :
+//   - L'image de démonstration de l'exercice (avec Hero animation)
+//   - Le nom de l'exercice
+//   - Le mode d'analyse (Force, Mobilité…) localisé
+//   - Un badge de catégorie coloré (localisé en FR/EN/AR)
+//   - Une flèche indiquant la navigation vers la page de détail
+//
+// Comportement :
+//   - Un clic n'importe où sur la carte déclenche `onPlayTapped`
+//   - L'animation Hero lie cette carte à la page de détail de l'exercice
+//   - Si l'image n'est pas trouvée, une icône de substitution est affichée
+//
+// Localisation :
+//   - Les catégories et modes sont traduits via AppLocalizations
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../l10n/app_localizations.dart';

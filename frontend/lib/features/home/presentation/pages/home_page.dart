@@ -1,5 +1,23 @@
+// ============================================================
+// lib/features/home/presentation/pages/home_page.dart
+// ============================================================
+// Page d'accueil principale de l'application (Tableau de bord).
+//
+// Cette page affiche :
+//   - Un en-tête (HomeHeader) avec un message de bienvenue
+//   - Une barre de recherche et de filtres par catégorie (SearchFilterBar)
+//   - Une grille d'exercices (ExerciseGrid)
+//
+// Disposition :
+//   - Utilise un "drawer" pour la barre latérale sur mobile
+//   - Affiche directement la barre latérale sur grand écran
+//   - Filtre la liste des exercices affichés en fonction du texte
+//     de recherche et du filtre sélectionné.
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/navigation/navigation_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/exercise.dart';
@@ -21,12 +39,25 @@ class _HomePageState extends State<HomePage> {
   List<Exercise> filteredExercises = [];
   String searchQuery = '';
   String selectedFilter = 'All';
+  String _username = 'User';
 
   @override
   void initState() {
     super.initState();
+    _loadUsername();
     filteredExercises = allExercises;
   }
+
+  Future<void> _loadUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    final newName = prefs.getString('user_name') ?? 'Utilisateur';
+    if (newName != _username && mounted) {
+      setState(() {
+        _username = newName;
+      });
+    }
+  }
+
 //filtre exos 
   void _filterExercises() {
     setState(() {
@@ -68,6 +99,12 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Ecouter les changements d'onglets pour recharger dynamiquement le nom
+    final navIndex = context.watch<NavigationProvider>().currentIndex;
+    if (navIndex == 0) {
+      _loadUsername();
+    }
+
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -89,7 +126,7 @@ class _HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       HomeHeader(
-                        username: 'User', 
+                        username: _username, 
                         onStartAnalysis: _onStartAnalysis,
                       ),
                       
@@ -136,7 +173,7 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     HomeHeader(
-                      username: 'User', 
+                      username: _username, 
                       onStartAnalysis: _onStartAnalysis,
                     ),
                     

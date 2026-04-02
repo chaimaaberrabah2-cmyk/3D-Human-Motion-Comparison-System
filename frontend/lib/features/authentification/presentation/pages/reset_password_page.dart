@@ -1,3 +1,14 @@
+// ============================================================
+// lib/features/authentification/presentation/pages/reset_password_page.dart
+// ============================================================
+// Page de vérification du code OTP (One Time Password).
+//
+// Affiche l'adresse email (reçue en argument) à laquelle le code
+// a été envoyé. L'utilisateur saisit le code.
+// Géré par `ResetPasswordController`. Navigue vers `/new-password`
+// si le code est validé par le backend.
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -36,7 +47,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     );
 
     if (success && mounted) {
-      Navigator.pushNamed(context, '/new-password');
+      final email = ModalRoute.of(context)?.settings.arguments as String? ?? 'user@motionai.com';
+      Navigator.pushNamed(context, '/new-password', arguments: email);
     }
   }
 
@@ -198,7 +210,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Enter the code sent to your email.',
+                      'Saisissez le code envoyé.\n(Test PFE : Veuillez taper le code 1234)',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.white.withValues(alpha: 0.6),

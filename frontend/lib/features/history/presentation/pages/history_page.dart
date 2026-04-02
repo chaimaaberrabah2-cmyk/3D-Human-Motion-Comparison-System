@@ -1,3 +1,17 @@
+// ============================================================
+// lib/features/history/presentation/pages/history_page.dart
+// ============================================================
+// Page affichant l'historique des analyses précédentes de l'utilisateur.
+//
+// Liste les sessions d'analyse enregistrées, avec des informations comme :
+//   - Le nom de l'exercice
+//   - La date et l'heure
+//   - Le score global de performance
+//   - L'état de l'analyse (Terminé, En cours, Échoué)
+//
+// Actuellement, utilise des données fictives pour l'interface utilisateur.
+// ============================================================
+
 import 'package:flutter/material.dart';
 import '../../../home/presentation/widgets/home_sidebar.dart';
 import '../../../../l10n/app_localizations.dart';

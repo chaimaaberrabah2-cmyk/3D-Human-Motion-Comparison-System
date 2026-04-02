@@ -129,43 +129,42 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settings => 'الإعدادات';
 
   @override
-  String get deepLearningBackend => 'Deep Learning Backend';
+  String get deepLearningBackend => 'محرك التعلم العميق';
 
   @override
-  String get status => 'Status';
+  String get status => 'الحالة';
 
   @override
-  String get calibrated => 'Calibrated';
+  String get calibrated => 'معاير';
 
   @override
-  String get processingModel => 'Processing Model';
+  String get processingModel => 'نموذج المعالجة';
 
   @override
-  String get performanceMode => 'Performance Mode';
+  String get performanceMode => 'وضع الأداء';
 
   @override
-  String get computingDevice => 'Computing Device';
+  String get computingDevice => 'جهاز الحوسبة';
 
   @override
-  String get highAccuracy => 'High Accuracy';
+  String get highAccuracy => 'دقة عالية';
 
   @override
-  String get balanced => 'Balanced';
+  String get balanced => 'متوازن';
 
   @override
-  String get highSpeed => 'High Speed';
+  String get highSpeed => 'سرعة عالية';
 
   @override
   String modifyCamera(String cameraName) {
-    return 'Modify $cameraName';
+    return 'تعديل $cameraName';
   }
 
   @override
-  String get updateDeviceSource =>
-      'Update device source and calibration parameters';
+  String get updateDeviceSource => 'تحديث مصدر الجهاز ومعاملات المعايرة';
 
   @override
-  String get chooseCameraSource => '1. CHOOSE CAMERA SOURCE';
+  String get chooseCameraSource => '١. اختيار مصدر الكاميرا';
 
   @override
   String get addCalibrationData => 'إضافة بيانات المعايرة';
@@ -174,13 +173,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get clickToUpload => 'انقر لتحميل ملف المعايرة';
 
   @override
-  String get uploadDesc => 'or drag and drop your .bin or .json file here';
+  String get uploadDesc => 'أو اسحب وأفلت ملف .bin أو .json هنا';
 
   @override
   String get applyChanges => 'تطبيق التغييرات';
 
   @override
-  String get cancel => 'Cancel';
+  String get cancel => 'إلغاء';
 
   @override
   String get aiEngineDescription =>

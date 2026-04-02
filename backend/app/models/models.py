@@ -1,131 +1,98 @@
 """SQLAlchemy ORM models for the database."""
 
-from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, DateTime, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from database.db_config import Base
+from app.db.db_config import Base
 
 
-class Subject(Base):
-    """Subject model (s03-s11)."""
-    __tablename__ = 'subjects'
+class User(Base):
+    """User model (Utilisateurs)."""
+    __tablename__ = 'users'
     
-    id = Column(Integer, primary_key=True)
-    subject_code = Column(String(10), unique=True, nullable=False)
+    user_id = Column(Integer, primary_key=True, autoincrement=True)
+    pseudo = Column(String(50), nullable=False)
+    email = Column(String(100), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    
+    # Enum for roles (User, Admin, Coach)
+    role = Column(String(50), default='User')
+    
+    # Profile metadata (Poids, Taille, Objectifs)
+    profile_json = Column(JSONB)
+    
     created_at = Column(DateTime, server_default=func.now())
     
     # Relationships
-    exercise_data = relationship("ExerciseData", back_populates="subject", cascade="all, delete-orphan")
+    performances = relationship("Performance", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<Subject(code='{self.subject_code}')>"
+        return f"<User(pseudo='{self.pseudo}', email='{self.email}')>"
 
 
-class Exercise(Base):
-    """Exercise model (47 exercise types)."""
-    __tablename__ = 'exercises'
+class Movement(Base):
+    """Movement model (Référentiels Fit3D)."""
+    __tablename__ = 'movements'
     
-    id = Column(Integer, primary_key=True)
-    exercise_name = Column(String(100), unique=True, nullable=False)
+    movement_id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), unique=True, nullable=False)
     category = Column(String(50))
     description = Column(Text)
+    difficulty = Column(String(50))
+    instructions = Column(JSONB)
+    thumbnail_path = Column(String(500))
+    reference_video_path = Column(String(500))
+    
+    # Camera parameters (intrinsics, extrinsics of the lab cameras)
+    camera_calibration = Column(JSONB)
+    
+    # Reference SMPL-X parameters
+    smpl_ref = Column(JSONB)
+    
+    # Reference 3D joints
+    joints_3d = Column(JSONB)
+    
     created_at = Column(DateTime, server_default=func.now())
     
     # Relationships
-    exercise_data = relationship("ExerciseData", back_populates="exercise", cascade="all, delete-orphan")
+    performances = relationship("Performance", back_populates="movement", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<Exercise(name='{self.exercise_name}', category='{self.category}')>"
+        return f"<Movement(name='{self.name}', category='{self.category}')>"
 
 
-class ExerciseData(Base):
-    """Exercise data model with SMPL-X parameters."""
-    __tablename__ = 'exercise_data'
+class Performance(Base):
+    """Performance model (Exécutions Utilisateur)."""
+    __tablename__ = 'performances'
     
-    id = Column(Integer, primary_key=True)
-    subject_id = Column(Integer, ForeignKey('subjects.id', ondelete='CASCADE'), nullable=False)
-    exercise_id = Column(Integer, ForeignKey('exercises.id', ondelete='CASCADE'), nullable=False)
+    performance_id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
+    movement_id = Column(Integer, ForeignKey('movements.movement_id', ondelete='CASCADE'), nullable=False)
     
-    # SMPL-X parameters (transl, global_orient, body_pose, etc.)
-    smplx_params = Column(JSONB, nullable=False)
+    # Path to user uploaded video(s)
+    video_paths = Column(JSONB)
     
-    # 3D joints (25 joints)
-    joints3d = Column(JSONB, nullable=False)
+    # Comparison score (DTW match %)
+    score = Column(Float)
     
-    # Repetition annotations
-    rep_annotations = Column(JSONB)
+    # Extracted 3D points from user video
+    results_3d = Column(JSONB)
     
-    # Metadata
-    num_frames = Column(Integer)
-    duration_seconds = Column(Float)
+    # Extracted SMPL parameters from user video
+    results_smpl = Column(JSONB)
+    
+    # AI feedback and commentary
+    feedback_txt = Column(Text)
+    
+    # Execution duration
+    duration = Column(String(50))
+    
     created_at = Column(DateTime, server_default=func.now())
     
     # Relationships
-    subject = relationship("Subject", back_populates="exercise_data")
-    exercise = relationship("Exercise", back_populates="exercise_data")
-    camera_views = relationship("CameraView", back_populates="exercise_data", cascade="all, delete-orphan")
-    comparisons = relationship("Comparison", back_populates="reference_exercise_data")
-    
-    # Unique constraint
-    __table_args__ = (
-        UniqueConstraint('subject_id', 'exercise_id', name='uq_subject_exercise'),
-    )
+    user = relationship("User", back_populates="performances")
+    movement = relationship("Movement", back_populates="performances")
     
     def __repr__(self):
-        return f"<ExerciseData(subject_id={self.subject_id}, exercise_id={self.exercise_id}, frames={self.num_frames})>"
-
-
-class CameraView(Base):
-    """Camera view model (4 camera angles per exercise)."""
-    __tablename__ = 'camera_views'
-    
-    id = Column(Integer, primary_key=True)
-    exercise_data_id = Column(Integer, ForeignKey('exercise_data.id', ondelete='CASCADE'), nullable=False)
-    
-    # Camera identifier
-    camera_id = Column(String(20), nullable=False)
-    
-    # Camera parameters (intrinsics, extrinsics)
-    camera_params = Column(JSONB, nullable=False)
-    
-    # Video file path
-    video_path = Column(String(500))
-    created_at = Column(DateTime, server_default=func.now())
-    
-    # Relationships
-    exercise_data = relationship("ExerciseData", back_populates="camera_views")
-    
-    # Unique constraint
-    __table_args__ = (
-        UniqueConstraint('exercise_data_id', 'camera_id', name='uq_exercise_camera'),
-    )
-    
-    def __repr__(self):
-        return f"<CameraView(camera_id='{self.camera_id}')>"
-
-
-class Comparison(Base):
-    """Comparison model (user comparison history)."""
-    __tablename__ = 'comparisons'
-    
-    id = Column(Integer, primary_key=True)
-    
-    # Reference exercise
-    reference_exercise_data_id = Column(Integer, ForeignKey('exercise_data.id'))
-    
-    # User uploaded data
-    user_smplx_params = Column(JSONB)
-    user_joints3d = Column(JSONB)
-    
-    # Comparison results
-    similarity_score = Column(Float)
-    errors_detected = Column(JSONB)
-    feedback = Column(Text)
-    created_at = Column(DateTime, server_default=func.now())
-    
-    # Relationships
-    reference_exercise_data = relationship("ExerciseData", back_populates="comparisons")
-    
-    def __repr__(self):
-        return f"<Comparison(id={self.id}, score={self.similarity_score})>"
+        return f"<Performance(id={self.performance_id}, score={self.score})>"

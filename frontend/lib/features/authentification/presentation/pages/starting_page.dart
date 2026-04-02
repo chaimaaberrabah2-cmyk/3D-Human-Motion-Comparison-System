@@ -1,3 +1,14 @@
+// ============================================================
+// lib/features/authentification/presentation/pages/starting_page.dart
+// ============================================================
+// Page de bienvenue (Onboarding / Landing page).
+//
+// Premier écran potentiel pour un nouvel utilisateur (à configurer).
+// Présente l'application Motion AI et offre des boutons clairs pour :
+//   - Se connecter ("Log In") → navigue vers `/sign-in`
+//   - S'inscrire ("Sign Up") → navigue vers `/sign-up`
+// ============================================================
+
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 

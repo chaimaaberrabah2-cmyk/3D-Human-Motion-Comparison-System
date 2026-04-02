@@ -1,3 +1,15 @@
+// ============================================================
+// lib/features/authentification/presentation/pages/sign_up_page.dart
+// ============================================================
+// Page d'inscription pour créer un nouveau compte.
+//
+// Collecte le nom, l'email et le mot de passe de l'utilisateur.
+// L'état est géré par `SignUpController`.
+//
+// Une fois l'inscription réussie, l'utilisateur est redirigé vers
+// la page de confirmation (`/success`).
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -47,6 +59,17 @@ class _SignUpPageState extends State<SignUpPage> {
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    // Hide keyboard
+    FocusScope.of(context).unfocus();
+
+    final success = await _controller.signInWithGoogle();
+
+    if (success && mounted) {
+      Navigator.pushReplacementNamed(context, '/');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
@@ -68,8 +91,8 @@ class _SignUpPageState extends State<SignUpPage> {
   Widget _buildDesktopLayout() {
     return Row(
       children: [
-        Expanded(flex: 40, child: _buildBrandingPanel()),
-        SizedBox(width: 600, child: _buildFormPanel(horizontalPadding: 60)),
+        Expanded(child: _buildBrandingPanel()),
+        Expanded(child: _buildFormPanel(horizontalPadding: 60)),
       ],
     );
   }
@@ -106,7 +129,7 @@ class _SignUpPageState extends State<SignUpPage> {
           ),
           Container(color: Colors.black.withValues(alpha: 0.4)),
           Padding(
-            padding: const EdgeInsets.fromLTRB(60, 300, 80, 60),
+            padding: const EdgeInsets.all(40),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -263,7 +286,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         if (v == null || v.isEmpty) {
                           return 'Password is required';
                         }
-                        if (v.length < 6) return 'Minimum 6 characters';
+                        if (v.length < 4) return 'Minimum 4 characters';
                         return null;
                       },
                     ),
@@ -357,21 +380,21 @@ class _SignUpPageState extends State<SignUpPage> {
                     Center(
                       child: SizedBox(
                         width: 250,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            // TODO: Implement Google sign-up
-                          },
-                          icon: const Icon(Icons.g_mobiledata, size: 28),
-                          label: const Text('Google'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.2),
-                            ),
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        child: Consumer<SignUpController>(
+                          builder: (_, ctrl, __) => OutlinedButton.icon(
+                            onPressed: ctrl.isLoading ? null : _handleGoogleSignIn,
+                            icon: const Icon(Icons.g_mobiledata, size: 28),
+                            label: const Text('Google'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.2),
+                              ),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ),

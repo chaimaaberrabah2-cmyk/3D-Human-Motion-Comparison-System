@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:camera/camera.dart';
+import 'package:camera_macos/camera_macos.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:desktop_drop/desktop_drop.dart';
@@ -23,46 +26,60 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
         modifyingCamera = null;
         _controller?.dispose();
         _controller = null;
+        _macOsController?.destroy();
+        _macOsController = null;
         _isCameraInitialized = false;
       });
     }
   }
 
+  // --- EXPLICATION POUR LA COMMISSION (ARCHITECTURE HYBRIDE) ---
+  // Nous utilisons deux listes et deux contrôleurs différents car Flutter ne gère pas
+  // la caméra macOS nativement. Cette séparation permet à l'application de fonctionner 
+  // sur toutes les plateformes de façon transparente (Mac, iOS, Android).
+
+  // 1. Liste et Contrôleur standards (pour Android, iOS, Web) issus du plugin officiel
   List<CameraDescription> _availableCameras = [];
   CameraController? _controller;
+
+  // 2. Liste et Contrôleur spécifiques pour macOS (via le plugin 'camera_macos' AVFoundation)
+  List<CameraMacOSDevice> _availableMacOsCameras = [];
+  CameraMacOSController? _macOsController;
+
   bool _isCameraInitialized = false;
   String? _errorMessage;
 
-  // Camera model class for better structure
-  int _cameraCounter = 4; // Start from 5 for new cameras
+  // Counter to add new cameras
+  int _cameraCounter = 4;
+  bool _isDiscovering = false;
 
-  // Dynamic camera list
+  // Initial 4 fake camera slots
   List<Map<String, dynamic>> _cameras = [
     {
       'id': '1',
       'name': 'Motion Cam 1',
-      'source': 'Camera Source A (FHD)',
+      'source': 'Unassigned',
       'isUploaded': true,
       'file': 'calib_001.bin'
     },
     {
       'id': '2',
       'name': 'Motion Cam 2',
-      'source': 'Camera Source B (HD)',
+      'source': 'Unassigned',
       'isUploaded': true,
       'file': 'calib_002.bin'
     },
     {
       'id': '3',
       'name': 'Motion Cam 3',
-      'source': 'External USB Camera',
+      'source': 'Unassigned',
       'isUploaded': false,
       'file': null
     },
     {
       'id': '4',
       'name': 'Motion Cam 4',
-      'source': 'Virtual Stream 01',
+      'source': 'Unassigned',
       'isUploaded': false,
       'file': null
     },
@@ -95,17 +112,57 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
   Future<void> _discoverCameras() async {
     setState(() {
       _errorMessage = null;
+      _isDiscovering = true; // Affiche l'icône de chargement circulaire
     });
 
-    // Explicitly check/request permission
-    final status = await Permission.camera.request();
-    if (status.isDenied || status.isPermanentlyDenied) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = "Camera permission is required to use this feature.";
-        });
+    // --- BRANCHE DÉCOUVERTE 1 : EXÉCUTION SUR MACOS ---
+    // La méthode Platform.isMacOS retourne 'true' si l'app tourne sur un Mac.
+    if (Platform.isMacOS) {
+      try {
+        // Au lieu d'utiliser availableCameras() (optimisé Mobile), on lance
+        // notre propre pont natif (créé dans Swift) car le plugin camera_macos a un bug avec les iPhone et virtuels.
+        const channel = MethodChannel('com.ikram.camera/discovery');
+        final List<dynamic> resultDevices = await channel.invokeMethod('getModernCameras');
+        
+        final List<CameraMacOSDevice> devices = resultDevices.map((data) => CameraMacOSDevice(
+          deviceId: data['deviceId'],
+          localizedName: data['localizedName'],
+          deviceType: CameraMacOSDeviceType.video,
+        )).toList();
+
+        if (mounted) {
+          setState(() {
+            _availableMacOsCameras = devices; // Sauvegarde des résultats hardware
+            if (devices.isEmpty) {
+              _errorMessage = "Aucune caméra matérielle touvée par le système macOS.";
+            }
+          });
+        }
+      } catch (e) {
+        debugPrint('Error discovering macOS cameras: $e');
+        if (mounted) {
+          setState(() {
+             _errorMessage = "Impossible d'accéder au matériel macOS.";
+          });
+        }
+      } finally {
+        if (mounted) setState(() => _isDiscovering = false);
       }
-      return;
+      return; // Fin de la procédure pour le Mac
+    }
+
+    // --- BRANCHE DÉCOUVERTE 2 : EXÉCUTION SUR ANDROID / IOS ---
+    if (!Platform.isMacOS) {
+      final status = await Permission.camera.request();
+      if (status.isDenied || status.isPermanentlyDenied) {
+        if (mounted) {
+          setState(() {
+            _errorMessage = "Camera permission is required to use this feature.";
+            _isDiscovering = false;
+          });
+        }
+        return;
+      }
     }
 
     try {
@@ -113,11 +170,8 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
       if (mounted) {
         setState(() {
           _availableCameras = cameras;
-          // We don't automatically set selectedDevice here anymore,
-          // it's managed per camera.
           if (cameras.isEmpty) {
-            _errorMessage =
-                "No internal or external cameras were found by the system.";
+            _errorMessage = "No hardware cameras found by the system.";
           }
         });
       }
@@ -126,23 +180,21 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
       if (mounted) {
         setState(() {
           if (e.toString().contains('MissingPluginException')) {
-            _errorMessage =
-                "Plugin not initialized. Please STOP the app and run 'flutter run' again.";
+            _errorMessage = "MissingPluginException. Run 'flutter clean' and 'flutter run macos' in terminal.";
           } else {
-            _errorMessage =
-                "Could not access hardware. Please ensure camera permissions are granted in System Settings.";
+            _errorMessage = "Could not access hardware.";
           }
         });
       }
+    } finally {
+      if (mounted) setState(() => _isDiscovering = false);
     }
   }
 
   Future<void> _initializeCameraController(CameraDescription camera) async {
-    // If we have an existing controller, dispose of it first
     if (_controller != null) {
       await _controller!.dispose();
     }
-
     _controller = CameraController(
       camera,
       ResolutionPreset.medium,
@@ -152,18 +204,33 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
     try {
       await _controller!.initialize();
       if (mounted) {
-        setState(() {
-          _isCameraInitialized = true;
-        });
+        setState(() => _isCameraInitialized = true);
       }
     } catch (e) {
       debugPrint('Error initializing camera: $e');
     }
   }
 
+  String _formatCameraName(CameraDescription camera) {
+    String lens = '';
+    switch (camera.lensDirection) {
+      case CameraLensDirection.front:
+        lens = ' (Front)';
+        break;
+      case CameraLensDirection.back:
+        lens = ' (Back)';
+        break;
+      case CameraLensDirection.external:
+        lens = ' (External)';
+        break;
+    }
+    return '${camera.name}$lens';
+  }
+
   @override
   void dispose() {
     _controller?.dispose();
+    _macOsController?.destroy();
     super.dispose();
   }
 
@@ -196,10 +263,8 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.primaryColor,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ],
@@ -207,7 +272,7 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
 
         const SizedBox(height: 16),
 
-        // Cameras Container (Dynamic)
+        // Cameras Container
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -241,7 +306,7 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
       _cameras.add({
         'id': _cameraCounter.toString(),
         'name': 'Motion Cam $_cameraCounter',
-        'source': 'Camera Source A (FHD)',
+        'source': 'Unassigned',
         'isUploaded': false,
         'file': null,
       });
@@ -316,7 +381,23 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (_isCameraInitialized && _controller != null)
+              // --- AFFICHAGE NATIVITÉ DU RETOUR VIDÉO (LIVE PREVIEW) ---
+              // L'interface choisit dynamiquement quel composant dessiner pour afficher le flux 
+              if (Platform.isMacOS && _tempSelectedSource.isNotEmpty && _tempSelectedSource != 'Unassigned')
+                // 1. Sur Mac : CameraMacOSView convertit le flux AVFoundation en Texture graphique.
+                CameraMacOSView(
+                  key: ObjectKey(_tempSelectedSource), // Force la réinitialisation graphique de la vue si on change de caméra
+                  deviceId: _availableMacOsCameras.firstWhere((c) => (c.localizedName ?? c.deviceId) == _tempSelectedSource, orElse: () => _availableMacOsCameras.first).deviceId,
+                  cameraMode: CameraMacOSMode.video,
+                  onCameraInizialized: (CameraMacOSController c) {
+                    setState(() {
+                      _macOsController = c;
+                      _isCameraInitialized = true;
+                    });
+                  },
+                )
+              else if (!Platform.isMacOS && _isCameraInitialized && _controller != null)
+                // 2. Sur Mobile : On dessine le composant CameraPreview fourni par Google.
                 CameraPreview(_controller!)
               else
                 Center(
@@ -382,6 +463,8 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                     onPressed: () {
                       _controller?.dispose();
                       _controller = null;
+                      _macOsController?.destroy();
+                      _macOsController = null;
                       _isCameraInitialized = false;
                       setState(() => modifyingCamera = null);
                     },
@@ -412,26 +495,281 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
 
               const SizedBox(height: 32),
 
-              // 1. CHOOSE CAMERA SOURCE
-              Text(
-                l10n.chooseCameraSource,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
+              // 1. CHOOSE CAMERA SOURCE — Real Cameras
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    l10n.chooseCameraSource,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: _discoverCameras,
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Refresh'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _staticSources.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final source = _staticSources[index];
-                  return _buildStaticSourceItem(context, source);
-                },
-              ),
+              if (_isDiscovering)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if ((Platform.isMacOS && _availableMacOsCameras.isEmpty) || (!Platform.isMacOS && _availableCameras.isEmpty))
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_outlined, color: Colors.orange, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'No cameras detected',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Connect a USB or built-in camera and tap Refresh.',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (Platform.isMacOS)
+                // --- BOUCLAGE D'AFFICHAGE MACOS ---
+                // On boucle sur tous les périphériques matériels trouvés, et on crée un conteneur UI (bouton) pour chacun
+                Column(
+                  children: [
+                    ..._availableMacOsCameras.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final cam = entry.value;
+                      // Extraction du nom de l'appareil (ex: 'Facetime HD Camera') ou de son ID technique en secours.
+                      final displayName = cam.localizedName ?? cam.deviceId ?? 'Unknown Camera';
+                      final isSelected = _tempSelectedSource == displayName;
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: idx < _availableMacOsCameras.length - 1 ? 8 : 0),
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              _tempSelectedSource = displayName;
+                              _isCameraInitialized = false;
+                              _macOsController?.destroy();
+                              _macOsController = null;
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? theme.primaryColor.withValues(alpha: 0.05)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? theme.primaryColor : theme.dividerColor,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.camera_alt_outlined,
+                                  size: 20,
+                                  color: isSelected
+                                      ? theme.primaryColor
+                                      : (theme.textTheme.bodyMedium?.color ?? Colors.grey),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        displayName,
+                                        style: theme.textTheme.bodyMedium?.copyWith(
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                          color: isSelected
+                                              ? theme.primaryColor
+                                              : theme.textTheme.bodyLarge?.color,
+                                        ),
+                                      ),
+                                      Text(
+                                        'macOS Camera Device',
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  width: 20,
+                                  height: 20,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isSelected ? theme.primaryColor : theme.dividerColor,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: isSelected
+                                      ? Center(
+                                          child: Container(
+                                            width: 10,
+                                            height: 10,
+                                            decoration: BoxDecoration(
+                                              color: theme.primaryColor,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                )
+              else
+                Column(
+                  children: [
+                    ..._availableCameras.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final cam = entry.value;
+                      final displayName = _formatCameraName(cam);
+                      final isSelected = _tempSelectedSource == displayName;
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: idx < _availableCameras.length - 1 ? 8 : 0),
+                        child: InkWell(
+                          onTap: () async {
+                            setState(() {
+                              _tempSelectedSource = displayName;
+                              _isCameraInitialized = false;
+                            });
+                            await _initializeCameraController(cam);
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? theme.primaryColor.withValues(alpha: 0.05)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? theme.primaryColor : theme.dividerColor,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  cam.lensDirection == CameraLensDirection.external
+                                      ? Icons.usb
+                                      : Icons.videocam_outlined,
+                                  size: 20,
+                                  color: isSelected
+                                      ? theme.primaryColor
+                                      : (theme.textTheme.bodyMedium?.color ?? Colors.grey),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        displayName,
+                                        style: theme.textTheme.bodyMedium?.copyWith(
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                          color: isSelected
+                                              ? theme.primaryColor
+                                              : theme.textTheme.bodyLarge?.color,
+                                        ),
+                                      ),
+                                      Text(
+                                        cam.lensDirection == CameraLensDirection.external
+                                            ? 'External Camera'
+                                            : cam.lensDirection == CameraLensDirection.front
+                                                ? 'Built-in Front Camera'
+                                                : 'Built-in Back Camera',
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  width: 20,
+                                  height: 20,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isSelected ? theme.primaryColor : theme.dividerColor,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: isSelected
+                                      ? Center(
+                                          child: Container(
+                                            width: 10,
+                                            height: 10,
+                                            decoration: BoxDecoration(
+                                              color: theme.primaryColor,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 12),
+                    // Refresh button
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: _discoverCameras,
+                        icon: const Icon(Icons.refresh, size: 16),
+                        label: const Text('Refresh cameras'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: theme.primaryColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
 
               const SizedBox(height: 32),
               /* 
@@ -457,6 +795,8 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
 
                         _controller?.dispose();
                         _controller = null;
+                        _macOsController?.destroy();
+                        _macOsController = null;
                         _isCameraInitialized = false;
                         setState(() => modifyingCamera = null);
                       },
@@ -501,99 +841,7 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
     );
   }
 
-  Widget _buildStaticSourceItem(BuildContext context, String sourceName) {
-    final theme = Theme.of(context);
-    final isSelected = _tempSelectedSource == sourceName;
 
-    return InkWell(
-      onTap: () async {
-        setState(() {
-          _tempSelectedSource = sourceName;
-        });
-
-        // If we have real hardware discovered, let's use the first one for the preview
-        // to keep the "Live Preview" functional as requested.
-        if (_availableCameras.isNotEmpty && !_isCameraInitialized) {
-          await _initializeCameraController(_availableCameras.first);
-        }
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? theme.primaryColor.withValues(alpha: 0.05)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? theme.primaryColor : theme.dividerColor,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.videocam_outlined,
-              size: 20,
-              color: isSelected
-                  ? theme.primaryColor
-                  : (theme.textTheme.bodyMedium?.color ?? Colors.grey),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                sourceName,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected
-                      ? theme.primaryColor
-                      : theme.textTheme.bodyLarge?.color,
-                ),
-              ),
-            ),
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? theme.primaryColor : theme.dividerColor,
-                  width: 2,
-                ),
-              ),
-              child: isSelected
-                  ? Center(
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: theme.primaryColor,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    )
-                  : null,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatCameraName(CameraDescription camera) {
-    String lens = '';
-    switch (camera.lensDirection) {
-      case CameraLensDirection.front:
-        lens = ' (Front)';
-        break;
-      case CameraLensDirection.back:
-        lens = ' (Back)';
-        break;
-      case CameraLensDirection.external:
-        lens = ' (External)';
-        break;
-    }
-    return '${camera.name}$lens';
-  }
 
   Widget _buildCameraManagementItem(
       BuildContext context, Map<String, dynamic> camera) {
