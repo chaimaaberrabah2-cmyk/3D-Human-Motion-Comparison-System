@@ -33,10 +33,15 @@ class VideoService:
             frame_filename = os.path.join(output_dir, f"frame_{frame_count:05d}.jpg")
             success = cv2.imwrite(frame_filename, frame)
             if not success:
+                print(f"ERROR: Failed to write frame {frame_count} to {frame_filename}. Is the disk full?")
                 logger.error(f"Failed to write frame {frame_count} to {frame_filename}. Is the disk full?")
                 break
+            
             frame_count += 1
+            if frame_count % 100 == 0:
+                print(f"DEBUG: Extracted {frame_count} frames so far...")
         
         cap.release()
+        print(f"DEBUG: Extraction complete. Total frames: {frame_count}")
         logger.info(f"Extracted {frame_count} frames to {output_dir}")
         return frame_count

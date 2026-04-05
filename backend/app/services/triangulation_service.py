@@ -1,0 +1,220 @@
+import os
+import json
+import numpy as np
+import cv2
+import logging
+
+logger = logging.getLogger(__name__)
+
+class TriangulationService:
+    @staticmethod
+    def triangulate(session_output_root: str, exercise_name: str = "squat"):
+        """
+        Loads 2D keypoints and camera calibration to generate 3D keypoints.
+        
+        Args:
+            session_output_root (str): The folder containing the .npy 2D files.
+            exercise_name (str): Name of the exercise to find the right .json calibration.
+        """
+        # 1. Mapping established with the user
+        # Video 1: 65906101LF, Video 2: 60457274RF, Video 3: 50591643Lb, Video 4: 58860488RB
+        camera_ids = ["65906101LF", "60457274RF", "50591643Lb", "58860488RB"]
+        
+        # Determine base directory for calibration
+        # backend/data/calibration/camera_parameters
+        backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        calib_root = os.path.join(backend_dir, "data", "calibration", "camera_parameters")
+        
+        print(f"DEBUG: Starting triangulation for exercise: {exercise_name}")
+        
+        projection_matrices = []
+        
+        # 2. Load Calibration and build Projection Matrices (P = K [R|t])
+        for cam_id in camera_ids:
+            json_path = os.path.join(calib_root, cam_id, f"{exercise_name}.json")
+            if not os.path.exists(json_path):
+                # Fallback to squat if exercise not found
+                logger.warning(f"Calibration file {json_path} not found. Falling back to squat.json")
+                json_path = os.path.join(calib_root, cam_id, "squat.json")
+            
+            with open(json_path, 'r') as f:
+                data = json.load(f)
+                
+            # Intrinsic Matrix K
+            # Using 'wo_distortion' parameters as they are often cleaner for triangulation
+            intrinsics = data["intrinsics_wo_distortion"]
+            fx, fy = intrinsics["f"]
+            cx, cy = intrinsics["c"]
+            K = np.array([
+                [fx, 0, cx],
+                [0, fy, cy],
+                [0, 0, 1]
+            ], dtype=np.float32)
+            
+            # Extrinsic Parameters R and T
+            R = np.array(data["extrinsics"]["R"], dtype=np.float32)
+            T = np.array(data["extrinsics"]["T"], dtype=np.float32).reshape(3, 1) # Ensure column vector
+            
+            # Projection Matrix P = K * [R | T]
+            Rt = np.hstack((R, T))
+            P = K @ Rt
+            projection_matrices.append(P)
+            
+        # 3. Load 2D Keypoints from .npy files
+        all_2d_data = []
+        for i in range(1, 5):
+            npy_path = os.path.join(session_output_root, f"keypoints_angle{i}.npy")
+            if not os.path.exists(npy_path):
+                raise Exception(f"Missing 2D data for angle {i}: {npy_path}")
+            all_2d_data.append(np.load(npy_path))
+            
+        # Check frame counts (should all be the same)
+        num_frames = all_2d_data[0].shape[0]
+        num_landmarks = all_2d_data[0].shape[1] # Usually 33 for MediaPipe
+        
+        # 4. Perform Triangulation frame by frame
+        # Result shape: (num_frames, 33, 4) -> [X, Y, Z, Visibility]
+        points_3d_sequence = []
+        
+        # MediaPipe resolution - confirmed by user as 900x900
+        IMG_WIDTH = 900
+        IMG_HEIGHT = 900
+        
+        print(f"DEBUG: Triangulating {num_frames} frames...")
+        
+        for f_idx in range(num_frames):
+            frame_3d_points = []
+            
+            for l_idx in range(num_landmarks):
+                # Prepare points from 4 views
+                # MediaPipe gives normalized (0-1), we need pixel coords
+                pts_2d = []
+                visibilities = []
+                
+                for cam_idx in range(4):
+                    # x, y are at index 0, 1
+                    kp = all_2d_data[cam_idx][f_idx, l_idx]
+                    x_pix = kp[0] * IMG_WIDTH
+                    y_pix = kp[1] * IMG_HEIGHT
+                    pts_2d.append([x_pix, y_pix])
+                    visibilities.append(kp[3])
+                
+                # We use cv2.triangulatePoints
+                # It requires 2 views at least. We have 4.
+                # Actually cv2.triangulatePoints only takes 2 projection matrices.
+                # To use N views, we can do it iteratively or use a custom SVD approach.
+                # Simplest for 4 views: DLT (SVD)
+                
+                pt_3d = TriangulationService._triangulate_n_views(projection_matrices, pts_2d)
+                
+                # Use mean visibility
+                avg_visibility = np.mean(visibilities)
+                
+                frame_3d_points.append([pt_3d[0], pt_3d[1], pt_3d[2], avg_visibility])
+            
+            points_3d_sequence.append(frame_3d_points)
+            
+            if (f_idx + 1) % 100 == 0:
+                print(f"DEBUG: Triangulated {f_idx + 1}/{num_frames} frames...")
+
+        # 5. Save 3D coordinates
+        final_array = np.array(points_3d_sequence, dtype=np.float32)
+        output_file = os.path.join(session_output_root, "keypoints_3d.npy")
+        np.save(output_file, final_array)
+        
+        print(f"DEBUG: 3D Triangulation complete. Saved to {output_file}. Shape: {final_array.shape}")
+        return output_file
+
+    @staticmethod
+    def save_3d_visualizations(npy_path: str, output_dir: str, num_samples: int = 5):
+        """
+        Renders a few 3D skeleton plots as JPG images for visual feedback.
+        """
+        import matplotlib
+        matplotlib.use('Agg') # Non-interactive backend
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        
+        if not os.path.exists(npy_path):
+            return
+            
+        data = np.load(npy_path)
+        num_frames = data.shape[0]
+        if num_frames == 0:
+            return
+            
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Sample frames evenly
+        indices = np.linspace(0, num_frames - 1, num_samples, dtype=int)
+        
+        connections = [
+            (11, 12), (11, 13), (13, 15), (12, 14), (14, 16), # Arms
+            (11, 23), (12, 24), (23, 24), (23, 25), (24, 26), # Torso/Hips
+            (25, 27), (26, 28), (27, 29), (28, 30), (29, 31), (30, 32) # Legs
+        ]
+        
+        print(f"DEBUG: Rendering {num_samples} 3D visualization images...")
+        
+        for idx in indices:
+            fig = plt.figure(figsize=(10, 8))
+            ax = fig.add_subplot(111, projection='3d')
+            
+            points = data[idx]
+            x, y, z = points[:, 0], points[:, 1], points[:, 2]
+            valid = ~np.isnan(x)
+            
+            if not np.any(valid):
+                plt.close(fig)
+                continue
+                
+            # Scatter plot
+            ax.scatter(x[valid], z[valid], -y[valid], c='red', s=20)
+            
+            # Connections
+            for start, end in connections:
+                if valid[start] and valid[end]:
+                    ax.plot([x[start], x[end]], [z[start], z[end]], [-y[start], -y[end]], c='blue', linewidth=2)
+            
+            ax.set_title(f"3D Skeleton - Frame {idx}")
+            ax.set_xlabel("X")
+            ax.set_ylabel("Z")
+            ax.set_zlabel("Y (inv)")
+            
+            # Save
+            img_path = os.path.join(output_dir, f"v_3d_frame_{idx:04d}.jpg")
+            plt.savefig(img_path)
+            plt.close(fig)
+            print(f"DEBUG: Saved 3D visualization to {img_path}")
+            
+        print(f"DEBUG: 3D Visualization rendering complete.")
+
+    @staticmethod
+    def _triangulate_n_views(P_list, pts_list):
+        """
+        Direct Linear Transform (DLT) for N-view triangulation.
+        P_list: List of 3x4 projection matrices
+        pts_list: List of [x, y] pixel coordinates
+        """
+        A = []
+        for i in range(len(P_list)):
+            P = P_list[i]
+            x, y = pts_list[i]
+            
+            # If coordinates are NaN (no detection), we could skip this view
+            if np.isnan(x) or np.isnan(y):
+                continue
+                
+            A.append(x * P[2, :] - P[0, :])
+            A.append(y * P[2, :] - P[1, :])
+            
+        if len(A) < 4: # Need at least 2 views (4 equations)
+            return [np.nan, np.nan, np.nan]
+            
+        A = np.array(A)
+        # Solve AX = 0 using SVD
+        _, _, vh = np.linalg.svd(A)
+        X = vh[-1, :]
+        X /= X[3] # Homogeneous to Cartesian
+        
+        return X[:3]
