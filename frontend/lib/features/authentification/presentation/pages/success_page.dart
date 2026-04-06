@@ -172,7 +172,7 @@ class SuccessPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Your password is updated',
+                    'successfully created your account',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.white.withValues(alpha: 0.6),

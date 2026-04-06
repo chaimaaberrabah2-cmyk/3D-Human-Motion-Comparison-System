@@ -43,6 +43,7 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
   }
 
   Future<void> _showEditDialog() async {
+    final l10n = AppLocalizations.of(context)!;
     final nameController = TextEditingController(text: _username);
     final emailController = TextEditingController(text: _email);
     bool isLoading = false;
@@ -55,25 +56,25 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
             final theme = Theme.of(context);
             return AlertDialog(
               backgroundColor: theme.cardColor,
-              title: Text('Modifier les informations', style: theme.textTheme.titleLarge),
+              title: Text(l10n.editInformation, style: theme.textTheme.titleLarge),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(labelText: "Nom d'utilisateur"),
+                    decoration: InputDecoration(labelText: l10n.usernameLabel),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: emailController,
-                    decoration: const InputDecoration(labelText: 'E-mail'),
+                    decoration: InputDecoration(labelText: l10n.emailLabel),
                   ),
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Annuler'),
+                  child: Text(l10n.cancel),
                 ),
                 ElevatedButton(
                   onPressed: isLoading
@@ -95,13 +96,13 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
                             if (mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Informations mises à jour !')),
+                                  SnackBar(content: Text(l10n.infoUpdated)),
                               );
                             }
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Erreur: ${e.toString().replaceAll("Exception: ", "")}')),
+                                SnackBar(content: Text('${l10n.errorPrefix}${e.toString().replaceAll("Exception: ", "")}')),
                               );
                             }
                           } finally {
@@ -110,7 +111,7 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
                         },
                   child: isLoading
                       ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onPrimary))
-                      : const Text('Enregistrer'),
+                      : Text(l10n.saveButton),
                 ),
               ],
             );
@@ -265,11 +266,12 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
     }
   }
 
-  Future<void> _editSingleField(String fieldName, String unit, String currentValue, IconData icon, Future<void> Function(String) onSave) async {
+  Future<void> _editSingleField(String fieldId, String fieldName, String unit, String currentValue, IconData icon, Future<void> Function(String) onSave) async {
     final controller = TextEditingController(text: currentValue);
     await showDialog(
       context: context,
       builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx)!;
         final theme = Theme.of(ctx);
         return AlertDialog(
           backgroundColor: theme.cardColor,
@@ -277,7 +279,7 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
             children: [
               Icon(icon, color: theme.primaryColor, size: 20),
               const SizedBox(width: 10),
-              Text('Edit $fieldName', style: theme.textTheme.titleLarge),
+              Text(l10n.editField(fieldName), style: theme.textTheme.titleLarge),
             ],
           ),
           content: TextField(
@@ -293,25 +295,25 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
             ElevatedButton.icon(
               onPressed: () async {
                 await onSave(controller.text);
                 // Also persist to backend database
                 await _saveProfileToBackend(
-                  height: fieldName == 'Height' ? controller.text : null,
-                  weight: fieldName == 'Weight' ? controller.text : null,
-                  age: fieldName == 'Age' ? controller.text : null,
+                  height: fieldId == 'height' ? controller.text : null,
+                  weight: fieldId == 'weight' ? controller.text : null,
+                  age: fieldId == 'age' ? controller.text : null,
                 );
                 if (mounted) {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('$fieldName updated!')),
+                    SnackBar(content: Text(l10n.fieldUpdated(fieldName))),
                   );
                 }
               },
               icon: const Icon(Icons.save, size: 16),
-              label: const Text('Save'),
+              label: Text(l10n.saveButton),
             ),
           ],
         );
@@ -326,6 +328,7 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setD) {
+            final l10n = AppLocalizations.of(ctx)!;
             final theme = Theme.of(ctx);
             return AlertDialog(
               backgroundColor: theme.cardColor,
@@ -333,7 +336,7 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
                 children: [
                   Icon(Icons.person_outline, color: theme.primaryColor, size: 20),
                   const SizedBox(width: 10),
-                  Text('Edit Gender', style: theme.textTheme.titleLarge),
+                  Text(l10n.editGender, style: theme.textTheme.titleLarge),
                 ],
               ),
               content: Wrap(
@@ -341,8 +344,10 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
                 runSpacing: 8,
                 children: ['Male', 'Female', 'Not specified'].map((g) {
                   final isSelected = selected == g;
+                  // Display translated options but save original English keys
+                  final String displayText = g == 'Male' ? l10n.maleLabel : g == 'Female' ? l10n.femaleLabel : l10n.notSpecifiedLabel;
                   return ChoiceChip(
-                    label: Text(g),
+                    label: Text(displayText),
                     selected: isSelected,
                     onSelected: (_) => setD(() => selected = g),
                     selectedColor: theme.primaryColor,
@@ -354,7 +359,7 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
                 }).toList(),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
                 ElevatedButton.icon(
                   onPressed: () async {
                     final prefs = await SharedPreferences.getInstance();
@@ -365,12 +370,12 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
                     if (mounted) {
                       Navigator.pop(ctx);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Gender updated!')),
+                        SnackBar(content: Text(l10n.fieldUpdated(l10n.genderLabel))),
                       );
                     }
                   },
                   icon: const Icon(Icons.save, size: 16),
-                  label: const Text('Save'),
+                  label: Text(l10n.saveButton),
                 ),
               ],
             );
@@ -381,6 +386,7 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
   }
 
   Future<void> _showPasswordEditDialog() async {
+    final l10n = AppLocalizations.of(context)!;
     final oldPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
@@ -397,7 +403,7 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
             final theme = Theme.of(context);
             return AlertDialog(
               backgroundColor: theme.cardColor,
-              title: Text('Modifier le mot de passe', style: theme.textTheme.titleLarge),
+              title: Text(l10n.editPassword, style: theme.textTheme.titleLarge),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -405,7 +411,7 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
                     controller: oldPasswordController,
                     obscureText: obscureOld,
                     decoration: InputDecoration(
-                      labelText: 'Ancien mot de passe',
+                      labelText: l10n.oldPassword,
                       suffixIcon: IconButton(
                         icon: Icon(obscureOld ? Icons.visibility_off : Icons.visibility),
                         onPressed: () => setStateDialog(() => obscureOld = !obscureOld),
@@ -417,7 +423,7 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
                     controller: newPasswordController,
                     obscureText: obscureNew,
                     decoration: InputDecoration(
-                      labelText: 'Nouveau mot de passe',
+                      labelText: l10n.newPassword,
                       suffixIcon: IconButton(
                         icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility),
                         onPressed: () => setStateDialog(() => obscureNew = !obscureNew),
@@ -429,7 +435,7 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
                     controller: confirmPasswordController,
                     obscureText: obscureConfirm,
                     decoration: InputDecoration(
-                      labelText: 'Confirmer nouveau',
+                      labelText: l10n.confirmPassword,
                       suffixIcon: IconButton(
                         icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility),
                         onPressed: () => setStateDialog(() => obscureConfirm = !obscureConfirm),
@@ -441,7 +447,7 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Annuler'),
+                  child: Text(l10n.cancel),
                 ),
                 ElevatedButton(
                   onPressed: isLoading
@@ -449,13 +455,13 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
                       : () async {
                           if (newPasswordController.text != confirmPasswordController.text) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Les mots de passe ne correspondent pas !')),
+                              SnackBar(content: Text(l10n.passwordsDoNotMatch)),
                             );
                             return;
                           }
                           if (newPasswordController.text.length < 4) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Nouveau mot de passe trop court (min 4)')),
+                              SnackBar(content: Text(l10n.passwordTooShort)),
                             );
                             return;
                           }
@@ -474,13 +480,13 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
                             if (mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Mot de passe mis à jour !')),
+                                SnackBar(content: Text(l10n.passwordUpdated)),
                               );
                             }
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Erreur: ${e.toString().replaceAll("Exception: ", "")}')),
+                                SnackBar(content: Text('${l10n.errorPrefix}${e.toString().replaceAll("Exception: ", "")}')),
                               );
                             }
                           } finally {
@@ -489,7 +495,7 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
                         },
                   child: isLoading
                       ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onPrimary))
-                      : const Text('Enregistrer'),
+                      : Text(l10n.saveButton),
                 ),
               ],
             );
@@ -553,7 +559,7 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
             Icon(Icons.accessibility_new, color: theme.primaryColor, size: 24),
             const SizedBox(width: 12),
             Text(
-              'Body Measurements',
+              l10n.bodyMeasurements,
               style: theme.textTheme.titleLarge?.copyWith(fontSize: 18),
             ),
           ],
@@ -570,16 +576,36 @@ class _PersonalInfoSectionState extends State<PersonalInfoSection> {
           ),
           child: Column(
             children: [
-              Row(
-                children: [
-                  Expanded(child: _buildStatCard(context, icon: Icons.height, label: 'Height', value: _height.isNotEmpty ? '$_height cm' : '— cm', onTap: () => _editSingleField('Height', 'cm', _height, Icons.height, (v) async { final p = await SharedPreferences.getInstance(); await p.setString('user_height', v); setState(() => _height = v); }))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildStatCard(context, icon: Icons.monitor_weight_outlined, label: 'Weight', value: _weight.isNotEmpty ? '$_weight kg' : '— kg', onTap: () => _editSingleField('Weight', 'kg', _weight, Icons.monitor_weight_outlined, (v) async { final p = await SharedPreferences.getInstance(); await p.setString('user_weight', v); setState(() => _weight = v); }))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildStatCard(context, icon: Icons.cake_outlined, label: 'Age', value: _age.isNotEmpty ? '$_age yrs' : '— yrs', onTap: () => _editSingleField('Age', 'yrs', _age, Icons.cake_outlined, (v) async { final p = await SharedPreferences.getInstance(); await p.setString('user_age', v); setState(() => _age = v); }))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildStatCard(context, icon: Icons.person_outline, label: 'Gender', value: _gender.isNotEmpty ? _gender : '—', onTap: _editGender)),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isMobile = constraints.maxWidth < 600;
+                  final heightCard = _buildStatCard(context, icon: Icons.height, label: l10n.heightLabel, value: _height.isNotEmpty ? '$_height cm' : '— cm', onTap: () => _editSingleField('height', l10n.heightLabel, 'cm', _height, Icons.height, (v) async { final p = await SharedPreferences.getInstance(); await p.setString('user_height', v); setState(() => _height = v); }));
+                  final weightCard = _buildStatCard(context, icon: Icons.monitor_weight_outlined, label: l10n.weightLabel, value: _weight.isNotEmpty ? '$_weight kg' : '— kg', onTap: () => _editSingleField('weight', l10n.weightLabel, 'kg', _weight, Icons.monitor_weight_outlined, (v) async { final p = await SharedPreferences.getInstance(); await p.setString('user_weight', v); setState(() => _weight = v); }));
+                  final ageCard = _buildStatCard(context, icon: Icons.cake_outlined, label: l10n.ageLabel, value: _age.isNotEmpty ? '$_age yrs' : '— yrs', onTap: () => _editSingleField('age', l10n.ageLabel, 'yrs', _age, Icons.cake_outlined, (v) async { final p = await SharedPreferences.getInstance(); await p.setString('user_age', v); setState(() => _age = v); }));
+                  final genderCard = _buildStatCard(context, icon: Icons.person_outline, label: l10n.genderLabel, value: _gender.isNotEmpty ? _gender : '—', onTap: _editGender);
+
+                  if (isMobile) {
+                    return Column(
+                      children: [
+                        Row(children: [Expanded(child: heightCard), const SizedBox(width: 12), Expanded(child: weightCard)]),
+                        const SizedBox(height: 12),
+                        Row(children: [Expanded(child: ageCard), const SizedBox(width: 12), Expanded(child: genderCard)]),
+                      ],
+                    );
+                  }
+                  
+                  return Row(
+                    children: [
+                      Expanded(child: heightCard),
+                      const SizedBox(width: 12),
+                      Expanded(child: weightCard),
+                      const SizedBox(width: 12),
+                      Expanded(child: ageCard),
+                      const SizedBox(width: 12),
+                      Expanded(child: genderCard),
+                    ],
+                  );
+                },
               ),
             ],
           ),

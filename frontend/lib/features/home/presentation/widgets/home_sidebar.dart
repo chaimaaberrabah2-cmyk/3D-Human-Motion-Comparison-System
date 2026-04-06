@@ -149,7 +149,7 @@ class HomeSidebar extends StatelessWidget {
           _buildNavItem(
             context,
             iconData: Icons.logout,
-            label: 'Déconnexion',
+            label: AppLocalizations.of(context)!.logout,
             isSelected: false,
             onTap: () async {
               final prefs = await SharedPreferences.getInstance();

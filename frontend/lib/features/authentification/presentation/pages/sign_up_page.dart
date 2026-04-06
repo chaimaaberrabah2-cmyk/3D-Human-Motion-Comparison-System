@@ -12,6 +12,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../controllers/sign_up_controller.dart';
 
@@ -26,6 +27,8 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
+  DateTime? _selectedDob;
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
   late SignUpController _controller;
@@ -41,8 +44,38 @@ class _SignUpPageState extends State<SignUpPage> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _dobController.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectDateOfBirth(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().subtract(const Duration(days: 365 * 20)),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: AppColors.accentBlue,
+              onPrimary: Colors.white,
+              surface: AppColors.cardFill,
+              onSurface: Colors.white,
+            ),
+            dialogBackgroundColor: AppColors.background,
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDob) {
+      setState(() {
+        _selectedDob = picked;
+        _dobController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+      });
+    }
   }
 
   Future<void> _handleSignUp() async {
@@ -55,7 +88,12 @@ class _SignUpPageState extends State<SignUpPage> {
     );
 
     if (success && mounted) {
-      Navigator.pushReplacementNamed(context, '/');
+      if (_selectedDob != null) {
+        final age = DateTime.now().year - _selectedDob!.year;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_age', age.toString());
+      }
+      Navigator.pushReplacementNamed(context, '/body-profile');
     }
   }
 
@@ -66,7 +104,7 @@ class _SignUpPageState extends State<SignUpPage> {
     final success = await _controller.signInWithGoogle();
 
     if (success && mounted) {
-      Navigator.pushReplacementNamed(context, '/');
+      Navigator.pushReplacementNamed(context, '/body-profile');
     }
   }
 
@@ -103,11 +141,7 @@ class _SignUpPageState extends State<SignUpPage> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          SizedBox(
-            height: 280,
-            width: double.infinity,
-            child: _buildBrandingPanel(),
-          ),
+          const SizedBox(height: 40),
           _buildFormPanel(horizontalPadding: 24),
         ],
       ),
@@ -263,6 +297,25 @@ class _SignUpPageState extends State<SignUpPage> {
                         if (!v.contains('@')) return 'Enter a valid email';
                         return null;
                       },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Date of Birth field
+                    GestureDetector(
+                      onTap: () => _selectDateOfBirth(context),
+                      child: AbsorbPointer(
+                        child: _buildTextField(
+                          controller: _dobController,
+                          hint: 'Date of Birth (DD/MM/YYYY)',
+                          prefixIcon: Icons.calendar_today_outlined,
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) {
+                              return 'Date of Birth is required';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 20),
 

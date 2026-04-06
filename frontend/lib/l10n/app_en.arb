@@ -168,5 +168,58 @@
   "instructionsLabel": "Instructions",
   "motionVisualization": "3D Motion Visualization",
   "motionVisualizationSubtitle": "Ideal motion comparison will appear here",
-  "startAnalysis": "Start Analysis"
+  "startAnalysis": "Start Analysis",
+  "bodyMeasurements": "Body Measurements",
+  "heightLabel": "Height",
+  "weightLabel": "Weight",
+  "ageLabel": "Age",
+  "genderLabel": "Gender",
+  "maleLabel": "Male",
+  "femaleLabel": "Female",
+  "notSpecifiedLabel": "Not specified",
+  "logout": "Logout",
+  "networkCameras": "Network Cameras (IP / RTSP)",
+  "addUrl": "Add URL",
+  "customIpStream": "Custom IP Stream",
+  "networkStreamAssigned": "NETWORK STREAM ASSIGNED",
+  "previewDisabled": "Preview disabled in UI to save bandwidth.\nBackend will process it natively.",
+  "noNetworkCameras": "No network cameras added. Click 'Add URL' to enter an RTSP or HTTP stream.",
+  "addNetworkCamera": "Add Network Camera",
+  "enterStreamUrl": "Enter the RTSP or HTTP stream URL provided by your IP Camera or smartphone app.",
+  "addButton": "Add",
+  "editInformation": "Edit Information",
+  "usernameLabel": "Username",
+  "emailLabel": "Email",
+  "saveButton": "Save",
+  "infoUpdated": "Information updated!",
+  "errorPrefix": "Error: ",
+  "editPassword": "Edit Password",
+  "oldPassword": "Old Password",
+  "newPassword": "New Password",
+  "confirmPassword": "Confirm New Password",
+  "passwordsDoNotMatch": "Passwords do not match!",
+  "passwordTooShort": "New password too short (min 4)",
+  "passwordUpdated": "Password updated!",
+  "editField": "Edit {fieldName}",
+  "@editField": {
+    "placeholders": {
+      "fieldName": {
+        "type": "String"
+      }
+    }
+  },
+  "fieldUpdated": "{fieldName} updated!",
+  "@fieldUpdated": {
+    "placeholders": {
+      "fieldName": {
+        "type": "String"
+      }
+    }
+  },
+  "editGender": "Edit Gender",
+  "unassigned": "Unassigned",
+  "refreshCameras": "Refresh cameras",
+  "externalCamera": "External Camera",
+  "builtInFrontCamera": "Built-in Front Camera",
+  "builtInBackCamera": "Built-in Back Camera"
 }

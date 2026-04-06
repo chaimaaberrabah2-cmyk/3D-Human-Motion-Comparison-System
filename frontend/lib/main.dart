@@ -42,6 +42,7 @@ import 'features/authentification/presentation/pages/sign_in_page.dart';
 import 'features/authentification/presentation/pages/sign_up_page.dart';
 import 'features/authentification/presentation/pages/starting_page.dart';
 import 'features/authentification/presentation/pages/success_page.dart';
+import 'features/authentification/presentation/pages/body_profile_page.dart';
 import 'l10n/app_localizations.dart';
 
 void main() {
@@ -110,6 +111,9 @@ class MotionAIApp extends StatelessWidget {
                     break;
                   case '/success':
                     page = const SuccessPage();
+                    break;
+                  case '/body-profile':
+                    page = const BodyProfilePage();
                     break;
                   default:
                     page = const SignInPage();

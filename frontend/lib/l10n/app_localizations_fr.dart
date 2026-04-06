@@ -424,4 +424,128 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get startAnalysis => 'Démarrer l\'Analyse';
+
+  @override
+  String get bodyMeasurements => 'Mensurations';
+
+  @override
+  String get heightLabel => 'Taille';
+
+  @override
+  String get weightLabel => 'Poids';
+
+  @override
+  String get ageLabel => 'Âge';
+
+  @override
+  String get genderLabel => 'Genre';
+
+  @override
+  String get maleLabel => 'Homme';
+
+  @override
+  String get femaleLabel => 'Femme';
+
+  @override
+  String get notSpecifiedLabel => 'Non spécifié';
+
+  @override
+  String get logout => 'Se déconnecter';
+
+  @override
+  String get networkCameras => 'Caméras Réseau (IP / RTSP)';
+
+  @override
+  String get addUrl => 'Ajouter URL';
+
+  @override
+  String get customIpStream => 'Flux IP Personnalisé';
+
+  @override
+  String get networkStreamAssigned => 'FLUX RÉSEAU ASSIGNÉ';
+
+  @override
+  String get previewDisabled =>
+      'Aperçu désactivé pour économiser la bande passante.\nLe backend le traitera nativement.';
+
+  @override
+  String get noNetworkCameras =>
+      'Aucune caméra réseau ajoutée. Cliquez sur \'Ajouter URL\'.';
+
+  @override
+  String get addNetworkCamera => 'Ajouter Caméra Réseau';
+
+  @override
+  String get enterStreamUrl =>
+      'Entrez l\'URL du flux RTSP ou HTTP fourni par votre caméra IP.';
+
+  @override
+  String get addButton => 'Ajouter';
+
+  @override
+  String get editInformation => 'Modifier les informations';
+
+  @override
+  String get usernameLabel => 'Nom d\'utilisateur';
+
+  @override
+  String get emailLabel => 'E-mail';
+
+  @override
+  String get saveButton => 'Enregistrer';
+
+  @override
+  String get infoUpdated => 'Informations mises à jour !';
+
+  @override
+  String get errorPrefix => 'Erreur: ';
+
+  @override
+  String get editPassword => 'Modifier le mot de passe';
+
+  @override
+  String get oldPassword => 'Ancien mot de passe';
+
+  @override
+  String get newPassword => 'Nouveau mot de passe';
+
+  @override
+  String get confirmPassword => 'Confirmer nouveau';
+
+  @override
+  String get passwordsDoNotMatch => 'Les mots de passe ne correspondent pas !';
+
+  @override
+  String get passwordTooShort => 'Nouveau mot de passe trop court (min 4)';
+
+  @override
+  String get passwordUpdated => 'Mot de passe mis à jour !';
+
+  @override
+  String editField(String fieldName) {
+    return 'Modifier $fieldName';
+  }
+
+  @override
+  String fieldUpdated(String fieldName) {
+    return '$fieldName mis à jour !';
+  }
+
+  @override
+  String get editGender => 'Modifier le genre';
+
+  @override
+  String get unassigned => 'Non assigné';
+
+  @override
+  String get refreshCameras => 'Actualiser les caméras';
+
+  @override
+  String get externalCamera => 'Caméra Externe';
+
+  @override
+  String get builtInFrontCamera => 'Caméra Avant Intégrée';
+
+  @override
+  String get builtInBackCamera => 'Caméra Arrière Intégrée';
 }

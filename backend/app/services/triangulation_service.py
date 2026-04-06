@@ -68,8 +68,8 @@ class TriangulationService:
                 raise Exception(f"Missing 2D data for angle {i}: {npy_path}")
             all_2d_data.append(np.load(npy_path))
             
-        # Check frame counts (should all be the same)
-        num_frames = all_2d_data[0].shape[0]
+        # Check frame counts (use the minimum across all videos to avoid index errors)
+        num_frames = min(data.shape[0] for data in all_2d_data)
         num_landmarks = all_2d_data[0].shape[1] # Usually 33 for MediaPipe
         
         # 4. Perform Triangulation frame by frame
@@ -126,9 +126,9 @@ class TriangulationService:
         return output_file
 
     @staticmethod
-    def save_3d_visualizations(npy_path: str, output_dir: str, num_samples: int = 5):
+    def save_3d_visualizations(npy_path: str, output_dir: str):
         """
-        Renders a few 3D skeleton plots as JPG images for visual feedback.
+        Renders the sequence of 3D skeleton plots as individual JPG images instead of a video.
         """
         import matplotlib
         matplotlib.use('Agg') # Non-interactive backend
@@ -143,10 +143,9 @@ class TriangulationService:
         if num_frames == 0:
             return
             
-        os.makedirs(output_dir, exist_ok=True)
-        
-        # Sample frames evenly
-        indices = np.linspace(0, num_frames - 1, num_samples, dtype=int)
+        # Create a specific directory for the 3D frames
+        frames_out_dir = os.path.join(output_dir, "frames")
+        os.makedirs(frames_out_dir, exist_ok=True)
         
         connections = [
             (11, 12), (11, 13), (13, 15), (12, 14), (14, 16), # Arms
@@ -154,40 +153,56 @@ class TriangulationService:
             (25, 27), (26, 28), (27, 29), (28, 30), (29, 31), (30, 32) # Legs
         ]
         
-        print(f"DEBUG: Rendering {num_samples} 3D visualization images...")
+        print(f"DEBUG: Rendering full 3D skeleton frames ({num_frames} frames)...")
         
-        for idx in indices:
-            fig = plt.figure(figsize=(10, 8))
+        fig = plt.figure(figsize=(8, 6), dpi=100)
+        
+        # Calculate global min/max for stable axes
+        valid_data = data[~np.isnan(data[:, :, 0])]
+        if len(valid_data) == 0:
+            print("ERROR: No valid 3D points found.")
+            return
+            
+        min_x, max_x = np.nanmin(data[:, :, 0]), np.nanmax(data[:, :, 0])
+        min_y, max_y = np.nanmin(data[:, :, 1]), np.nanmax(data[:, :, 1])
+        min_z, max_z = np.nanmin(data[:, :, 2]), np.nanmax(data[:, :, 2])
+        
+        for idx in range(num_frames):
+            fig.clf()
             ax = fig.add_subplot(111, projection='3d')
             
             points = data[idx]
             x, y, z = points[:, 0], points[:, 1], points[:, 2]
             valid = ~np.isnan(x)
             
-            if not np.any(valid):
-                plt.close(fig)
-                continue
+            if np.any(valid):
+                # Scatter plot
+                ax.scatter(x[valid], z[valid], -y[valid], c='red', s=20)
                 
-            # Scatter plot
-            ax.scatter(x[valid], z[valid], -y[valid], c='red', s=20)
-            
-            # Connections
-            for start, end in connections:
-                if valid[start] and valid[end]:
-                    ax.plot([x[start], x[end]], [z[start], z[end]], [-y[start], -y[end]], c='blue', linewidth=2)
+                # Connections
+                for start, end in connections:
+                    if valid[start] and valid[end]:
+                        ax.plot([x[start], x[end]], [z[start], z[end]], [-y[start], -y[end]], c='blue', linewidth=2)
             
             ax.set_title(f"3D Skeleton - Frame {idx}")
+            
+            ax.set_xlim(min_x, max_x)
+            ax.set_ylim(min_z, max_z)
+            ax.set_zlim(-max_y, -min_y)
+            
             ax.set_xlabel("X")
             ax.set_ylabel("Z")
             ax.set_zlabel("Y (inv)")
             
-            # Save
-            img_path = os.path.join(output_dir, f"v_3d_frame_{idx:04d}.jpg")
+            # Save frame as JPG
+            img_path = os.path.join(frames_out_dir, f"v_3d_frame_{idx:04d}.jpg")
             plt.savefig(img_path)
-            plt.close(fig)
-            print(f"DEBUG: Saved 3D visualization to {img_path}")
             
-        print(f"DEBUG: 3D Visualization rendering complete.")
+            if (idx + 1) % 100 == 0:
+                print(f"DEBUG: Rendered {idx+1}/{num_frames} frames as images...")
+                
+        plt.close(fig)
+        print(f"DEBUG: 3D Visualization images saved to {frames_out_dir}")
 
     @staticmethod
     def _triangulate_n_views(P_list, pts_list):

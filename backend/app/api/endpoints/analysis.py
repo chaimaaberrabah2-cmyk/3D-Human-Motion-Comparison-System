@@ -132,9 +132,9 @@ def process_analysis(video_paths, output_root, exercise):
             keypoints_3d_file = TriangulationService.triangulate(output_root, exercise)
             print("DEBUG: [Phase 3] 3D Triangulation completed successfully.")
             
-            # Generate a few 3D visualization images (photos) for the user
+            # Generate a 3D animated video for the user to verify the skeleton
             results_3d_dir = os.path.join(output_root, "results_3d")
-            TriangulationService.save_3d_visualizations(keypoints_3d_file, results_3d_dir, num_samples=5)
+            TriangulationService.save_3d_visualizations(keypoints_3d_file, results_3d_dir)
             print(f"DEBUG: 3D Visualization photos saved to {results_3d_dir}")
         except Exception as e:
             print(f"ERROR: [Phase 3] Triangulation failed: {e}")

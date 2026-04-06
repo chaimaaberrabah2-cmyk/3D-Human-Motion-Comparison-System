@@ -7,6 +7,7 @@ import 'package:camera_macos/camera_macos.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class CameraCalibrationSection extends StatefulWidget {
@@ -48,6 +49,9 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
 
   bool _isCameraInitialized = false;
   String? _errorMessage;
+  
+  // Custom Network Cameras (URLs)
+  List<String> _ipCameras = [];
 
   // Counter to add new cameras
   int _cameraCounter = 4;
@@ -106,7 +110,20 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
   @override
   void initState() {
     super.initState();
+    _loadIpCameras();
     _discoverCameras();
+  }
+
+  Future<void> _loadIpCameras() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _ipCameras = prefs.getStringList('ip_cameras') ?? [];
+    });
+  }
+
+  Future<void> _saveIpCameras() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('ip_cameras', _ipCameras);
   }
 
   Future<void> _discoverCameras() async {
@@ -356,6 +373,84 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
     }
   }
 
+  Future<void> _promptAddIpCamera() async {
+    final TextEditingController urlController = TextEditingController();
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    final String? newUrl = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: theme.cardColor,
+          title: Text(l10n.addNetworkCamera, style: const TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                l10n.enterStreamUrl,
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: urlController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'e.g. http://192.168.1.100:8080/video',
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+                  filled: true,
+                  fillColor: Colors.black26,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.transparent),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: theme.primaryColor),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: Text(l10n.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final url = urlController.text.trim();
+                if (url.isNotEmpty && (url.startsWith('http') || url.startsWith('rtsp'))) {
+                  Navigator.pop(context, url);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a valid HTTP or RTSP URL')),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white),
+              child: Text(l10n.addButton),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (newUrl != null && !_ipCameras.contains(newUrl)) {
+      setState(() {
+        _ipCameras.add(newUrl);
+        // Automatically select the newly added stream for convenience
+        _tempSelectedSource = newUrl;
+        _controller?.dispose();
+        _controller = null;
+        _macOsController?.destroy();
+        _macOsController = null;
+        _isCameraInitialized = false;
+      });
+      _saveIpCameras();
+    }
+  }
+
   Widget _buildModifyView(
       BuildContext context, AppLocalizations l10n, ThemeData theme) {
     // Find the camera being modified
@@ -383,7 +478,27 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
             children: [
               // --- AFFICHAGE NATIVITÉ DU RETOUR VIDÉO (LIVE PREVIEW) ---
               // L'interface choisit dynamiquement quel composant dessiner pour afficher le flux 
-              if (Platform.isMacOS && _tempSelectedSource.isNotEmpty && _tempSelectedSource != 'Unassigned')
+              if (_tempSelectedSource.startsWith('http') || _tempSelectedSource.startsWith('rtsp'))
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.wifi_tethering, color: theme.primaryColor, size: 48),
+                      const SizedBox(height: 12),
+                      Text(
+                        l10n.networkStreamAssigned,
+                        style: TextStyle(color: theme.primaryColor, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.previewDisabled,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: theme.primaryColor.withValues(alpha: 0.7), fontSize: 10),
+                      ),
+                    ],
+                  ),
+                )
+              else if (Platform.isMacOS && _tempSelectedSource.isNotEmpty && _tempSelectedSource != 'Unassigned')
                 // 1. Sur Mac : CameraMacOSView convertit le flux AVFoundation en Texture graphique.
                 CameraMacOSView(
                   key: ObjectKey(_tempSelectedSource), // Force la réinitialisation graphique de la vue si on change de caméra
@@ -499,11 +614,13 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    l10n.chooseCameraSource,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
+                  Expanded(
+                    child: Text(
+                      l10n.chooseCameraSource,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
                     ),
                   ),
                   TextButton.icon(
@@ -619,7 +736,7 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                                         ),
                                       ),
                                       Text(
-                                        'macOS Camera Device',
+                                        l10n.externalCamera,
                                         style: theme.textTheme.bodySmall?.copyWith(
                                           color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
                                         ),
@@ -715,10 +832,10 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                                       ),
                                       Text(
                                         cam.lensDirection == CameraLensDirection.external
-                                            ? 'External Camera'
+                                            ? l10n.externalCamera
                                             : cam.lensDirection == CameraLensDirection.front
-                                                ? 'Built-in Front Camera'
-                                                : 'Built-in Back Camera',
+                                                ? l10n.builtInFrontCamera
+                                                : l10n.builtInBackCamera,
                                         style: theme.textTheme.bodySmall?.copyWith(
                                           color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
                                         ),
@@ -762,13 +879,146 @@ class CameraCalibrationSectionState extends State<CameraCalibrationSection> {
                       child: TextButton.icon(
                         onPressed: _discoverCameras,
                         icon: const Icon(Icons.refresh, size: 16),
-                        label: const Text('Refresh cameras'),
+                        label: Text(l10n.refreshCameras),
                         style: TextButton.styleFrom(
                           foregroundColor: theme.primaryColor,
                         ),
                       ),
                     ),
                   ],
+                ),
+              
+              const SizedBox(height: 24),
+              // --- 1.5 NETWORK CAMERAS SECTION ---
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.networkCameras,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: _promptAddIpCamera,
+                    icon: const Icon(Icons.add_link, size: 16),
+                    label: Text(l10n.addUrl),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (_ipCameras.isEmpty)
+                Text(
+                  l10n.noNetworkCameras,
+                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                )
+              else
+                Column(
+                  children: _ipCameras.map((url) {
+                    final isSelected = _tempSelectedSource == url;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _tempSelectedSource = url;
+                            _isCameraInitialized = false;
+                            _macOsController?.destroy();
+                            _macOsController = null;
+                            _controller?.dispose();
+                            _controller = null;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isSelected ? theme.primaryColor.withValues(alpha: 0.05) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected ? theme.primaryColor : theme.dividerColor,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.wifi_tethering,
+                                size: 20,
+                                color: isSelected ? theme.primaryColor : (theme.textTheme.bodyMedium?.color ?? Colors.grey),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      url,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                        color: isSelected ? theme.primaryColor : theme.textTheme.bodyLarge?.color,
+                                      ),
+                                    ),
+                                    Text(
+                                      l10n.customIpStream,
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: () {
+                                  setState(() {
+                                    _ipCameras.remove(url);
+                                    if (_tempSelectedSource == url) _tempSelectedSource = '';
+                                  });
+                                  _saveIpCameras();
+                                },
+                              ),
+                              const SizedBox(width: 12),
+                              Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isSelected ? theme.primaryColor : theme.dividerColor,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: isSelected
+                                    ? Center(
+                                        child: Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            color: theme.primaryColor,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
 
               const SizedBox(height: 32),

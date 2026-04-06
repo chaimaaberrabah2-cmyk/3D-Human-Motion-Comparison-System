@@ -879,6 +879,240 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start Analysis'**
   String get startAnalysis;
+
+  /// No description provided for @bodyMeasurements.
+  ///
+  /// In en, this message translates to:
+  /// **'Body Measurements'**
+  String get bodyMeasurements;
+
+  /// No description provided for @heightLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Height'**
+  String get heightLabel;
+
+  /// No description provided for @weightLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get weightLabel;
+
+  /// No description provided for @ageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Age'**
+  String get ageLabel;
+
+  /// No description provided for @genderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Gender'**
+  String get genderLabel;
+
+  /// No description provided for @maleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Male'**
+  String get maleLabel;
+
+  /// No description provided for @femaleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Female'**
+  String get femaleLabel;
+
+  /// No description provided for @notSpecifiedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Not specified'**
+  String get notSpecifiedLabel;
+
+  /// No description provided for @logout.
+  ///
+  /// In en, this message translates to:
+  /// **'Logout'**
+  String get logout;
+
+  /// No description provided for @networkCameras.
+  ///
+  /// In en, this message translates to:
+  /// **'Network Cameras (IP / RTSP)'**
+  String get networkCameras;
+
+  /// No description provided for @addUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Add URL'**
+  String get addUrl;
+
+  /// No description provided for @customIpStream.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom IP Stream'**
+  String get customIpStream;
+
+  /// No description provided for @networkStreamAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'NETWORK STREAM ASSIGNED'**
+  String get networkStreamAssigned;
+
+  /// No description provided for @previewDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview disabled in UI to save bandwidth.\nBackend will process it natively.'**
+  String get previewDisabled;
+
+  /// No description provided for @noNetworkCameras.
+  ///
+  /// In en, this message translates to:
+  /// **'No network cameras added. Click \'Add URL\' to enter an RTSP or HTTP stream.'**
+  String get noNetworkCameras;
+
+  /// No description provided for @addNetworkCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Network Camera'**
+  String get addNetworkCamera;
+
+  /// No description provided for @enterStreamUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the RTSP or HTTP stream URL provided by your IP Camera or smartphone app.'**
+  String get enterStreamUrl;
+
+  /// No description provided for @addButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get addButton;
+
+  /// No description provided for @editInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Information'**
+  String get editInformation;
+
+  /// No description provided for @usernameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get usernameLabel;
+
+  /// No description provided for @emailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get emailLabel;
+
+  /// No description provided for @saveButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get saveButton;
+
+  /// No description provided for @infoUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Information updated!'**
+  String get infoUpdated;
+
+  /// No description provided for @errorPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: '**
+  String get errorPrefix;
+
+  /// No description provided for @editPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Password'**
+  String get editPassword;
+
+  /// No description provided for @oldPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Old Password'**
+  String get oldPassword;
+
+  /// No description provided for @newPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'New Password'**
+  String get newPassword;
+
+  /// No description provided for @confirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm New Password'**
+  String get confirmPassword;
+
+  /// No description provided for @passwordsDoNotMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match!'**
+  String get passwordsDoNotMatch;
+
+  /// No description provided for @passwordTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'New password too short (min 4)'**
+  String get passwordTooShort;
+
+  /// No description provided for @passwordUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Password updated!'**
+  String get passwordUpdated;
+
+  /// No description provided for @editField.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit {fieldName}'**
+  String editField(String fieldName);
+
+  /// No description provided for @fieldUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'{fieldName} updated!'**
+  String fieldUpdated(String fieldName);
+
+  /// No description provided for @editGender.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Gender'**
+  String get editGender;
+
+  /// No description provided for @unassigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Unassigned'**
+  String get unassigned;
+
+  /// No description provided for @refreshCameras.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh cameras'**
+  String get refreshCameras;
+
+  /// No description provided for @externalCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'External Camera'**
+  String get externalCamera;
+
+  /// No description provided for @builtInFrontCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in Front Camera'**
+  String get builtInFrontCamera;
+
+  /// No description provided for @builtInBackCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in Back Camera'**
+  String get builtInBackCamera;
 }
 
 class _AppLocalizationsDelegate

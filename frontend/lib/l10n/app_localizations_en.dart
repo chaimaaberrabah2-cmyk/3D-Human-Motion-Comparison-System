@@ -419,4 +419,128 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get startAnalysis => 'Start Analysis';
+
+  @override
+  String get bodyMeasurements => 'Body Measurements';
+
+  @override
+  String get heightLabel => 'Height';
+
+  @override
+  String get weightLabel => 'Weight';
+
+  @override
+  String get ageLabel => 'Age';
+
+  @override
+  String get genderLabel => 'Gender';
+
+  @override
+  String get maleLabel => 'Male';
+
+  @override
+  String get femaleLabel => 'Female';
+
+  @override
+  String get notSpecifiedLabel => 'Not specified';
+
+  @override
+  String get logout => 'Logout';
+
+  @override
+  String get networkCameras => 'Network Cameras (IP / RTSP)';
+
+  @override
+  String get addUrl => 'Add URL';
+
+  @override
+  String get customIpStream => 'Custom IP Stream';
+
+  @override
+  String get networkStreamAssigned => 'NETWORK STREAM ASSIGNED';
+
+  @override
+  String get previewDisabled =>
+      'Preview disabled in UI to save bandwidth.\nBackend will process it natively.';
+
+  @override
+  String get noNetworkCameras =>
+      'No network cameras added. Click \'Add URL\' to enter an RTSP or HTTP stream.';
+
+  @override
+  String get addNetworkCamera => 'Add Network Camera';
+
+  @override
+  String get enterStreamUrl =>
+      'Enter the RTSP or HTTP stream URL provided by your IP Camera or smartphone app.';
+
+  @override
+  String get addButton => 'Add';
+
+  @override
+  String get editInformation => 'Edit Information';
+
+  @override
+  String get usernameLabel => 'Username';
+
+  @override
+  String get emailLabel => 'Email';
+
+  @override
+  String get saveButton => 'Save';
+
+  @override
+  String get infoUpdated => 'Information updated!';
+
+  @override
+  String get errorPrefix => 'Error: ';
+
+  @override
+  String get editPassword => 'Edit Password';
+
+  @override
+  String get oldPassword => 'Old Password';
+
+  @override
+  String get newPassword => 'New Password';
+
+  @override
+  String get confirmPassword => 'Confirm New Password';
+
+  @override
+  String get passwordsDoNotMatch => 'Passwords do not match!';
+
+  @override
+  String get passwordTooShort => 'New password too short (min 4)';
+
+  @override
+  String get passwordUpdated => 'Password updated!';
+
+  @override
+  String editField(String fieldName) {
+    return 'Edit $fieldName';
+  }
+
+  @override
+  String fieldUpdated(String fieldName) {
+    return '$fieldName updated!';
+  }
+
+  @override
+  String get editGender => 'Edit Gender';
+
+  @override
+  String get unassigned => 'Unassigned';
+
+  @override
+  String get refreshCameras => 'Refresh cameras';
+
+  @override
+  String get externalCamera => 'External Camera';
+
+  @override
+  String get builtInFrontCamera => 'Built-in Front Camera';
+
+  @override
+  String get builtInBackCamera => 'Built-in Back Camera';
 }

@@ -138,11 +138,7 @@ class _SignInPageState extends State<SignInPage> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          SizedBox(
-            height: 280,
-            width: double.infinity,
-            child: _buildBrandingPanel(),
-          ),
+          const SizedBox(height: 40),
           _buildFormPanel(horizontalPadding: 24),
         ],
       ),

@@ -415,4 +415,127 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get startAnalysis => 'بدء التحليل';
+
+  @override
+  String get bodyMeasurements => 'قياسات الجسم';
+
+  @override
+  String get heightLabel => 'الطول';
+
+  @override
+  String get weightLabel => 'الوزن';
+
+  @override
+  String get ageLabel => 'العمر';
+
+  @override
+  String get genderLabel => 'الجنس';
+
+  @override
+  String get maleLabel => 'ذكر';
+
+  @override
+  String get femaleLabel => 'أنثى';
+
+  @override
+  String get notSpecifiedLabel => 'غير محدد';
+
+  @override
+  String get logout => 'تسجيل الخروج';
+
+  @override
+  String get networkCameras => 'كاميرات الشبكة (IP / RTSP)';
+
+  @override
+  String get addUrl => 'إضافة رابط';
+
+  @override
+  String get customIpStream => 'بث مخصص';
+
+  @override
+  String get networkStreamAssigned => 'تم تعيين بث الشبكة';
+
+  @override
+  String get previewDisabled =>
+      'تم تعطيل المعاينة لتوفير الموارد.\nالخادم سيعالجه مباشرة.';
+
+  @override
+  String get noNetworkCameras =>
+      'لم تتم إضافة كاميرات. انقر على \'إضافة رابط\'.';
+
+  @override
+  String get addNetworkCamera => 'إضافة كاميرا شبكة';
+
+  @override
+  String get enterStreamUrl => 'أدخل رابط RTSP أو HTTP الخاص بكاميرا IP.';
+
+  @override
+  String get addButton => 'إضافة';
+
+  @override
+  String get editInformation => 'تعديل المعلومات';
+
+  @override
+  String get usernameLabel => 'اسم المستخدم';
+
+  @override
+  String get emailLabel => 'البريد الإلكتروني';
+
+  @override
+  String get saveButton => 'حفظ';
+
+  @override
+  String get infoUpdated => 'تم تحديث المعلومات!';
+
+  @override
+  String get errorPrefix => 'خطأ: ';
+
+  @override
+  String get editPassword => 'تغيير كلمة المرور';
+
+  @override
+  String get oldPassword => 'كلمة المرور القديمة';
+
+  @override
+  String get newPassword => 'كلمة المرور الجديدة';
+
+  @override
+  String get confirmPassword => 'تأكيد كلمة المرور';
+
+  @override
+  String get passwordsDoNotMatch => 'كلمات المرور غير متطابقة!';
+
+  @override
+  String get passwordTooShort => 'كلمة المرور قصيرة جدًا (على الأقل 4)';
+
+  @override
+  String get passwordUpdated => 'تم تحديث كلمة المرور!';
+
+  @override
+  String editField(String fieldName) {
+    return 'تعديل $fieldName';
+  }
+
+  @override
+  String fieldUpdated(String fieldName) {
+    return 'تم تحديث $fieldName!';
+  }
+
+  @override
+  String get editGender => 'تعديل الجنس';
+
+  @override
+  String get unassigned => 'غير معين';
+
+  @override
+  String get refreshCameras => 'تحديث الكاميرات';
+
+  @override
+  String get externalCamera => 'كاميرا خارجية';
+
+  @override
+  String get builtInFrontCamera => 'الكاميرا الأمامية';
+
+  @override
+  String get builtInBackCamera => 'الكاميرا الخلفية';
 }
