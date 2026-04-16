@@ -85,14 +85,31 @@ class _SignInPageState extends State<SignInPage> {
         await prefs.remove('saved_email');
         await prefs.remove('saved_password');
       }
-      Navigator.pushReplacementNamed(context, '/');
+
+      // ROLE-BASED NAVIGATION
+      final role = prefs.getString('user_role') ?? 'user';
+      if (role == 'super_admin') {
+        Navigator.pushReplacementNamed(context, '/super-admin');
+      } else if (role == 'admin') {
+        Navigator.pushReplacementNamed(context, '/admin');
+      } else {
+        Navigator.pushReplacementNamed(context, '/');
+      }
     }
   }
 
   Future<void> _handleGoogleSignIn() async {
     final success = await _controller.signInWithGoogle();
     if (success && mounted) {
-      Navigator.pushReplacementNamed(context, '/');
+      final prefs = await SharedPreferences.getInstance();
+      final role = prefs.getString('user_role') ?? 'user';
+      if (role == 'super_admin') {
+        Navigator.pushReplacementNamed(context, '/super-admin');
+      } else if (role == 'admin') {
+        Navigator.pushReplacementNamed(context, '/admin');
+      } else {
+        Navigator.pushReplacementNamed(context, '/');
+      }
     }
   }
 

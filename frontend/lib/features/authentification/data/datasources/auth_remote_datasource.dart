@@ -4,11 +4,12 @@ import '../../domain/entities/auth_user.dart';
 
 abstract class AuthRemoteDataSource {
   Future<AuthUser> signIn(String email, String password);
-  Future<AuthUser> signUp(String pseudo, String email, String password);
+  Future<AuthUser> signUp(String pseudo, String email, String password, String establishmentCode);
   Future<AuthUser> signInWithGoogle();
   Future<AuthUser> updateUser(String oldEmail, String newEmail, String newPseudo);
   Future<void> updatePassword(String email, String oldPassword, String newPassword);
   Future<void> resetPassword(String email, String newPassword);
+  Future<List<AuthUser>> getEstablishmentUsers(int establishmentId);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -33,6 +34,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           displayName: data['user']['pseudo'],
           email: data['user']['email'],
           token: data['access_token'],
+          role: data['user']['role'],
+          establishmentId: data['user']['establishment_id'],
         );
       } else {
         throw Exception('Failed to sign in');
@@ -43,12 +46,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<AuthUser> signUp(String pseudo, String email, String password) async {
+  Future<AuthUser> signUp(String pseudo, String email, String password, String establishmentCode) async {
     try {
       final response = await client.post('/auth/register', data: {
         'pseudo': pseudo,
         'email': email,
         'password': password,
+        'establishment_code': establishmentCode,
       });
 
       if (response.statusCode == 200) {
@@ -58,6 +62,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           displayName: data['user']['pseudo'],
           email: data['user']['email'],
           token: data['access_token'],
+          role: data['user']['role'],
+          establishmentId: data['user']['establishment_id'],
         );
       } else {
         throw Exception('Failed to sign up');
@@ -97,6 +103,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           displayName: data['user']['pseudo'],
           email: data['user']['email'],
           token: data['access_token'],
+          role: data['user']['role'],
+          establishmentId: data['user']['establishment_id'],
         );
       } else {
         throw Exception('Failed to authenticate with backend via Google');
@@ -159,6 +167,27 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       if (response.statusCode != 200) {
         throw Exception('Failed to reset password');
+      }
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['detail'] ?? 'Connection error');
+    }
+  }
+
+  @override
+  Future<List<AuthUser>> getEstablishmentUsers(int establishmentId) async {
+    try {
+      final response = await client.get('/auth/establishments/$establishmentId/users');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        return data.map((json) => AuthUser(
+          id: json['user_id'].toString(),
+          displayName: json['pseudo'],
+          email: json['email'],
+          role: json['role'],
+          establishmentId: json['establishment_id'],
+        )).toList();
+      } else {
+        throw Exception('Failed to fetch users');
       }
     } on DioException catch (e) {
       throw Exception(e.response?.data['detail'] ?? 'Connection error');

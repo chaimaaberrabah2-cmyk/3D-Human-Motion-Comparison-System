@@ -18,15 +18,18 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' as io;
 import 'dart:async';
 import 'package:video_player/video_player.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../home/presentation/widgets/home_sidebar.dart';
+import '../../../../core/navigation/navigation_provider.dart';
 import '../../../home/domain/entities/exercise.dart';
 import '../../data/datasources/analysis_remote_datasource.dart';
 import '../../data/repositories/analysis_repository_impl.dart';
+import '../widgets/smplx_viewer_widget.dart';
 
 class NewAnalysisPage extends StatefulWidget {
   const NewAnalysisPage({Key? key}) : super(key: key);
@@ -57,56 +60,94 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
   bool _isProcessing = false;
   double _processingProgress = 0.0;
   String _processingStatus = 'Initializing...';
-
   Exercise? _selectedExercise;
+  String _role = 'user';
+  String? _sessionId; // Set after upload success → used by SmplxViewerWidget
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRole();
+  }
+
+  Future<void> _loadRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _role = prefs.getString('user_role') ?? 'user';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isDesktop = constraints.maxWidth > 1200;
+    return PopScope(
+      canPop: false, // We handle pop manually
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
 
-          return Row(
-            children: [
-              if (isDesktop) const HomeSidebar(),
-              Expanded(
-                child: Column(
-                  children: [
-                    // Header
-                    _buildHeader(l10n, theme),
-                    
-                    // Step Indicator
-                    if (_currentStep != 4) _buildStepIndicator(l10n, theme),
-                    
-                    // Main Content
-                    Expanded(
-                      child: isDesktop
-                          ? SingleChildScrollView(
-                              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-                              child: Center(
-                                child: constraints.maxWidth > 1000
-                                    ? SizedBox(width: 800, child: _buildStepContent(l10n, theme))
-                                    : _buildStepContent(l10n, theme),
-                              ),
-                            )
-                          : SingleChildScrollView(
-                              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-                              child: Center(
-                                child: _buildStepContent(l10n, theme),
-                              ),
-                            ),
-                    ),
-                  ],
+        if (_isProcessing) {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Cancel Analysis?'),
+              content: const Text('Are you sure you want to cancel the current analysis?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('No'),
                 ),
-              ),
-            ],
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Yes'),
+                ),
+              ],
+            ),
           );
-        },
+          if (confirm == true && mounted) {
+
+            setState(() => _isProcessing = false);
+            context.read<NavigationProvider>().setIndex(0);
+          }
+          return;
+        }
+
+        if (_currentStep > 1) {
+          setState(() {
+            _currentStep--;
+          });
+        } else {
+          // At Step 1, go back to Dashboard
+          context.read<NavigationProvider>().setIndex(0);
+        }
+      },
+      child: Column(
+        children: [
+          // Header
+          _buildHeader(l10n, theme),
+          
+          // Step Indicator
+          if (_currentStep != 4) _buildStepIndicator(l10n, theme),
+          
+          // Main Content Area
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+                  child: Center(
+                    child: constraints.maxWidth > 1000
+                        ? SizedBox(width: 800, child: _buildStepContent(l10n, theme))
+                        : _buildStepContent(l10n, theme),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -315,42 +356,44 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
     setState(() {
       _isProcessing = true;
       _processingProgress = 0.0;
-      _processingStatus = 'Connecting to backend...';
+      _processingStatus = 'Uploading videos to server...';
       _currentStep = 3;
     });
 
     try {
+      // Real API Call — uploads the 4 videos, returns session_id
+      final dataSource = AnalysisRemoteDataSource();
+      final repository = AnalysisRepositoryImpl(remoteDataSource: dataSource);
+
       if (!mounted) return;
       setState(() {
-        _processingStatus = 'Connecting to backend...';
+        _processingStatus = 'Uploading videos...';
         _processingProgress = 0.05;
       });
 
-      // Real API Call to FastAPI Backend
-      final dataSource = AnalysisRemoteDataSource();
-      final repository = AnalysisRepositoryImpl(remoteDataSource: dataSource);
-      
       final sessionId = await repository.analyzeVideos(videos: _rawFiles);
 
-      // Simulation of a realistic extraction process for 4 videos (Total 20% progress)
+      // Animate mock upload progress while server processes
       for (int i = 1; i <= 4; i++) {
         for (int p = 1; p <= 10; p++) {
-          await Future.delayed(const Duration(milliseconds: 300));
+          await Future.delayed(const Duration(milliseconds: 250));
           if (!mounted) return;
           setState(() {
-            // Each camera angle takes 5% of total progress (4 * 5 = 20%)
             _processingProgress = 0.05 + ((i - 1) * 0.03) + (p * 0.002);
-            _processingStatus = 'Extracting frames from Camera Angle $i... (${(_processingProgress * 100).toInt()}%)';
+            _processingStatus =
+                'Sending camera angle $i... (${(_processingProgress * 100).toInt()}%)';
           });
         }
       }
 
       if (!mounted) return;
       setState(() {
-        _processingStatus = 'Extraction complete for all videos ($sessionId)';
-        _processingProgress = 0.20; // Correctly stop at 20% for now
+        _processingStatus =
+            'Videos uploaded! Server is processing 3D reconstruction…';
+        _processingProgress = 0.25;
         _isProcessing = false;
-        // Stay on this screen as requested
+        _sessionId = sessionId; // ← store for SmplxViewerWidget
+        _currentStep = 4;       // ← go to results
       });
     } catch (e) {
       if (mounted) {
@@ -358,6 +401,12 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
           _isProcessing = false;
           _processingStatus = 'Error: ${e.toString()}';
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Upload failed: $e'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
       }
     }
   }
@@ -642,6 +691,15 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
   }
 
   Widget _buildSMPLPreview(ThemeData theme) {
+    // If we have a real session ID, show the live Three.js SMPL-X viewer
+    if (_sessionId != null) {
+      return SizedBox(
+        height: 400,
+        child: SmplxViewerWidget(sessionId: _sessionId!),
+      );
+    }
+
+    // Fallback placeholder (should not normally be reached after upload)
     final l10n = AppLocalizations.of(context)!;
     return Container(
       height: 400,
@@ -659,34 +717,27 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Placeholder for SMPL model - using a high-quality stylized image look
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.accessibility_new,
-                    size: 120,
-                    color: theme.dividerColor.withOpacity(0.1),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    l10n.userReconstruction,
-                    style: TextStyle(
-                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.3),
-                      letterSpacing: 2,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.view_in_ar_rounded,
+                size: 80,
+                color: theme.primaryColor.withOpacity(0.15),
               ),
-            ),
-            // Subtle "PRO" or "LIVE" tag if needed
-          ],
+              const SizedBox(height: 16),
+              Text(
+                l10n.userReconstruction,
+                style: TextStyle(
+                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.3),
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

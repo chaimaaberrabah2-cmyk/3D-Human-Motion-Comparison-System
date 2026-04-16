@@ -13,60 +13,46 @@
 // ============================================================
 
 import 'package:flutter/material.dart';
-import '../../../home/presentation/widgets/home_sidebar.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../l10n/app_localizations.dart';
 
-class HistoryPage extends StatelessWidget {
+class HistoryPage extends StatefulWidget {
   const HistoryPage({Key? key}) : super(key: key);
 
   @override
+  State<HistoryPage> createState() => _HistoryPageState();
+}
+
+class _HistoryPageState extends State<HistoryPage> {
+  String _role = 'user';
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRole();
+  }
+
+  Future<void> _loadRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _role = prefs.getString('user_role') ?? 'user';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isDesktop = constraints.maxWidth > 1200;
-          final isTablet = constraints.maxWidth > 600 && constraints.maxWidth <= 1200;
-
-          if (isDesktop || isTablet) {
-            return Row(
-              children: [
-                const HomeSidebar(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: _buildContent(context, l10n),
-                  ),
-                ),
-              ],
-            );
-          } else {
-            return Scaffold(
-              appBar: AppBar(
-                backgroundColor: theme.scaffoldBackgroundColor,
-                elevation: 0,
-                iconTheme: theme.iconTheme,
-                title: Text(
-                  l10n.history,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              drawer: const Drawer(
-                child: HomeSidebar(),
-              ),
-              body: SafeArea(
-                child: SingleChildScrollView(
-                  child: _buildContent(context, l10n),
-                ),
-              ),
-            );
-          }
-        },
-      ),
+    return SingleChildScrollView(
+      child: _buildContent(context, l10n),
     );
   }
 
@@ -255,25 +241,36 @@ class HistoryPage extends StatelessWidget {
           ),
           const Divider(height: 1),
           
-          // Table Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Row(
-              children: [
-                Expanded(flex: 3, child: _buildTableHeader(l10n.sessionId, theme)),
-                Expanded(flex: 3, child: _buildTableHeader(l10n.dateTime, theme)),
-                Expanded(flex: 2, child: _buildTableHeader(l10n.duration, theme)),
-                Expanded(flex: 2, child: _buildTableHeader(l10n.score, theme)),
-                Expanded(flex: 2, child: _buildTableHeader(l10n.performancePreview, theme)),
-              ],
+          // Use SingleChildScrollView for horizontal if space is limited
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: 800, // Fixed width to ensure table structure is preserved
+              child: Column(
+                children: [
+                  // Table Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    child: Row(
+                      children: [
+                        Expanded(flex: 3, child: _buildTableHeader(l10n.sessionId, theme)),
+                        Expanded(flex: 3, child: _buildTableHeader(l10n.dateTime, theme)),
+                        Expanded(flex: 2, child: _buildTableHeader(l10n.duration, theme)),
+                        Expanded(flex: 2, child: _buildTableHeader(l10n.score, theme)),
+                        Expanded(flex: 2, child: _buildTableHeader(l10n.performancePreview, theme)),
+                      ],
+                    ),
+                  ),
+                  
+                  // Table Rows
+                  _buildActivityRow(context, l10n, 'S-9421', 'Feb 17, 2026\n14:30', '12m 40s', '98.2', true),
+                  _buildActivityRow(context, l10n, 'S-9420', 'Feb 17, 2026\n11:15', '08m 15s', '97.5', true),
+                  _buildActivityRow(context, l10n, 'S-9419', 'Feb 16, 2026\n16:45', '24m 10s', '94.8', true),
+                  _buildActivityRow(context, l10n, 'S-9418', 'Feb 16, 2026\n09:20', '05m 55s', '--', false),
+                ],
+              ),
             ),
           ),
-          
-          // Table Rows
-          _buildActivityRow(context, l10n, 'S-9421', 'Feb 17, 2026\n14:30', '12m 40s', '98.2', true),
-          _buildActivityRow(context, l10n, 'S-9420', 'Feb 17, 2026\n11:15', '08m 15s', '97.5', true),
-          _buildActivityRow(context, l10n, 'S-9419', 'Feb 16, 2026\n16:45', '24m 10s', '94.8', true),
-          _buildActivityRow(context, l10n, 'S-9418', 'Feb 16, 2026\n09:20', '05m 55s', '--', false),
           
           const SizedBox(height: 16),
         ],

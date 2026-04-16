@@ -13,34 +13,35 @@
 //   1 → Historique (HistoryPage)
 //   2 → Paramètres (SettingsPage)
 //   3 → Nouvelle Analyse (NewAnalysisPage)
-//
-// Exemple d'utilisation :
-//   Provider.of<NavigationProvider>(context, listen: false).setIndex(2);
+//   4 → Établissements (EstablishmentListView - SuperAdmin)
+//   5 → Patients (PatientListView - Admin/SuperAdmin)
 // ============================================================
 
 import 'package:flutter/material.dart';
 
 /// Classe de gestion d'état pour la navigation entre les onglets principaux.
 class NavigationProvider extends ChangeNotifier {
-  /// Index de la page actuellement visible (0 = Accueil, 1 = Historique, …)
+  /// Index de la page actuellement visible
   int _currentIndex = 0;
 
   int get currentIndex => _currentIndex;
 
-  /// Passe à l'onglet [index]. Ne fait rien si on est déjà sur cet onglet.
+  /// Passe à l'onglet [index].
   void setIndex(int index) {
     if (_currentIndex != index) {
       _currentIndex = index;
-      notifyListeners(); // Notifie tous les widgets écoutants pour se reconstruire
+      notifyListeners();
     }
   }
 
-  /// Helper pour changer d'onglet par nom de route plutôt que par index numérique.
-  /// Utilisé par les boutons de la barre latérale.
+  /// Helper pour changer d'onglet par nom de route.
   void setIndexByRoute(String route) {
     if (route == '/') setIndex(0);
     else if (route == '/history') setIndex(1);
     else if (route == '/settings') setIndex(2);
     else if (route == '/new_analysis') setIndex(3);
+    else if (route == '/establishments') setIndex(4);
+    else if (route == '/patients') setIndex(5);
+    else if (route == '/calibration') setIndex(6);
   }
 }

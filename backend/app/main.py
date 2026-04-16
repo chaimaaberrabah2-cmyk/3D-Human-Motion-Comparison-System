@@ -20,7 +20,7 @@ Interactive documentation: http://127.0.0.1:8000/docs
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.endpoints import analysis, auth, cameras
+from app.api.endpoints import analysis, auth, cameras, sessions
 
 # Create the main FastAPI application
 app = FastAPI(
@@ -45,6 +45,7 @@ app.add_middleware(
 app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["analysis"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(cameras.router, prefix="/api/v1/cameras", tags=["cameras"])
+app.include_router(sessions.router, prefix="/api/v1/sessions", tags=["sessions"])
 
 @app.get("/")
 async def root():

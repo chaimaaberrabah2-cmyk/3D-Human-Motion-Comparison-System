@@ -27,6 +27,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _establishmentCodeController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
   DateTime? _selectedDob;
   final _formKey = GlobalKey<FormState>();
@@ -44,6 +45,7 @@ class _SignUpPageState extends State<SignUpPage> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _establishmentCodeController.dispose();
     _dobController.dispose();
     _controller.dispose();
     super.dispose();
@@ -85,15 +87,24 @@ class _SignUpPageState extends State<SignUpPage> {
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
+      establishmentCode: _establishmentCodeController.text.trim(),
     );
 
     if (success && mounted) {
-      if (_selectedDob != null) {
-        final age = DateTime.now().year - _selectedDob!.year;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_age', age.toString());
+      final prefs = await SharedPreferences.getInstance();
+      final role = prefs.getString('user_role') ?? 'user';
+      
+      if (role == 'super_admin') {
+        Navigator.pushReplacementNamed(context, '/super-admin');
+      } else if (role == 'admin') {
+        Navigator.pushReplacementNamed(context, '/admin');
+      } else {
+        if (_selectedDob != null) {
+          final age = DateTime.now().year - _selectedDob!.year;
+          await prefs.setString('user_age', age.toString());
+        }
+        Navigator.pushReplacementNamed(context, '/');
       }
-      Navigator.pushReplacementNamed(context, '/body-profile');
     }
   }
 
@@ -104,7 +115,7 @@ class _SignUpPageState extends State<SignUpPage> {
     final success = await _controller.signInWithGoogle();
 
     if (success && mounted) {
-      Navigator.pushReplacementNamed(context, '/body-profile');
+      Navigator.pushReplacementNamed(context, '/');
     }
   }
 
@@ -295,6 +306,20 @@ class _SignUpPageState extends State<SignUpPage> {
                           return 'Email is required';
                         }
                         if (!v.contains('@')) return 'Enter a valid email';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Establishment Code field
+                    _buildTextField(
+                      controller: _establishmentCodeController,
+                      hint: 'Code Établissement / Clinic Code',
+                      prefixIcon: Icons.business_outlined,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Establishment Code is required';
+                        }
                         return null;
                       },
                     ),

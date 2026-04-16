@@ -24,6 +24,12 @@ class AuthRepositoryImpl implements AuthRepository {
       await prefs.setString('auth_token', user.token!);
       await prefs.setString('user_name', user.displayName ?? 'Utilisateur');
       await prefs.setString('user_email', user.email);
+      if (user.role != null) {
+        await prefs.setString('user_role', user.role!);
+      }
+      if (user.establishmentId != null) {
+        await prefs.setInt('user_establishment_id', user.establishmentId!);
+      }
     }
   }
 
@@ -36,8 +42,8 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<AuthUser> signUp({required String name, required String email, required String password}) async {
-    final user = await remoteDataSource.signUp(name, email, password);
+  Future<AuthUser> signUp({required String name, required String email, required String password, required String establishmentCode}) async {
+    final user = await remoteDataSource.signUp(name, email, password, establishmentCode);
     _currentUser = user;
     await _saveSession(user);
     return user;

@@ -27,12 +27,13 @@ abstract class AuthRepository {
   /// Retourne un [AuthUser] en cas de succès ou lève une exception en cas d'échec.
   Future<AuthUser> signIn({required String email, required String password});
 
-  /// Crée un nouveau compte utilisateur avec [name], [email], [password].
+  /// Crée un nouveau compte utilisateur avec [name], [email], [password], [establishmentCode].
   /// Retourne un [AuthUser] en cas de succès ou lève une exception en cas d'échec.
   Future<AuthUser> signUp({
     required String name,
     required String email,
     required String password,
+    required String establishmentCode,
   });
 
   /// Envoie un code de réinitialisation de mot de passe à [email].

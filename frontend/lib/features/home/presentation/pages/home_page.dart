@@ -21,7 +21,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/navigation/navigation_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/exercise.dart';
-import '../widgets/home_sidebar.dart';
 import '../widgets/home_header.dart';
 import '../widgets/search_filter_bar.dart';
 import '../widgets/exercise_grid.dart';
@@ -40,22 +39,29 @@ class _HomePageState extends State<HomePage> {
   String searchQuery = '';
   String selectedFilter = 'All';
   String _username = 'User';
+  String _role = 'user';
 
   @override
   void initState() {
     super.initState();
-    _loadUsername();
+    _loadUsernameAndRole();
     filteredExercises = allExercises;
   }
 
-  Future<void> _loadUsername() async {
+  Future<void> _loadUsernameAndRole() async {
     final prefs = await SharedPreferences.getInstance();
     final newName = prefs.getString('user_name') ?? 'Utilisateur';
-    if (newName != _username && mounted) {
+    final newRole = prefs.getString('user_role') ?? 'user';
+    if (mounted) {
       setState(() {
         _username = newName;
+        _role = newRole;
       });
     }
+  }
+
+  void _loadUsername() {
+    _loadUsernameAndRole();
   }
 
 //filtre exos 
@@ -105,98 +111,32 @@ class _HomePageState extends State<HomePage> {
       _loadUsername();
     }
 
-    final theme = Theme.of(context);
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isDesktop = constraints.maxWidth > 1200;
-          final isTablet = constraints.maxWidth > 600 && constraints.maxWidth <= 1200;
+    return _buildMainContent();
+  }
 
-          if (isDesktop || isTablet) {
-            // Desktop/Tablet: Sidebar + Main Content
-            return Row(
-              children: [
-                // Sidebar menu
-                const HomeSidebar(),
-                
-                // Main Content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      HomeHeader(
-                        username: _username, 
-                        onStartAnalysis: _onStartAnalysis,
-                      ),
-                      
-                      SearchFilterBar(
-                        onSearchChanged: _onSearchChanged,
-                        onFilterChanged: _onFilterChanged,
-                      ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      Expanded(
-                        child: ExerciseGrid(
-                          exercises: filteredExercises,
-                          onExerciseTapped: _onExerciseTapped,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          } else {
-            // Mobile: Drawer + Main Content
-            return Scaffold(
-              backgroundColor: theme.scaffoldBackgroundColor,
-              appBar: AppBar(
-                backgroundColor: theme.scaffoldBackgroundColor,
-                elevation: 0,
-                title: Text(
-                  'MOTION AI',
-                  style: TextStyle(
-                    color: theme.textTheme.bodyLarge?.color,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                iconTheme: IconThemeData(color: theme.iconTheme.color),
-              ),
-              drawer: Drawer(
-                backgroundColor: theme.scaffoldBackgroundColor,
-                child: const HomeSidebar(),
-              ),
-              body: SafeArea(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    HomeHeader(
-                      username: _username, 
-                      onStartAnalysis: _onStartAnalysis,
-                    ),
-                    
-                    SearchFilterBar(
-                      onSearchChanged: _onSearchChanged,
-                      onFilterChanged: _onFilterChanged,
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    Expanded(
-                      child: ExerciseGrid(
-                        exercises: filteredExercises,
-                        onExerciseTapped: _onExerciseTapped,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-        },
-      ),
+  Widget _buildMainContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        HomeHeader(
+          username: _username, 
+          onStartAnalysis: _onStartAnalysis,
+        ),
+        
+        SearchFilterBar(
+          onSearchChanged: _onSearchChanged,
+          onFilterChanged: _onFilterChanged,
+        ),
+        
+        const SizedBox(height: 24),
+        
+        Expanded(
+          child: ExerciseGrid(
+            exercises: filteredExercises,
+            onExerciseTapped: _onExerciseTapped,
+          ),
+        ),
+      ],
     );
   }
 }

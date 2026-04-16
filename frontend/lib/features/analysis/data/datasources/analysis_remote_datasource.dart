@@ -27,38 +27,28 @@ class AnalysisRemoteDataSource {
   final Dio dio;
 
   /// URL de base de l'API backend
-  /// Utilise 127.0.0.1 plutôt que localhost pour une meilleure compatibilité Flutter Web
   static const String baseUrl = 'http://127.0.0.1:8000/api/v1/analysis';
+  static const String sessionsUrl = 'http://127.0.0.1:8000/api/v1/sessions';
+  static const String backendBase = 'http://127.0.0.1:8000';
 
   AnalysisRemoteDataSource({Dio? dio}) : this.dio = dio ?? Dio();
 
   /// Envoie les 4 vidéos au backend pour démarrer l'analyse.
-  /// [videoData] : map 'angle_1' → bytes (Web) ou chemin (Native)
-  /// Retourne le `session_id` créé par le serveur.
   Future<String> analyzeVideos({
     required Map<String, dynamic> videoData,
   }) async {
     final formDataMap = <String, dynamic>{};
 
     for (var entry in videoData.entries) {
-      // Convertit 'angle_1' → 'angle1' pour correspondre aux paramètres FastAPI
       final key = entry.key.replaceAll('_', '');
       final value = entry.value;
 
       if (value == null) continue;
 
       if (kIsWeb && value is Uint8List) {
-        // Plateforme Web : la vidéo est en mémoire sous forme de bytes
-        formDataMap[key] = MultipartFile.fromBytes(
-          value,
-          filename: '$key.mp4',
-        );
+        formDataMap[key] = MultipartFile.fromBytes(value, filename: '$key.mp4');
       } else if (value is String) {
-        // Plateforme Native (macOS/iOS/Android) : la vidéo est un chemin de fichier
-        formDataMap[key] = await MultipartFile.fromFile(
-          value,
-          filename: '$key.mp4',
-        );
+        formDataMap[key] = await MultipartFile.fromFile(value, filename: '$key.mp4');
       }
     }
 
@@ -69,23 +59,40 @@ class AnalysisRemoteDataSource {
         '$baseUrl/analyze',
         data: formData,
         onSendProgress: (sent, total) {
-          // Affiche la progression de l'upload dans la console (en % )
-          print('Progression upload : ${(sent / total * 100).toStringAsFixed(0)}%');
+          print('Upload: ${(sent / total * 100).toStringAsFixed(0)}%');
         },
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // Retourne l'ID de session généré par le backend
         return response.data['session_id'] as String;
       } else {
-        throw Exception('Échec du démarrage de l\'analyse : ${response.statusMessage}');
+        throw Exception('Analyse failed: ${response.statusMessage}');
       }
     } catch (e) {
       if (e is DioException && e.response != null) {
         final detail = e.response?.data?['detail'] ?? e.message;
-        throw Exception('Erreur serveur : $detail');
+        throw Exception('Server error: $detail');
       }
-      throw Exception('Erreur lors de l\'upload vidéo : $e');
+      throw Exception('Upload error: $e');
     }
+  }
+
+  /// Polls the session pipeline status from the backend.
+  /// Returns a map with: progress_percent, is_complete, has_smplx_viewer, phases.
+  Future<Map<String, dynamic>> fetchSessionStatus(String sessionId) async {
+    try {
+      final response = await dio.get('$sessionsUrl/$sessionId/status');
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data);
+      }
+      throw Exception('Status fetch failed: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Status fetch error: $e');
+    }
+  }
+
+  /// Returns the URL of the Three.js SMPL-X viewer for a session.
+  String getViewerUrl(String sessionId) {
+    return '$sessionsUrl/$sessionId/viewer';
   }
 }

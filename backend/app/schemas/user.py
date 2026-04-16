@@ -11,6 +11,7 @@ class UserBase(BaseModel):
 # Properties to receive via API on creation
 class UserCreate(UserBase):
     password: str
+    establishment_code: str
 
 
 # Properties to receive via API on Google Sign In

@@ -16,9 +16,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/navigation/navigation_provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../../home/presentation/widgets/home_sidebar.dart';
 import '../widgets/settings_tab_button.dart';
 import '../widgets/personal_info_section.dart';
 import '../widgets/camera_calibration_section.dart';
@@ -41,6 +41,8 @@ class _SettingsPageState extends State<SettingsPage> {
   final GlobalKey<CameraCalibrationSectionState> _calibrationKey =
       GlobalKey<CameraCalibrationSectionState>();
 
+  String _role = 'user';
+
   // Track original values on page load
   Locale? _originalLocale;
   bool? _originalIsDarkMode;
@@ -62,11 +64,21 @@ class _SettingsPageState extends State<SettingsPage> {
       final localeProvider =
           Provider.of<LocaleProvider>(context, listen: false);
       final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+      _loadRole();
       setState(() {
         _originalLocale = localeProvider.locale;
         _originalIsDarkMode = themeProvider.isDarkMode;
       });
     });
+  }
+
+  Future<void> _loadRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _role = prefs.getString('user_role') ?? 'user';
+      });
+    }
   }
 
   @override
@@ -168,66 +180,33 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    final theme = Theme.of(context);
-
     return PopScope(
       canPop: !_hasUnsavedChanges,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
-        // Show unsaved changes dialog
-        final result = await _showUnsavedChangesDialog();
+        final action = await _showUnsavedChangesDialog();
 
-        if (result == 'save' && context.mounted) {
+        if (action == 'save' && context.mounted) {
           _onSave();
-          Navigator.of(context).pop();
-        } else if (result == 'discard' && context.mounted) {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            // At root, go back to Dashboard
+            context.read<NavigationProvider>().setIndex(0);
+          }
+        } else if (action == 'discard' && context.mounted) {
           _revertChanges();
           setState(() => _hasUnsavedChanges = false);
-          Navigator.of(context).pop();
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            // At root, go back to Dashboard
+            context.read<NavigationProvider>().setIndex(0);
+          }
         }
-        // If 'cancel', do nothing
       },
-      child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: LayoutBuilder(
-          builder: (context, constraints) {
-            final isDesktop = constraints.maxWidth > 1200;
-            final isTablet =
-                constraints.maxWidth > 600 && constraints.maxWidth <= 1200;
-
-            if (isDesktop || isTablet) {
-              // Desktop/Tablet: Sidebar + Settings Content
-              return Row(
-                children: [
-                  // Sidebar with navigation interception
-                  HomeSidebar(onNavigate: _handleNavigation),
-
-                  // Settings Content
-                  Expanded(
-                    child: _buildSettingsContent(l10n),
-                  ),
-                ],
-              );
-            } else {
-              // Mobile: Drawer + Settings Content
-              return Scaffold(
-                appBar: AppBar(
-                  backgroundColor: theme.scaffoldBackgroundColor,
-                  elevation: 0,
-                  iconTheme: theme.iconTheme,
-                ),
-                drawer: Drawer(
-                  child: HomeSidebar(onNavigate: _handleNavigation),
-                ),
-                body: SafeArea(
-                  child: _buildSettingsContent(l10n),
-                ),
-              );
-            }
-          },
-        ),
-      ),
+      child: _buildSettingsContent(l10n),
     );
   }
 
@@ -318,18 +297,20 @@ class _SettingsPageState extends State<SettingsPage> {
                   'Account Profile',
                   'assets/icons/user.svg',
                 ),
-                const SizedBox(width: 12),
-                _buildMobileTab(
-                  l10n.cameraCalibration,
-                  'Camera Calibration',
-                  'assets/icons/video.svg',
-                ),
-                const SizedBox(width: 12),
-                _buildMobileTab(
-                  l10n.aiProcessing,
-                  'Ai Processing',
-                  'assets/icons/processing.svg',
-                ),
+                if (_role == 'admin') ...[
+                  const SizedBox(width: 12),
+                  _buildMobileTab(
+                    l10n.cameraCalibration,
+                    'Camera Calibration',
+                    'assets/icons/video.svg',
+                  ),
+                  const SizedBox(width: 12),
+                  _buildMobileTab(
+                    l10n.aiProcessing,
+                    'Ai Processing',
+                    'assets/icons/processing.svg',
+                  ),
+                ],
               ],
             ),
           ),
@@ -413,20 +394,22 @@ class _SettingsPageState extends State<SettingsPage> {
           isSelected: selectedTab == 'Account Profile',
           onTap: () => _onTabChanged('Account Profile'),
         ),
-        const SizedBox(height: 8),
-        SettingsTabButton(
-          iconPath: 'assets/icons/video.svg',
-          label: l10n.cameraCalibration,
-          isSelected: selectedTab == 'Camera Calibration',
-          onTap: () => _onTabChanged('Camera Calibration'),
-        ),
-        const SizedBox(height: 8),
-        SettingsTabButton(
-          iconPath: 'assets/icons/processing.svg',
-          label: l10n.aiProcessing,
-          isSelected: selectedTab == 'Ai Processing',
-          onTap: () => _onTabChanged('Ai Processing'),
-        ),
+        if (_role == 'admin') ...[
+          const SizedBox(height: 8),
+          SettingsTabButton(
+            iconPath: 'assets/icons/video.svg',
+            label: l10n.cameraCalibration,
+            isSelected: selectedTab == 'Camera Calibration',
+            onTap: () => _onTabChanged('Camera Calibration'),
+          ),
+          const SizedBox(height: 8),
+          SettingsTabButton(
+            iconPath: 'assets/icons/processing.svg',
+            label: l10n.aiProcessing,
+            isSelected: selectedTab == 'Ai Processing',
+            onTap: () => _onTabChanged('Ai Processing'),
+          ),
+        ],
       ],
     );
   }

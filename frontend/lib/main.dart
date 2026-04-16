@@ -43,6 +43,8 @@ import 'features/authentification/presentation/pages/sign_up_page.dart';
 import 'features/authentification/presentation/pages/starting_page.dart';
 import 'features/authentification/presentation/pages/success_page.dart';
 import 'features/authentification/presentation/pages/body_profile_page.dart';
+import 'core/presentation/pages/admin_layout.dart';
+import 'core/presentation/pages/super_admin_layout.dart';
 import 'l10n/app_localizations.dart';
 
 void main() {
@@ -91,8 +93,14 @@ class MotionAIApp extends StatelessWidget {
                     break;
                   case '/':
                     // MainLayout contient tous les onglets principaux via un IndexedStack
-                    // → aucune page n'est détruite lors du changement d'onglet
+                    // → aucune page n'est détruite lors du changement d'onglet (User Standard)
                     page = const MainLayout();
+                    break;
+                  case '/admin':
+                    page = const AdminLayout();
+                    break;
+                  case '/super-admin':
+                    page = const SuperAdminLayout();
                     break;
                   case '/starting':
                     page = const StartingPage();

@@ -6,6 +6,25 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.db_config import Base
 
+class Establishment(Base):
+    """Establishment model (Cliniques / Cabinets)."""
+    __tablename__ = 'establishments'
+    
+    establishment_id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), nullable=False)
+    # The unique code that patients use to link their account to this clinic
+    code = Column(String(50), unique=True, nullable=False)
+    contact_email = Column(String(100))
+    # Single calibration data for the whole establishment (4 cameras)
+    calibration_data = Column(JSONB)
+    created_at = Column(DateTime, server_default=func.now())
+    
+    # Relationships
+    users = relationship("User", back_populates="establishment")
+    
+    def __repr__(self):
+        return f"<Establishment(name='{self.name}', code='{self.code}')>"
+
 
 class User(Base):
     """User model (Utilisateurs)."""
@@ -16,8 +35,11 @@ class User(Base):
     email = Column(String(100), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     
-    # Enum for roles (User, Admin, Coach)
-    role = Column(String(50), default='User')
+    # Enum for roles (user, admin, super_admin)
+    role = Column(String(50), default='user')
+    
+    # Link to an establishment (Null allowed if super_admin or newly created but not yet assigned)
+    establishment_id = Column(Integer, ForeignKey('establishments.establishment_id', ondelete='SET NULL'), nullable=True)
     
     # Profile metadata (Poids, Taille, Objectifs)
     profile_json = Column(JSONB)
@@ -25,6 +47,7 @@ class User(Base):
     created_at = Column(DateTime, server_default=func.now())
     
     # Relationships
+    establishment = relationship("Establishment", back_populates="users")
     performances = relationship("Performance", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):

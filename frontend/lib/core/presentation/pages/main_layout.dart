@@ -28,8 +28,9 @@ import '../../../features/home/presentation/pages/home_page.dart';
 import '../../../features/history/presentation/pages/history_page.dart';
 import '../../../features/settings/presentation/pages/settings_page.dart';
 import '../../../features/analysis/presentation/pages/new_analysis_page.dart';
+import '../../../features/home/presentation/widgets/home_sidebar.dart';
 
-/// Widget racine affiché après la connexion de l'utilisateur.
+/// Widget racine affiché après la connexion de l'utilisateur standard.
 /// Agit comme une coque persistante contenant toutes les pages principales.
 class MainLayout extends StatelessWidget {
   const MainLayout({Key? key}) : super(key: key);
@@ -38,8 +39,7 @@ class MainLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<NavigationProvider>(
       builder: (context, navProvider, child) {
-        // IndexedStack : tous les enfants sont construits, seul l'actif est visible.
-        return IndexedStack(
+        final content = IndexedStack(
           index: navProvider.currentIndex,
           children: const [
             HomePage(),        // index 0 — Accueil
@@ -47,6 +47,38 @@ class MainLayout extends StatelessWidget {
             SettingsPage(),    // index 2 — Paramètres
             NewAnalysisPage(), // index 3 — Nouvelle Analyse
           ],
+        );
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth > 1200;
+            final isTablet = constraints.maxWidth > 600 && constraints.maxWidth <= 1200;
+
+            if (isDesktop || isTablet) {
+              // Desktop/Tablet: Sidebar + Main Content
+              return Scaffold(
+                body: Row(
+                  children: [
+                    const HomeSidebar(),
+                    Expanded(child: content),
+                  ],
+                ),
+              );
+            } else {
+              // Mobile: Drawer + Main Content
+              return Scaffold(
+                appBar: AppBar(
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                  elevation: 0,
+                  iconTheme: Theme.of(context).iconTheme,
+                ),
+                drawer: const Drawer(
+                  child: HomeSidebar(),
+                ),
+                body: SafeArea(child: content),
+              );
+            }
+          },
         );
       },
     );

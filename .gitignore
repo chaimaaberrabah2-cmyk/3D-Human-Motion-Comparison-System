@@ -41,3 +41,5 @@ dataset/
 
 # Ignore backend uploaded videos and temp frames
 backend/data/
+
+EasyMocap/

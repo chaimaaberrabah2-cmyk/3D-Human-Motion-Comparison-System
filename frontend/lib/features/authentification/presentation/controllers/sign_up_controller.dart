@@ -75,13 +75,14 @@ class SignUpController extends ChangeNotifier {
     required String name,
     required String email,
     required String password,
+    required String establishmentCode,
   }) async {
     _status = SignUpStatus.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await _signUpUseCase(name: name, email: email, password: password);
+      await _signUpUseCase(name: name, email: email, password: password, establishmentCode: establishmentCode);
       _status = SignUpStatus.success;
       notifyListeners();
       return true;

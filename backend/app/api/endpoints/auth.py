@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, Optional, Dict, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from google.oauth2 import id_token
@@ -8,10 +8,43 @@ from google.auth.transport import requests
 from app.db.db_config import get_db
 from app.models.models import User
 from app.schemas.user import UserCreate, UserLogin, UserGoogleAuth, Token, User as UserSchema, UserUpdate, UserPasswordUpdate, UserResetPassword, UserProfileUpdate
+from pydantic import BaseModel, EmailStr
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.config import settings
+from app.schemas.establishment import Establishment as EstablishmentSchema, EstablishmentCreate
+from app.models.models import User, Establishment
 
 router = APIRouter()
+
+# No local class definition needed, using EstablishmentCreate from schemas
+
+@router.post("/establishments", response_model=Dict[str, Any])
+def create_establishment(
+    est_in: EstablishmentCreate,
+    db: Session = Depends(get_db),
+):
+    """
+    Crée un nouvel établissement (Clinique/Cabinet).
+    Normalement réservé au Super Admin.
+    """
+    db_est = db.query(Establishment).filter(Establishment.code == est_in.code).first()
+    if db_est:
+        raise HTTPException(status_code=400, detail="Un établissement avec ce code existe déjà.")
+    
+    new_est = Establishment(
+        name=est_in.name,
+        code=est_in.code,
+        contact_email=est_in.contact_email
+    )
+    db.add(new_est)
+    db.commit()
+    db.refresh(new_est)
+    return {"message": "Établissement créé avec succès", "establishment": new_est}
+
+@router.get("/establishments", response_model=List[EstablishmentSchema])
+def get_establishments(db: Session = Depends(get_db)):
+    """Liste tous les établissements."""
+    return db.query(Establishment).all()
 
 @router.post("/register", response_model=Token)
 def register(
@@ -21,17 +54,31 @@ def register(
 ) -> Any:
     """
     Crée un nouvel utilisateur.
+    Vérifie que le code de l'établissement existe.
     """
+    # 1. Check Establishment
+    establishment = db.query(Establishment).filter(Establishment.code == user_in.establishment_code).first()
+    if not establishment:
+        raise HTTPException(
+            status_code=400,
+            detail="Le code d'établissement est invalide ou n'existe pas.",
+        )
+        
+    # 2. Check if user exists
     user = db.query(User).filter(User.email == user_in.email).first()
     if user:
         raise HTTPException(
             status_code=400,
-            detail="TThe user with this user name already exists in the system.",
+            detail="The user with this email already exists in the system.",
         )
+        
+    # 3. Create User
     user = User(
         email=user_in.email,
         pseudo=user_in.pseudo,
-        password_hash=get_password_hash(user_in.password)
+        password_hash=get_password_hash(user_in.password),
+        establishment_id=establishment.establishment_id,
+        role='user' # Default is 'user' (patient)
     )
     db.add(user)
     db.commit()
@@ -153,6 +200,51 @@ def update_user(
     db.commit()
     db.refresh(user)
     return user
+
+@router.post("/establishments/{establishment_id}/admin", response_model=Dict[str, Any])
+def create_establishment_admin(
+    establishment_id: int,
+    admin_in: UserCreate, # Reusing UserCreate but we'll ignore establishment_code from it if needed, or just use it.
+    db: Session = Depends(get_db),
+):
+    """
+    Crée un compte administrateur pour un établissement spécifique.
+    Réservé au Super Admin.
+    """
+    # 1. Check Establishment
+    est = db.query(Establishment).filter(Establishment.establishment_id == establishment_id).first()
+    if not est:
+        raise HTTPException(status_code=404, detail="Établissement introuvable.")
+        
+    # 2. Check if user exists
+    user = db.query(User).filter(User.email == admin_in.email).first()
+    if user:
+        raise HTTPException(status_code=400, detail="Cet email est déjà utilisé.")
+        
+    # 3. Create Admin User
+    new_admin = User(
+        email=admin_in.email,
+        pseudo=admin_in.pseudo,
+        password_hash=get_password_hash(admin_in.password),
+        establishment_id=establishment_id,
+        role='admin' # Force role to admin
+    )
+    db.add(new_admin)
+    db.commit()
+    db.refresh(new_admin)
+    
+    return {"message": "Compte Administrateur créé avec succès.", "user": new_admin}
+
+@router.get("/establishments/{establishment_id}/users", response_model=List[UserSchema])
+def get_establishment_users(
+    establishment_id: int,
+    db: Session = Depends(get_db),
+):
+    """
+    Récupère la liste des utilisateurs (patients) d'un établissement spécifique.
+    """
+    users = db.query(User).filter(User.establishment_id == establishment_id).all()
+    return users
 
 @router.put("/update_password")
 def update_password(
