@@ -4,8 +4,8 @@ import sys
 # Add backend to path
 sys.path.append(os.getcwd())
 
-from app.services.pose_service import PoseService
-from app.services.triangulation_service import TriangulationService
+from app.pipeline.step2_2d_keypoints_service import PoseService
+from app.pipeline.step3_3d_keypoints_service import TriangulationService
 
 session_id = 'e1f86903-5fc2-4a5d-a41a-7ef351b755a0'
 output_root = f'data/frames/{session_id}'

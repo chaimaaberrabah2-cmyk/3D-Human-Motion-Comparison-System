@@ -20,7 +20,7 @@ Interactive documentation: http://127.0.0.1:8000/docs
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.endpoints import analysis, auth, cameras, sessions
+from app.routes import analysis, auth, cameras, sessions
 
 # Create the main FastAPI application
 app = FastAPI(

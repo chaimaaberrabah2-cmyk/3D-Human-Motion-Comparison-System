@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.db.db_config import engine
+from app.database.setup import engine
 from sqlalchemy import text
 
 def migrate():

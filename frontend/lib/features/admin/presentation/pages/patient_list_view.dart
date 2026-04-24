@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../features/authentification/domain/entities/auth_user.dart';
+import '../../../../features/authentication/domain/entities/auth_user.dart';
 
 class PatientListView extends StatefulWidget {
   final int? establishmentId; // If null, load from SharedPreferences

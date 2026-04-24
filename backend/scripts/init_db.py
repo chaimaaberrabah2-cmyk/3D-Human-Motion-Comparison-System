@@ -8,8 +8,8 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from dotenv import load_dotenv
 
-from app.db.db_config import engine, Base
-from app.models.models import User, Movement, Performance
+from app.database.setup import engine, Base
+from app.database.models import User, Movement, Performance
 
 load_dotenv()
 

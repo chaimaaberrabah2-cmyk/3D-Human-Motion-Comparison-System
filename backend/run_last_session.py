@@ -18,7 +18,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.services.smplx_service import SmplxService
+from app.pipeline.step4_smplx_fitting_service import SmplxService
 
 
 def find_latest_session(frames_dir: str):

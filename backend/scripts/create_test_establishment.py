@@ -2,9 +2,9 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.db.db_config import SessionLocal, Base, engine
-from app.models.models import Establishment, User
-from app.core.security import get_password_hash
+from app.database.setup import SessionLocal, Base, engine
+from app.database.models import Establishment, User
+from app.security import get_password_hash
 
 # Create tables if they don't exist
 Base.metadata.create_all(bind=engine)

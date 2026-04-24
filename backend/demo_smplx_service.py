@@ -232,9 +232,16 @@ def run_demo():
     # ──────────────────────────────────────────────────────────
     step(1, "Chargement et préparation des keypoints 3D")
 
-    NUM_FRAMES = 60
-    info(f"Génération de {NUM_FRAMES} frames de keypoints factices...")
-    kp3d = generate_fake_keypoints(num_frames=NUM_FRAMES)
+    if len(sys.argv) > 1:
+        file_path = sys.argv[1]
+        info(f"Chargement des vraies données depuis {file_path}")
+        kp3d = np.load(file_path)
+        NUM_FRAMES = kp3d.shape[0]
+    else:
+        NUM_FRAMES = 60
+        info(f"Génération de {NUM_FRAMES} frames de keypoints factices...")
+        kp3d = generate_fake_keypoints(num_frames=NUM_FRAMES)
+        
     show_array("kp3d", kp3d)
     data("Format", "(F=frames, 33=landmarks, 4=[x,y,z,visibility])")
 
