@@ -186,11 +186,9 @@ class SmplxService:
         device = torch.device(device_str)
         print(f"DEBUG [SmplxService]: device = {device}")
 
-        # ── Auto-scale ────────────────────────────────────────────────────
-        scale = SmplxService._estimate_scale(kp3d)
-        if abs(scale - 1.0) > 0.01:
-            kp3d[:, :, :3] *= scale
-            print(f"DEBUG [SmplxService]: scale factor = {scale:.5f}")
+        # ── Auto-scale (DÉSACTIVÉ POUR FIT3D) ──────────────────────────────
+        # Fit3D est déjà calibré en mètres. L'auto-scale déformait les os.
+        scale = 1.0
 
         # ── Load SMPL-X model ─────────────────────────────────────────────
         models_dir = SmplxService._get_models_dir()
@@ -239,8 +237,9 @@ class SmplxService:
             loss = loss + 1.5e-3 * (b_pose ** 2).mean()
             
             # Velocity Loss (Temporal Smoothness)
+            # Augmenté de 5.0 à 20.0 pour supprimer les vibrations (jitter) de MediaPipe
             if prev_pose is not None:
-                loss = loss + 5.0 * ((b_pose - prev_pose) ** 2).mean()
+                loss = loss + 20.0 * ((b_pose - prev_pose) ** 2).mean()
                 
             return loss
 
@@ -281,7 +280,9 @@ class SmplxService:
         )
 
         # ── Orientation initiale ───────────────────────────────────────────
-        FORCE_ORIENT = force_orient if force_orient is not None else (-2.007, -0.262, -0.262)
+        # On ne force plus d'angle fixe. On laisse la recherche automatique (Grid Search) 
+        # trouver l'orientation qui correspond aux caméras de Fit3D.
+        FORCE_ORIENT = force_orient
 
         if FORCE_ORIENT is not None:
             ax_f, ay_f, az_f = FORCE_ORIENT
@@ -296,7 +297,7 @@ class SmplxService:
                 for ay in [0.0, np.pi/2, np.pi, 3*np.pi/2]:
                     for ax in [0.0, np.pi]:
                         test_o = torch.tensor([[ax, ay, 0.0]], dtype=torch.float32, device=device)
-                        out = smplx_forward(betas, test_o, b_pose0, transl)
+                        out = smplx_forward(betas_fixed, test_o, b_pose0, transl)
                         loss_val = compute_loss(out, t0, v0, w0, b_pose0).item()
                         if loss_val < best_loss:
                             best_loss   = loss_val

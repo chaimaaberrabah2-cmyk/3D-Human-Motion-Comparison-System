@@ -91,7 +91,8 @@ class TriangulationService:
                 for axis in range(2):  # X et Y seulement
                     signal = all_2d_data[cam_idx][:, joint_idx, axis]
                     if not np.any(np.isnan(signal)):
-                        all_2d_data[cam_idx][:, joint_idx, axis] = savgol_filter(signal, window_length=7, polyorder=2)
+                        # Fenêtre passée de 7 à 11 pour plus de stabilité
+                        all_2d_data[cam_idx][:, joint_idx, axis] = savgol_filter(signal, window_length=11, polyorder=2)
                         
         # 4. Perform Triangulation frame by frame
         # Result shape: (num_frames, 33, 4) -> [X, Y, Z, Visibility]
@@ -128,8 +129,10 @@ class TriangulationService:
                         
                     visibilities.append(kp[3])
                 
-                # Triangulation robuste avec rejet des caméras aberrantes (filtre de reprojection)
-                pt_3d = TriangulationService._triangulate_with_reproj_filter(projection_matrices, pts_2d, seuil_px=15.0)
+                # Triangulation robuste avec poids de visibilité et raffinement non-linéaire
+                pt_3d = TriangulationService._triangulate_with_reproj_filter(
+                    projection_matrices, pts_2d, visibilities, seuil_px=10.0
+                )
                 
                 # Use mean visibility
                 avg_visibility = np.mean(visibilities)
@@ -148,7 +151,8 @@ class TriangulationService:
             for axis in range(3):
                 signal = final_array[:, joint_idx, axis]
                 if not np.any(np.isnan(signal)):
-                    final_array[:, joint_idx, axis] = savgol_filter(signal, window_length=11, polyorder=3)
+                    # Fenêtre passée de 11 à 15 pour éliminer les vibrations résiduelles
+                    final_array[:, joint_idx, axis] = savgol_filter(signal, window_length=15, polyorder=3)
                     
         # 6. Save 3D coordinates
         output_file = os.path.join(session_output_root, "keypoints_3d.npy")
@@ -237,61 +241,93 @@ class TriangulationService:
         print(f"DEBUG: 3D Visualization images saved to {frames_out_dir}")
 
     @staticmethod
-    def _triangulate_n_views(P_list, pts_list):
+    def _triangulate_n_views(P_list, pts_list, weights=None):
         """
-        Direct Linear Transform (DLT) for N-view triangulation.
-        P_list: List of 3x4 projection matrices
-        pts_list: List of [x, y] pixel coordinates
+        Direct Linear Transform (DLT) pondéré pour N vues.
         """
         A = []
+        if weights is None:
+            weights = [1.0] * len(pts_list)
+            
         for i in range(len(P_list)):
             P = P_list[i]
             x, y = pts_list[i]
+            w = weights[i]
             
-            # If coordinates are NaN (no detection), we could skip this view
-            if np.isnan(x) or np.isnan(y):
+            if np.isnan(x) or np.isnan(y) or w < 0.1:
                 continue
                 
-            A.append(x * P[2, :] - P[0, :])
-            A.append(y * P[2, :] - P[1, :])
+            # Équations pondérées par la visibilité
+            A.append(w * (x * P[2, :] - P[0, :]))
+            A.append(w * (y * P[2, :] - P[1, :]))
             
-        if len(A) < 4: # Need at least 2 views (4 equations)
+        if len(A) < 4:
             return [np.nan, np.nan, np.nan]
             
         A = np.array(A)
-        # Solve AX = 0 using SVD
         _, _, vh = np.linalg.svd(A)
         X = vh[-1, :]
-        X /= X[3] # Homogeneous to Cartesian
+        X /= X[3]
         
         return X[:3]
 
     @staticmethod
-    def _triangulate_with_reproj_filter(P_list, pts_list, seuil_px=15.0):
-        """Triangule puis retire les caméras dont l'erreur de reprojection > seuil_px pixels."""
-        # 1. Première triangulation avec toutes les caméras
-        pt_3d = TriangulationService._triangulate_n_views(P_list, pts_list)
+    def _refine_triangulation(P_list, pts_list, initial_pt_3d, weights=None):
+        """
+        Raffinement non-linéaire du point 3D (Minimisation de l'erreur de reprojection).
+        """
+        from scipy.optimize import least_squares
+        
+        if weights is None:
+            weights = [1.0] * len(pts_list)
+
+        def reproj_func(p3d):
+            errors = []
+            for i in range(len(P_list)):
+                x2d, y2d = pts_list[i]
+                w = weights[i]
+                if np.isnan(x2d) or w < 0.1:
+                    continue
+                proj = P_list[i] @ np.append(p3d, 1.0)
+                px = proj[0] / proj[2]
+                py = proj[1] / proj[2]
+                errors.append(w * (px - x2d))
+                errors.append(w * (py - y2d))
+            return np.array(errors)
+
+        res = least_squares(reproj_func, initial_pt_3d, method='lm')
+        return res.x
+
+    @staticmethod
+    def _triangulate_with_reproj_filter(P_list, pts_list, weights, seuil_px=10.0):
+        """Triangule, filtre les outliers, et affine le résultat mathématiquement."""
+        # 1. Triangulation pondérée initiale (DLT)
+        pt_3d = TriangulationService._triangulate_n_views(P_list, pts_list, weights)
         if np.any(np.isnan(pt_3d)):
             return pt_3d
         
-        # 2. Reprojection : vérifier chaque caméra
-        pt_h = np.append(pt_3d, 1.0)  # Coordonnées homogènes [X,Y,Z,1]
+        # 2. Rejet des caméras aberrantes
+        pt_h = np.append(pt_3d, 1.0)
         bonnes_cams = []
         bons_pts = []
+        bons_poids = []
         
         for i in range(len(P_list)):
             x2d, y2d = pts_list[i]
-            if np.isnan(x2d):
-                continue
+            if np.isnan(x2d): continue
+            
             proj = P_list[i] @ pt_h
-            proj_x = proj[0] / proj[2]
-            proj_y = proj[1] / proj[2]
-            erreur = np.sqrt((proj_x - x2d)**2 + (proj_y - y2d)**2)
+            px, py = proj[0] / proj[2], proj[1] / proj[2]
+            erreur = np.sqrt((px - x2d)**2 + (py - y2d)**2)
+            
             if erreur < seuil_px:
                 bonnes_cams.append(P_list[i])
                 bons_pts.append([x2d, y2d])
+                bons_poids.append(weights[i])
         
-        # 3. Re-trianguler avec seulement les bonnes caméras
+        # 3. Re-triangulation + Raffinement Non-Linéaire
         if len(bonnes_cams) >= 2:
-            return TriangulationService._triangulate_n_views(bonnes_cams, bons_pts)
+            pt_refined = TriangulationService._triangulate_n_views(bonnes_cams, bons_pts, bons_poids)
+            return TriangulationService._refine_triangulation(bonnes_cams, bons_pts, pt_refined, bons_poids)
+            
         return pt_3d
