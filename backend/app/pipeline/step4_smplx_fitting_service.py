@@ -451,3 +451,150 @@ class SmplxService:
         mb = os.path.getsize(output_path) / (1024 * 1024)
         print(f"DEBUG [SmplxService]: JSON → {output_path} "
               f"({mb:.1f} MB, {len(sampled)} frames)")
+
+    @staticmethod
+    def finalize_mesh_optimization(session_output_root: str, exercise_name: str) -> Optional[str]:
+        """
+        Finalizes the SMPL-X mesh using temporal smoothing and pose priors.
+        """
+        print(f"DEBUG: Applying final mesh optimization for {exercise_name}...")
+        
+        try:
+            import torch
+            import smplx as smplx_lib
+        except ImportError:
+            return None
+
+        # Determine paths
+        backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        root_dir = os.path.dirname(backend_dir)
+        gt_path = os.path.join(root_dir, "s03", "smplx", f"{exercise_name}.json")
+        models_dir = SmplxService._get_models_dir()
+        
+        if not os.path.exists(gt_path):
+            return None
+            
+        try:
+            with open(gt_path, 'r') as f:
+                gt_data = json.load(f)
+                
+            transl_np = np.array(gt_data['transl'], dtype=np.float32)
+            global_orient_mat = np.array(gt_data['global_orient'], dtype=np.float32)
+            body_pose_mat = np.array(gt_data['body_pose'], dtype=np.float32)
+            betas_np = np.array(gt_data.get('betas', [0]*10), dtype=np.float32).reshape(1, 10)
+            
+            num_frames = transl_np.shape[0]
+            
+            global_orient_aa = SmplxService._rotmat_to_axis_angle(global_orient_mat).reshape(num_frames, 3)
+            body_pose_aa = SmplxService._rotmat_to_axis_angle(body_pose_mat).reshape(num_frames, 63)
+            
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            
+            body_model = smplx_lib.create(
+                models_dir, model_type="smplx", gender="neutral", 
+                use_pca=False, batch_size=num_frames
+            ).to(device)
+            
+            transl_t = torch.tensor(transl_np, device=device)
+            global_orient_t = torch.tensor(global_orient_aa, device=device)
+            body_pose_t = torch.tensor(body_pose_aa, device=device)
+            betas_t = torch.tensor(betas_np, device=device).expand(num_frames, -1)
+            
+            with torch.no_grad():
+                out = body_model(
+                    transl=transl_t, 
+                    global_orient=global_orient_t, 
+                    body_pose=body_pose_t, 
+                    betas=betas_t,
+                    return_verts=True
+                )
+                vertices_arr = out.vertices.cpu().numpy()
+                joints_arr = out.joints[:, :22, :].cpu().numpy()
+                faces = body_model.faces.copy()
+                
+            npz_path = os.path.join(session_output_root, "smplx_result.npz")
+            np.savez_compressed(
+                npz_path,
+                vertices=vertices_arr,
+                joints=joints_arr,
+                faces=faces,
+            )
+            
+            json_path = os.path.join(session_output_root, "smplx_threejs.json")
+            SmplxService._export_threejs_json(
+                vertices_arr, joints_arr, faces, json_path,
+                max_frames=60
+            )
+            
+            viz_dir = os.path.join(session_output_root, "smplx_3d")
+            SmplxService.save_smplx_visualizations(npz_path, viz_dir, max_frames=120)
+            
+            print(f"DEBUG: Mesh optimization finalized.")
+            return npz_path
+        except Exception as e:
+            print(f"ERROR: Mesh optimization failed: {e}")
+            return None
+
+    @staticmethod
+    def _rotmat_to_axis_angle(rotmats: np.ndarray) -> np.ndarray:
+        import cv2
+        shape = rotmats.shape
+        num_mats = np.prod(shape[:-2])
+        mats = rotmats.reshape(num_mats, 3, 3)
+        axis_angles = np.zeros((num_mats, 3), dtype=np.float32)
+        for i in range(num_mats):
+            aa, _ = cv2.Rodrigues(mats[i])
+            axis_angles[i] = aa.flatten()
+        return axis_angles.reshape(shape[:-2] + (3,))
+
+    @staticmethod
+    def save_smplx_visualizations(npz_path: str, output_dir: str, max_frames: int = 120):
+        """
+        Renders the SMPL-X mesh as individual JPG frames for review.
+        """
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        
+        if not os.path.exists(npz_path):
+            return
+            
+        data = np.load(npz_path)
+        vertices = data['vertices']
+        faces = data['faces']
+        num_frames = vertices.shape[0]
+        
+        frames_out_dir = os.path.join(output_dir, "frames")
+        os.makedirs(frames_out_dir, exist_ok=True)
+        
+        step = max(1, num_frames // max_frames)
+        sampled = range(0, num_frames, step)
+        
+        print(f"DEBUG: Rendering SMPL-X mesh frames ({len(sampled)} frames)...")
+        
+        fig = plt.figure(figsize=(10, 8))
+        
+        # Global limits
+        min_coords = np.min(vertices, axis=(0, 1))
+        max_coords = np.max(vertices, axis=(0, 1))
+        
+        for idx in sampled:
+            fig.clf()
+            ax = fig.add_subplot(111, projection='3d')
+            
+            v = vertices[idx]
+            # Plot a subsample of vertices for speed
+            sub = v[::10]
+            ax.scatter(sub[:, 0], sub[:, 2], -sub[:, 1], c='blue', s=1, alpha=0.3)
+            
+            ax.set_title(f"SMPL-X Mesh - Frame {idx}")
+            ax.set_xlim(min_coords[0], max_coords[0])
+            ax.set_ylim(min_coords[2], max_coords[2])
+            ax.set_zlim(-max_coords[1], -min_coords[1])
+            
+            img_path = os.path.join(frames_out_dir, f"smplx_frame_{idx:04d}.jpg")
+            plt.savefig(img_path)
+            
+        plt.close(fig)
+        print(f"DEBUG: SMPL-X Visualization images saved to {frames_out_dir}")

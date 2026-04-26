@@ -31,13 +31,19 @@ class PoseService:
             
         # Initialize MediaPipe Pose and drawing utils
         try:
-            from mediapipe.python.solutions import pose as mp_pose
-            from mediapipe.python.solutions import drawing_utils as mp_drawing
-            from mediapipe.python.solutions import drawing_styles as mp_drawing_styles
+            import mediapipe.python.solutions.pose as mp_pose
+            import mediapipe.python.solutions.drawing_utils as mp_drawing
+            import mediapipe.python.solutions.drawing_styles as mp_drawing_styles
         except ImportError:
-            import mediapipe.solutions.pose as mp_pose
-            import mediapipe.solutions.drawing_utils as mp_drawing
-            import mediapipe.solutions.drawing_styles as mp_drawing_styles
+            try:
+                import mediapipe.solutions.pose as mp_pose
+                import mediapipe.solutions.drawing_utils as mp_drawing
+                import mediapipe.solutions.drawing_styles as mp_drawing_styles
+            except ImportError:
+                # Fallback ultime pour certaines versions
+                from mediapipe.python.solutions import pose as mp_pose
+                from mediapipe.python.solutions import drawing_utils as mp_drawing
+                from mediapipe.python.solutions import drawing_styles as mp_drawing_styles
         
         # We use static_image_mode=False for video sequences to leverage temporal consistency
         # model_complexity=1 is lighter and faster for testing.

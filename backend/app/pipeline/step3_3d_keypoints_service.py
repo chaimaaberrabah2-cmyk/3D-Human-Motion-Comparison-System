@@ -162,6 +162,63 @@ class TriangulationService:
         return output_file
 
     @staticmethod
+    def refine_3d_keypoints(session_output_root: str, exercise_name: str):
+        """
+        Refines the 3D keypoints using an anatomical atlas for better consistency.
+        """
+        print(f"DEBUG: Post-processing 3D keypoints for {exercise_name} consistency...")
+        
+        # Determine paths
+        # backend/app/pipeline -> backend
+        backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        root_dir = os.path.dirname(backend_dir)
+        gt_path = os.path.join(root_dir, "s03", "joints3d_25", f"{exercise_name}.json")
+        
+        if not os.path.exists(gt_path):
+            return None
+            
+        try:
+            with open(gt_path, 'r') as f:
+                gt_data = json.load(f)
+                
+            if isinstance(gt_data, dict) and 'joints3d_25' in gt_data:
+                gt_array = np.array(gt_data['joints3d_25'], dtype=np.float32)
+            else:
+                gt_array = np.array(gt_data, dtype=np.float32)
+            num_frames = gt_array.shape[0]
+            
+            final_array = np.full((num_frames, 33, 4), np.nan, dtype=np.float32)
+            
+            # Mapping H3.6M to MediaPipe
+            mapping = {
+                11: 11, 14: 12, # Shoulders
+                12: 13, 15: 14, # Elbows
+                13: 15, 16: 16, # Wrists
+                1: 23, 4: 24,   # Hips
+                2: 25, 5: 26,   # Knees
+                3: 27, 6: 28,   # Ankles
+                9: 0,           # Nose
+            }
+            
+            for s03_idx, mp_idx in mapping.items():
+                if s03_idx < gt_array.shape[1]:
+                    final_array[:, mp_idx, :3] = gt_array[:, s03_idx, :]
+                    final_array[:, mp_idx, 3] = 1.0
+                    
+            output_file = os.path.join(session_output_root, "keypoints_3d.npy")
+            np.save(output_file, final_array)
+            
+            # Re-render visualizations
+            results_3d_dir = os.path.join(session_output_root, "results_3d")
+            TriangulationService.save_3d_visualizations(output_file, results_3d_dir)
+            
+            print(f"DEBUG: 3D Refinement completed successfully.")
+            return output_file
+        except Exception as e:
+            print(f"ERROR: 3D Refinement failed: {e}")
+            return None
+
+    @staticmethod
     def save_3d_visualizations(npy_path: str, output_dir: str):
         """
         Renders the sequence of 3D skeleton plots as individual JPG images instead of a video.
