@@ -208,9 +208,9 @@ class TriangulationService:
             output_file = os.path.join(session_output_root, "keypoints_3d.npy")
             np.save(output_file, final_array)
             
-            # Re-render visualizations
-            results_3d_dir = os.path.join(session_output_root, "results_3d")
-            TriangulationService.save_3d_visualizations(output_file, results_3d_dir)
+            # Re-render visualizations (Désactivé à la demande de l'utilisateur pour économiser de l'espace)
+            # results_3d_dir = os.path.join(session_output_root, "results_3d")
+            # TriangulationService.save_3d_visualizations(output_file, results_3d_dir)
             
             print(f"DEBUG: 3D Refinement completed successfully.")
             return output_file

@@ -148,10 +148,23 @@ async def refit_session(session_id: str, body: RefitRequest):
 # ──────────────────────────────────────────────────────────────────────────────
 @router.get("/{session_id}/viewer", response_class=HTMLResponse)
 async def get_smplx_viewer(session_id: str):
+    from app.database.setup import SessionLocal
+    from app.database.models import Movement
+    
+    db = SessionLocal()
+    movement = db.query(Movement).filter(Movement.name == session_id).first()
+    db.close()
+    
+    # Orientation par défaut si non trouvée
+    orient = {"ax": -1.571, "ay": 0.0, "az": -1.658, "by": 0.90}
+    if movement and movement.orientation:
+        orient = movement.orientation
+
     json_path = os.path.join(_session_dir(session_id), "smplx_threejs.json")
     if not os.path.exists(json_path):
         return HTMLResponse(content=_loading_page(session_id), status_code=200)
-    return HTMLResponse(content=_viewer_html(session_id), status_code=200)
+        
+    return HTMLResponse(content=_viewer_html(session_id, orient), status_code=200)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -179,10 +192,16 @@ def _loading_page(session_id: str) -> str:
 </body></html>"""
 
 
-def _viewer_html(session_id: str) -> str:
-    api_url   = f"http://127.0.0.1:8000/api/v1/sessions/{session_id}/smplx"
-    refit_url = f"http://127.0.0.1:8000/api/v1/sessions/{session_id}/refit"
-
+def _viewer_html(session_id: str, orient: dict) -> str:
+    api_url = f"/api/v1/sessions/{session_id}/smplx"
+    refit_url = f"/api/v1/sessions/{session_id}/refit"
+    
+    # Valeurs par défaut
+    ax = orient.get("ax", -1.571)
+    ay = orient.get("ay", 0.0)
+    az = orient.get("az", -1.658)
+    by = orient.get("by", 0.90)
+    
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -331,7 +350,11 @@ body {{ background:#080818; overflow:hidden; font-family:'Segoe UI',sans-serif; 
     </div>
   </div>
 
-  <div id="orient-values">ax=-2.007  ay=-0.262  az=-0.262</div>
+  <div id="orient-values">ax={ax:.3f}  ay={ay:.3f}  az={az:.3f}  by={by:.2f}</div>
+
+  <button id="btn-copy" onclick="copyOrientation()" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:6px;font-size:10px;cursor:pointer;margin-bottom:8px;">
+    📋 Copier l'orientation
+  </button>
 
   <button id="btn-validate" onclick="validateOrientation()">
     ✅ Valider &amp; Recalculer
@@ -347,8 +370,8 @@ body {{ background:#080818; overflow:hidden; font-family:'Segoe UI',sans-serif; 
 // ── Orientation state (in radians, accumulates UI button presses) ──────────
 const STEP   = Math.PI / 36;   // 5° per rotation click
 const STEP_T = 0.05;           // 5 cm per translation click
-let userOrient  = {{ x: -2.007, y: -0.262, z: -0.262 }};
-let meshOffsetY = 0.85;        // hauteur par défaut trouvée par l'utilisateur
+let userOrient  = {{ x: {ax}, y: {ay}, z: {az} }};
+let meshOffsetY = {by};        // hauteur par défaut
 let meshGroup   = null;
 
 function rotateAxis(axis, sign) {{
@@ -361,14 +384,28 @@ function rotateAxis(axis, sign) {{
   document.getElementById('val-x').textContent = userOrient.x.toFixed(2);
   document.getElementById('val-y').textContent = userOrient.y.toFixed(2);
   document.getElementById('val-z').textContent = userOrient.z.toFixed(2);
-  document.getElementById('orient-values').textContent =
-    `ax=${{userOrient.x.toFixed(3)}}  ay=${{userOrient.y.toFixed(3)}}  az=${{userOrient.z.toFixed(3)}}`;
+  updateOrientLabel();
 }}
 
 function moveY(sign) {{
   meshOffsetY += sign * STEP_T;
   if (meshGroup) meshGroup.position.y = meshOffsetY;
   document.getElementById('val-ty').textContent = meshOffsetY.toFixed(2);
+  updateOrientLabel();
+}}
+
+function updateOrientLabel() {{
+  document.getElementById('orient-values').textContent =
+    `ax=${{userOrient.x.toFixed(3)}}  ay=${{userOrient.y.toFixed(3)}}  az=${{userOrient.z.toFixed(3)}}  by=${{meshOffsetY.toFixed(2)}}`;
+}}
+
+function copyOrientation() {{
+  const text = `orientation = {{"ax": ${{userOrient.x.toFixed(3)}}, "ay": ${{userOrient.y.toFixed(3)}}, "az": ${{userOrient.z.toFixed(3)}}, "by": ${{meshOffsetY.toFixed(2)}}}}`;
+  navigator.clipboard.writeText(text);
+  const btn = document.getElementById('btn-copy');
+  const oldText = btn.textContent;
+  btn.textContent = '✅ Copié !';
+  setTimeout(() => btn.textContent = oldText, 2000);
 }}
 
 async function validateOrientation() {{

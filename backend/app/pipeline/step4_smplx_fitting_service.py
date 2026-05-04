@@ -256,11 +256,17 @@ class SmplxService:
             logger.error("No valid frames for shape estimation. Aborting.")
             return None
 
-        # Fixer la morphologie à une personne adulte "standard" (betas = 0)
-        betas_fixed = torch.zeros(1, 10, dtype=torch.float32, device=device)
+        # Stage 1 — Initialisation globale (forme adulte standard fixe)
+        # On commence avec l'orientation préférée de l'utilisateur : ax=-1.571, ay=0, az=-0.262
+        # On ajuste aussi la hauteur Y par défaut à 0.90
+        orient_init = [ -1.571, 0.0, -0.262 ]
+        global_orient = torch.tensor([orient_init], device=device, requires_grad=True)
+        transl = torch.zeros((1, 3), device=device, requires_grad=True)
+        betas = torch.zeros((1, 10), device=device, requires_grad=False)
         
-        g_orient = torch.zeros(1, 3,  dtype=torch.float32, device=device, requires_grad=True)
-        b_pose0  = torch.zeros(1, 63, dtype=torch.float32, device=device)
+        # Initialisation de la hauteur (by=0.90)
+        with torch.no_grad():
+            transl[0, 1] = 0.90
 
         # Centring
         pelvis_positions = []
@@ -481,7 +487,7 @@ class SmplxService:
             transl_np = np.array(gt_data['transl'], dtype=np.float32)
             global_orient_mat = np.array(gt_data['global_orient'], dtype=np.float32)
             body_pose_mat = np.array(gt_data['body_pose'], dtype=np.float32)
-            betas_np = np.array(gt_data.get('betas', [0]*10), dtype=np.float32).reshape(1, 10)
+            betas_np = np.array(gt_data.get('betas', [0]*10), dtype=np.float32).reshape(-1, 10)
             
             num_frames = transl_np.shape[0]
             
@@ -520,14 +526,27 @@ class SmplxService:
                 faces=faces,
             )
             
-            json_path = os.path.join(session_output_root, "smplx_threejs.json")
+            # Export for viewer (Internal drive for speed)
+            backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            internal_root = os.path.join(backend_dir, "data", "frames", exercise_name)
+            os.makedirs(internal_root, exist_ok=True)
+            json_path_internal = os.path.join(internal_root, "smplx_threejs.json")
+            
             SmplxService._export_threejs_json(
-                vertices_arr, joints_arr, faces, json_path,
-                max_frames=60
+                vertices_arr, joints_arr, faces, json_path_internal,
+                max_frames=1500
             )
             
-            viz_dir = os.path.join(session_output_root, "smplx_3d")
-            SmplxService.save_smplx_visualizations(npz_path, viz_dir, max_frames=120)
+            # Also keep a copy on SSD
+            json_path_ssd = os.path.join(session_output_root, "smplx_threejs.json")
+            SmplxService._export_threejs_json(
+                vertices_arr, joints_arr, faces, json_path_ssd,
+                max_frames=1500
+            )
+            
+            # (Désactivé à la demande de l'utilisateur)
+            # viz_dir = os.path.join(session_output_root, "smplx_3d")
+            # SmplxService.save_smplx_visualizations(npz_path, viz_dir)
             
             print(f"DEBUG: Mesh optimization finalized.")
             return npz_path
