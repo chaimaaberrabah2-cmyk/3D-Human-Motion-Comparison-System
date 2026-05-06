@@ -131,8 +131,9 @@ def findChessboardCorners(img, annots, pattern, debug=False):
                     
                     # 4. Filtre de Surface (AREA) : Rejette les petits motifs sur les murs lointains
                     # L'échiquier doit occuper au moins 5% de la surface totale de l'image
+                    # L'échiquier doit occuper au moins 0.1% de la surface totale de l'image (réduit pour l'extrinsèque)
                     area = cv2.contourArea(hull)
-                    if area < (h * w * 0.05):
+                    if area < (h * w * 0.001):
                         continue
                     
                     # 5. Vérification de Régularité : Empêche de sauter des cases
