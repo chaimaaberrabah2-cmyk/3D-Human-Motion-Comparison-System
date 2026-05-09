@@ -70,6 +70,10 @@ class Movement(Base):
     # Custom orientation parameters (ax, ay, az, by)
     orientation = Column(JSONB)
     
+    # Equipment parameters
+    equipment = Column(String(100), nullable=True) # e.g. "barbell", "dumbbells"
+    equipment_orientation = Column(JSONB, nullable=True) # e.g. {"ax": 0, "ay": 1.48...}
+    
     # Camera parameters (intrinsics, extrinsics of the lab cameras)
     camera_calibration = Column(JSONB)
     
