@@ -262,7 +262,8 @@ class SmplxService:
         orient_init = [ -1.571, 0.0, -0.262 ]
         global_orient = torch.tensor([orient_init], device=device, requires_grad=True)
         transl = torch.zeros((1, 3), device=device, requires_grad=True)
-        betas = torch.zeros((1, 10), device=device, requires_grad=False)
+        betas_fixed = torch.zeros((1, 10), device=device, requires_grad=False)
+        b_pose0 = torch.zeros((1, 63), device=device)
         
         # Initialisation de la hauteur (by=0.90)
         with torch.no_grad():

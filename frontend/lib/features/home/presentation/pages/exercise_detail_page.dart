@@ -12,6 +12,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
@@ -215,38 +216,33 @@ class ExerciseDetailPage extends StatelessWidget {
 
                       const SizedBox(height: 40),
 
-                      // 3D Model Placeholder
+                      // 3D Model Viewer
+                      Text(
+                        l10n.motionVisualization,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       Container(
                         width: double.infinity,
-                        height: 300,
+                        height: 500, // Plus grand pour mieux voir
                         decoration: BoxDecoration(
-                          color: theme.cardColor,
+                          color: Colors.black,
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+                          border: Border.all(color: theme.primaryColor.withOpacity(0.3)),
                         ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.view_in_ar,
-                              size: 64,
-                              color: theme.primaryColor.withOpacity(0.3),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: InAppWebView(
+                            initialUrlRequest: URLRequest(
+                              url: WebUri('http://localhost:8000/api/v1/movements/${exercise.name}/viewer'),
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              l10n.motionVisualization,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                            initialSettings: InAppWebViewSettings(
+                              transparentBackground: true,
+                              supportZoom: false,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              l10n.motionVisualizationSubtitle,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
 

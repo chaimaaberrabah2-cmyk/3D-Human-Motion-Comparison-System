@@ -9,22 +9,28 @@ logger = logging.getLogger(__name__)
 
 class TriangulationService:
     @staticmethod
-    def triangulate(session_output_root: str, exercise_name: str = "squat"):
+    def triangulate(session_output_root: str, exercise_name: str = "squat", dataset_type: str = "s03", img_w: int = 900, img_h: int = 900):
         """
         Loads 2D keypoints and camera calibration to generate 3D keypoints.
         
         Args:
             session_output_root (str): The folder containing the .npy 2D files.
             exercise_name (str): Name of the exercise to find the right .json calibration.
+            dataset_type (str): Either 's03' or 'test_dataset' to load correct calibration.
+            img_w, img_h: Image resolution for un-normalizing keypoints.
         """
-        # 1. Mapping established with the user
-        # Video 1: 65906101LF, Video 2: 60457274RF, Video 3: 50591643Lb, Video 4: 58860488RB
-        camera_ids = ["65906101LF", "60457274RF", "50591643Lb", "58860488RB"]
+        if dataset_type == "test_dataset":
+            camera_ids = ["Lb", "Lf", "Rb", "Rf"]
+        else:
+            # 1. Mapping established with the user for s03
+            camera_ids = ["65906101LF", "60457274RF", "50591643Lb", "58860488RB"]
         
         # Determine base directory for calibration
-        # backend/data/calibration/camera_parameters
         backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        calib_root = os.path.join(backend_dir, "data", "calibration", "camera_parameters")
+        if dataset_type == "test_dataset":
+            CALIB_DIR = os.path.join(backend_dir, "data", "calibration", "test_dataset")
+        else:
+            CALIB_DIR = os.path.join(backend_dir, "data", "calibration", "camera_parameters")
         
         print(f"DEBUG: Starting triangulation for exercise: {exercise_name}")
         
@@ -34,11 +40,15 @@ class TriangulationService:
         
         # 2. Load Calibration and build Projection Matrices (P = K [R|t])
         for cam_id in camera_ids:
-            json_path = os.path.join(calib_root, cam_id, f"{exercise_name}.json")
-            if not os.path.exists(json_path):
-                # Fallback to squat if exercise not found
-                logger.warning(f"Calibration file {json_path} not found. Falling back to squat.json")
-                json_path = os.path.join(calib_root, cam_id, "squat.json")
+            if dataset_type == "test_dataset":
+                # Pour ton dataset de test, la calibration est UNIQUE pour tous les exercices
+                json_path = os.path.join(CALIB_DIR, cam_id, "calibration.json")
+            else:
+                # Pour Fit3D (s03), la calibration dépend de l'exercice
+                json_path = os.path.join(CALIB_DIR, cam_id, f"{exercise_name}.json")
+                if not os.path.exists(json_path):
+                    logger.warning(f"Calibration file {json_path} not found. Falling back to squat.json")
+                    json_path = os.path.join(CALIB_DIR, cam_id, "squat.json")
             
             with open(json_path, 'r') as f:
                 data = json.load(f)
@@ -98,11 +108,11 @@ class TriangulationService:
         # Result shape: (num_frames, 33, 4) -> [X, Y, Z, Visibility]
         points_3d_sequence = []
         
-        # MediaPipe resolution - confirmed by user as 900x900
-        IMG_WIDTH = 900
-        IMG_HEIGHT = 900
+        # Resolution for un-normalizing MediaPipe points
+        IMG_WIDTH = img_w
+        IMG_HEIGHT = img_h
         
-        print(f"DEBUG: Triangulating {num_frames} frames...")
+        print(f"DEBUG: Triangulating {num_frames} frames at resolution {IMG_WIDTH}x{IMG_HEIGHT}...")
         
         for f_idx in range(num_frames):
             frame_3d_points = []
@@ -162,10 +172,14 @@ class TriangulationService:
         return output_file
 
     @staticmethod
-    def refine_3d_keypoints(session_output_root: str, exercise_name: str):
+    def refine_3d_keypoints(session_output_root: str, exercise_name: str, dataset_type: str = "s03"):
         """
         Refines the 3D keypoints using an anatomical atlas for better consistency.
         """
+        if dataset_type == "test_dataset":
+            print(f"DEBUG: Skipping 3D refinement for {dataset_type} (no ground truth).")
+            return None
+
         print(f"DEBUG: Post-processing 3D keypoints for {exercise_name} consistency...")
         
         # Determine paths
