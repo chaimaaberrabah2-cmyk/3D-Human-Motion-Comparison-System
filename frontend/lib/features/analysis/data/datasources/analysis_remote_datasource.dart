@@ -21,6 +21,7 @@
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import '../../../home/domain/entities/exercise.dart';
 
 /// Gère les appels HTTP vers le backend d'analyse vidéo.
 class AnalysisRemoteDataSource {
@@ -36,6 +37,7 @@ class AnalysisRemoteDataSource {
   /// Envoie les 4 vidéos au backend pour démarrer l'analyse.
   Future<String> analyzeVideos({
     required Map<String, dynamic> videoData,
+    required String exercise,
   }) async {
     final formDataMap = <String, dynamic>{};
 
@@ -56,12 +58,13 @@ class AnalysisRemoteDataSource {
 
     try {
       final response = await dio.post(
-        '$baseUrl/analyze',
+        '$baseUrl/analyze?exercise=$exercise',
         data: formData,
         onSendProgress: (sent, total) {
           print('Upload: ${(sent / total * 100).toStringAsFixed(0)}%');
         },
       );
+
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return response.data['session_id'] as String;
@@ -91,8 +94,48 @@ class AnalysisRemoteDataSource {
     }
   }
 
-  /// Returns the URL of the Three.js SMPL-X viewer for a session.
+  /// Returns the URL of the Three.js SMPL-X viewer for a session or movement reference.
   String getViewerUrl(String sessionId) {
-    return '$sessionsUrl/$sessionId/viewer';
+    if (sessionId.contains('-') || sessionId.length > 20) {
+      return '$sessionsUrl/$sessionId/viewer';
+    } else {
+      return '$backendBase/api/v1/movements/$sessionId/viewer';
+    }
+  }
+
+  /// Fetches movements from PostgreSQL database. Falls back to mock data if empty or offline.
+  Future<List<Exercise>> fetchMovements() async {
+    try {
+      final response = await dio.get('$backendBase/api/v1/movements/');
+      if (response.statusCode == 200) {
+        final list = response.data as List;
+        if (list.isEmpty) return getMockExercises();
+        
+        return list.map((item) {
+          final id = item['movement_id'] as int? ?? 0;
+          final name = item['name'] as String? ?? '';
+          final category = item['category'] as String? ?? 'Strength';
+          final desc = item['description'] as String? ?? '';
+          final diff = item['difficulty'] as String? ?? 'Intermediate';
+          final inst = List<String>.from(item['instructions'] ?? []);
+          final thumb = item['thumbnail_path'] as String? ?? '';
+          
+          return Exercise(
+            id: id,
+            name: name,
+            category: category,
+            imagePath: thumb.isNotEmpty ? thumb : 'assets/exercises/squat.png',
+            mode: '${category} Analysis Mode',
+            description: desc,
+            difficulty: diff,
+            instructions: inst,
+          );
+        }).toList();
+      }
+      throw Exception('Failed to load movements: ${response.statusCode}');
+    } catch (e) {
+      print('Error fetching movements from database: $e');
+      return getMockExercises(); // Graceful fallback
+    }
   }
 }

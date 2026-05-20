@@ -13,7 +13,7 @@ import json
 import math
 import threading
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from pydantic import BaseModel
 from typing import Optional
 
@@ -46,12 +46,26 @@ async def get_session_status(session_id: str):
     has_viewer = os.path.exists(os.path.join(session_path, "smplx_threejs.json"))
     refit_info = _refit_status.get(session_id, None)
 
+    # Read dynamic status file
+    status_file = os.path.join(session_path, "status.json")
+    status_msg = "Initializing..."
+    prog_pct = int((sum([phase1, phase2, phase3, phase4]) / 4) * 100)
+    if os.path.exists(status_file):
+        try:
+            with open(status_file, "r") as f:
+                s_data = json.load(f)
+                status_msg = s_data.get("status", status_msg)
+                prog_pct = s_data.get("progress_percent", prog_pct)
+        except Exception:
+            pass
+
     return {
         "session_id":      session_id,
-        "progress_percent": int((sum([phase1, phase2, phase3, phase4]) / 4) * 100),
+        "progress_percent": prog_pct,
         "is_complete":     phase4,
         "has_smplx_viewer": has_viewer,
         "refit":           refit_info,
+        "status_message":  status_msg,
         "phases": {
             "phase1_frames_extracted": phase1,
             "phase2_pose_estimated":   phase2,
@@ -69,9 +83,14 @@ async def get_smplx_data(session_id: str):
     json_path = os.path.join(_session_dir(session_id), "smplx_threejs.json")
     if not os.path.exists(json_path):
         raise HTTPException(404, "SMPL-X data not ready yet.")
-    with open(json_path, "r") as f:
-        data = json.load(f)
-    return JSONResponse(content=data)
+
+    def iter_file():
+        with open(json_path, "rb") as f:
+            while chunk := f.read(1024 * 1024):  # 1 MB chunks
+                yield chunk
+
+    from starlette.responses import StreamingResponse
+    return StreamingResponse(iter_file(), media_type="application/json")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -223,7 +242,7 @@ body {{ background:#080818; overflow:hidden; font-family:'Segoe UI',sans-serif; 
   position:fixed; right:16px; top:50%; transform:translateY(-50%);
   background:rgba(10,10,30,0.85); backdrop-filter:blur(14px);
   border:1px solid rgba(108,99,255,0.3); border-radius:16px;
-  padding:16px; display:flex; flex-direction:column; gap:10px;
+  padding:16px; display:none !important; flex-direction:column; gap:10px;
   width:200px; color:#fff;
 }}
 #orient-panel h4 {{
@@ -306,19 +325,19 @@ body {{ background:#080818; overflow:hidden; font-family:'Segoe UI',sans-serif; 
     <span class="axis-label">X</span>
     <button onclick="rotateAxis('x',-1)">−</button>
     <button onclick="rotateAxis('x', 1)">+</button>
-    <span class="val-display" id="val-x">-2.01</span>
+    <span class="val-display" id="val-x">-1.57</span>
   </div>
   <div class="axis-row">
     <span class="axis-label">Y</span>
     <button onclick="rotateAxis('y',-1)">−</button>
     <button onclick="rotateAxis('y', 1)">+</button>
-    <span class="val-display" id="val-y">-0.26</span>
+    <span class="val-display" id="val-y">0.00</span>
   </div>
   <div class="axis-row">
     <span class="axis-label">Z</span>
     <button onclick="rotateAxis('z',-1)">−</button>
     <button onclick="rotateAxis('z', 1)">+</button>
-    <span class="val-display" id="val-z">-0.26</span>
+    <span class="val-display" id="val-z">-1.66</span>
   </div>
 
   <div style="border-top:1px solid rgba(108,99,255,0.2);padding-top:8px;">
@@ -327,11 +346,11 @@ body {{ background:#080818; overflow:hidden; font-family:'Segoe UI',sans-serif; 
       <span class="axis-label" style="font-size:16px;">↕</span>
       <button onclick="moveY(1)">↑ Haut</button>
       <button onclick="moveY(-1)">↓ Bas</button>
-      <span class="val-display" id="val-ty">0.85</span>
+      <span class="val-display" id="val-ty">0.90</span>
     </div>
   </div>
 
-  <div id="orient-values">ax=-2.007  ay=-0.262  az=-0.262</div>
+  <div id="orient-values">ax=-1.571  ay=0.000  az=-1.658</div>
 
   <button id="btn-validate" onclick="validateOrientation()">
     ✅ Valider &amp; Recalculer
@@ -347,8 +366,8 @@ body {{ background:#080818; overflow:hidden; font-family:'Segoe UI',sans-serif; 
 // ── Orientation state (in radians, accumulates UI button presses) ──────────
 const STEP   = Math.PI / 36;   // 5° per rotation click
 const STEP_T = 0.05;           // 5 cm per translation click
-let userOrient  = {{ x: -2.007, y: -0.262, z: -0.262 }};
-let meshOffsetY = 0.85;        // hauteur par défaut trouvée par l'utilisateur
+let userOrient  = {{ x: -1.571, y: 0.0, z: -1.658 }};
+let meshOffsetY = 0.90;        // hauteur par défaut trouvée par l'utilisateur
 let meshGroup   = null;
 
 function rotateAxis(axis, sign) {{
@@ -556,7 +575,6 @@ function pollRefitStatus() {{
   document.getElementById('loading').style.display  = 'none';
   document.getElementById('status').style.display   = 'block';
   document.getElementById('ui').style.display       = 'flex';
-  document.getElementById('orient-panel').style.display = 'flex';
   requestAnimationFrame(animate);
 
   // Playback controls

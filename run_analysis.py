@@ -7,7 +7,11 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.join(current_dir, "backend")
 sys.path.append(backend_dir)
 
-from app.routes.analysis import process_analysis
+import importlib
+try:
+    process_analysis = importlib.import_module("backend.app.routes.analysis").process_analysis
+except ImportError:
+    process_analysis = importlib.import_module("app.routes.analysis").process_analysis
 
 def run_pipeline(exercise_name):
     print(f"🚀 Lancement du pipeline complet pour l'exercice: {exercise_name}")

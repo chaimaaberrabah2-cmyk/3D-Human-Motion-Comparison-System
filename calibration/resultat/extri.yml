@@ -1,0 +1,67 @@
+%YAML:1.0
+---
+names:
+  - "Lb"
+  - "Lf"
+  - "Rb"
+  - "Rf"
+R_Lb: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [0.753975, -1.821465, 1.721076]
+Rot_Lb: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [-0.710638, -0.703541, 0.004824, -0.044658, 0.038264, -0.998269, 0.702139, -0.709624, -0.058611]
+T_Lb: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [0.341744, 1.050443, 3.205360]
+R_Lf: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [0.710715, 1.884076, -1.719907]
+Rot_Lf: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [-0.745267, 0.666703, 0.009147, 0.051505, 0.071240, -0.996129, -0.664774, -0.741911, -0.087431]
+T_Lf: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [0.161084, 0.954031, 3.235910]
+R_Rb: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [1.629150, -0.657419, 0.616934]
+Rot_Rb: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [0.698250, -0.715002, 0.034914, -0.080228, -0.126626, -0.988701, 0.711344, 0.687560, -0.145780]
+T_Rb: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [0.047351, 0.752434, 2.778465]
+R_Rf: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [1.543277, 0.652681, -0.535301]
+Rot_Rf: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [0.726626, 0.685386, 0.047539, 0.087512, -0.023703, -0.995881, -0.681437, 0.727794, -0.077203]
+T_Rf: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [-0.323542, 1.010615, 2.918497]

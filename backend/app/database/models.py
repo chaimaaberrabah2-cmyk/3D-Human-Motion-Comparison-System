@@ -76,6 +76,11 @@ class Movement(Base):
     # Reference 3D joints
     joints_3d = Column(JSONB)
     
+    # Reference orientation and equipment (stored in PostgreSQL)
+    orientation = Column(JSONB)
+    equipment = Column(String(100))
+    equipment_orientation = Column(JSONB)
+    
     created_at = Column(DateTime, server_default=func.now())
     
     # Relationships

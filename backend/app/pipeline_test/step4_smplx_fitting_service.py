@@ -1,5 +1,5 @@
 # =============================================================
-# backend/app/pipeline/step4_smplx_fitting_service.py
+# backend/app/pipeline_test/step4_smplx_fitting_service.py
 # =============================================================
 # Pipeline SMPL-X — Version Optimisée "Advanced Priors"
 #
@@ -247,6 +247,30 @@ class SmplxService:
             t, v, w = SmplxService._mp33_to_smplx_target(kp3d[fi])
             smplx_targets.append((t, v, w))
 
+        # ── Détection dynamique de l'orientation de l'axe Y et du sol ──────
+        # Articulation 0 = Pelvis, 12 = Neck dans SMPL-X. 7, 8, 10, 11 sont les pieds.
+        y_points_down = True
+        pelvis_ys, neck_ys = [], []
+        ankle_ys = []
+        for fi in range(num_frames):
+            t_f, v_f, _ = smplx_targets[fi]
+            if v_f[0] and v_f[12]:
+                pelvis_ys.append(t_f[0, 1])
+                neck_ys.append(t_f[12, 1])
+            if v_f[7]: ankle_ys.append(t_f[7, 1])
+            if v_f[8]: ankle_ys.append(t_f[8, 1])
+            
+        if pelvis_ys and neck_ys:
+            y_points_down = np.mean(pelvis_ys) > np.mean(neck_ys)
+            
+        if ankle_ys:
+            ground_y = float(np.percentile(ankle_ys, 95 if y_points_down else 5))
+        else:
+            ground_y = 0.0
+            
+        print(f"DEBUG [SmplxService]: Axe Y orienté vers le {'BAS' if y_points_down else 'HAUT'}")
+        print(f"DEBUG [SmplxService]: Altitude du sol détectée = {ground_y:.4f}")
+
         # ── Helper : forward pass SMPL-X ───────────────────────────────────
         def smplx_forward(betas, g_orient, b_pose, transl, verts=False):
             return body_model(
@@ -256,7 +280,7 @@ class SmplxService:
             )
 
         # ── Helper : Calcul de la fonction de perte (Loss Function) ────────
-        def compute_loss(output, target, valid, weights, b_pose, prev_pose=None):
+        def compute_loss(output, target, valid, weights, b_pose, prev_pose=None, betas=None):
             smplx_joints = output.joints[0, :22, :]
             loss = torch.tensor(0.0, dtype=torch.float32, device=device)
             n_pairs = 0
@@ -272,18 +296,29 @@ class SmplxService:
                 loss = loss / n_pairs
                 
             # 2. Pose Prior : Contraint les rotations à rester proches de la T-pose standard 
-            # pour éviter les torsions anatomiquement impossibles.
             loss = loss + 1.5e-3 * (b_pose ** 2).mean()
             
-            # 3. Velocity Loss (Lissage temporel) : Empêche la pose de trop s'éloigner
-            # de celle de la frame précédente, atténuant les anomalies de détection.
+            # 3. Velocity Loss (Lissage temporel)
             if prev_pose is not None:
                 loss = loss + 20.0 * ((b_pose - prev_pose) ** 2).mean()
                 
+            # 4. Ground Contact Constraint : Empêche les pieds de traverser le sol
+            # Articulations des pieds: 7, 8 (chevilles), 10, 11 (orteils)
+            foot_joints_y = smplx_joints[[7, 8, 10, 11], 1]
+            if y_points_down:
+                loss_ground = torch.clamp(foot_joints_y - ground_y, min=0.0).pow(2).mean()
+            else:
+                loss_ground = torch.clamp(ground_y - foot_joints_y, min=0.0).pow(2).mean()
+            loss = loss + 15.0 * loss_ground
+            
+            # 5. Regularisation L2 sur les betas
+            if betas is not None:
+                loss = loss + 0.05 * (betas ** 2).mean()
+                
             return loss
 
-        # ── Stage 1 : Initialisation Globale (Position & Orientation) ──────
-        print("DEBUG [SmplxService]: Stage 1 — Calcul de la position et de l'orientation globales...")
+        # ── Stage 1 : Initialisation Globale (Position, Orientation & Morphologie) ──────
+        print("DEBUG [SmplxService]: Stage 1 — Calcul de la position, orientation et morphologie (betas)...")
 
         # Échantillonne jusqu'à 30 frames significatives pour caler la position globale
         step_sh = max(1, num_frames // 30)
@@ -296,8 +331,8 @@ class SmplxService:
             logger.error("Aucune frame valide trouvée pour caler l'initialisation. Abandon.")
             return None
 
-        # Bloque les paramètres de morphologie (betas = 0) sur une morphologie adulte moyenne
-        betas_fixed = torch.zeros(1, 10, dtype=torch.float32, device=device)
+        # Paramètres de morphologie (betas) optimisables
+        betas = torch.zeros(1, 10, dtype=torch.float32, device=device, requires_grad=True)
         
         g_orient = torch.zeros(1, 3,  dtype=torch.float32, device=device, requires_grad=True)
         b_pose0  = torch.zeros(1, 63, dtype=torch.float32, device=device)
@@ -334,8 +369,8 @@ class SmplxService:
                 for ay in [0.0, np.pi/2, np.pi, 3*np.pi/2]:
                     for ax in [0.0, np.pi]:
                         test_o = torch.tensor([[ax, ay, 0.0]], dtype=torch.float32, device=device)
-                        out = smplx_forward(betas_fixed, test_o, b_pose0, transl)
-                        loss_val = compute_loss(out, t0, v0, w0, b_pose0).item()
+                        out = smplx_forward(betas.detach(), test_o, b_pose0, transl)
+                        loss_val = compute_loss(out, t0, v0, w0, b_pose0, betas=betas.detach()).item()
                         if loss_val < best_loss:
                             best_loss   = loss_val
                             best_orient = test_o.clone()
@@ -343,9 +378,9 @@ class SmplxService:
 
         g_orient = best_orient.clone().requires_grad_(True)
 
-        # Optimise uniquement la translation et l'orientation globale pour commencer
+        # Optimise la translation, l'orientation globale et les betas de morphologie
         opt_shape = torch.optim.LBFGS(
-            [transl, g_orient], lr=1.0,
+            [transl, g_orient, betas], lr=1.0,
             max_iter=n_iter, line_search_fn="strong_wolfe",
         )
 
@@ -354,8 +389,8 @@ class SmplxService:
             total = torch.tensor(0.0, dtype=torch.float32, device=device)
             for fi in shape_frames:
                 t_fi, v_fi, w_fi = smplx_targets[fi]
-                out = smplx_forward(betas_fixed, g_orient, b_pose0.detach(), transl)
-                total = total + compute_loss(out, t_fi, v_fi, w_fi, b_pose0)
+                out = smplx_forward(betas, g_orient, b_pose0.detach(), transl)
+                total = total + compute_loss(out, t_fi, v_fi, w_fi, b_pose0, betas=betas)
             total = total / len(shape_frames)
             total.backward()
             return total
@@ -367,6 +402,8 @@ class SmplxService:
 
         init_orient  = g_orient.detach().clone()
         init_transl  = transl.detach().clone()
+        init_betas   = betas.detach().clone()
+        print(f"DEBUG [SmplxService]: Morphologie optimisée (betas) = {init_betas.flatten().tolist()}")
 
         # ── Stage 2 : Optimisation Per-Frame L-BFGS avec Lissage Temporel ──
         print("DEBUG [SmplxService]: Stage 2 — Ajustement dynamique par frame...")
@@ -388,7 +425,7 @@ class SmplxService:
                     all_joints.append(all_joints[-1])
                 else:
                     with torch.no_grad():
-                        out = smplx_forward(betas_fixed, prev_orient, prev_pose, prev_transl, verts=True)
+                        out = smplx_forward(init_betas, prev_orient, prev_pose, prev_transl, verts=True)
                         all_vertices.append(out.vertices[0].cpu().numpy())
                         all_joints.append(out.joints[0, :22].cpu().numpy())
                 continue
@@ -405,9 +442,9 @@ class SmplxService:
             
             def closure_b():
                 opt_b.zero_grad()
-                out = smplx_forward(betas_fixed, fr_orient, fr_pose, fr_transl)
+                out = smplx_forward(init_betas, fr_orient, fr_pose, fr_transl)
                 # On transmet prev_pose pour pénaliser les variations de vitesse brusques
-                loss_ = compute_loss(out, t_fi, v_fi, w_fi, fr_pose, prev_pose=prev_pose)
+                loss_ = compute_loss(out, t_fi, v_fi, w_fi, fr_pose, prev_pose=prev_pose, betas=init_betas)
                 loss_.backward()
                 return loss_
                 
@@ -425,7 +462,7 @@ class SmplxService:
 
             # Extrait le maillage 3D complet (vertices) de la pose optimisée
             with torch.no_grad():
-                out = smplx_forward(betas_fixed, fr_orient, fr_pose, fr_transl, verts=True)
+                out = smplx_forward(init_betas, fr_orient, fr_pose, fr_transl, verts=True)
                 all_vertices.append(out.vertices[0].cpu().numpy())
                 all_joints.append(out.joints[0, :22].cpu().numpy())
 

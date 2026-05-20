@@ -66,7 +66,13 @@ class _SmplxViewerWidgetState extends State<SmplxViewerWidget>
       CurvedAnimation(parent: _progressCtrl, curve: Curves.easeOut),
     );
 
-    _startPolling();
+    final isReference = !widget.sessionId.contains('-') && widget.sessionId.length <= 20;
+    if (isReference) {
+      _isReady = true;
+      _progressPercent = 100;
+    } else {
+      _startPolling();
+    }
   }
 
   @override
@@ -127,7 +133,7 @@ class _SmplxViewerWidgetState extends State<SmplxViewerWidget>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    if (_isReady && _webController != null) {
+    if (_isReady) {
       return _buildViewer(theme);
     }
 

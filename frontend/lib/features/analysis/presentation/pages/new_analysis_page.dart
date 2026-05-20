@@ -63,6 +63,7 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
   Exercise? _selectedExercise;
   String _role = 'user';
   String? _sessionId; // Set after upload success → used by SmplxViewerWidget
+  final List<String> _pipelineLogs = [];
 
   @override
   void initState() {
@@ -108,9 +109,12 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
             ),
           );
           if (confirm == true && mounted) {
-
             setState(() => _isProcessing = false);
-            context.read<NavigationProvider>().setIndex(0);
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              context.read<NavigationProvider>().setIndex(0);
+            }
           }
           return;
         }
@@ -121,7 +125,11 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
           });
         } else {
           // At Step 1, go back to Dashboard
-          context.read<NavigationProvider>().setIndex(0);
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            context.read<NavigationProvider>().setIndex(0);
+          }
         }
       },
       child: Column(
@@ -357,11 +365,12 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
       _isProcessing = true;
       _processingProgress = 0.0;
       _processingStatus = 'Uploading videos to server...';
+      _pipelineLogs.clear();
+      _pipelineLogs.add('[00:00] Starting upload of 4 camera angles...');
       _currentStep = 3;
     });
 
     try {
-      // Real API Call — uploads the 4 videos, returns session_id
       final dataSource = AnalysisRemoteDataSource();
       final repository = AnalysisRepositoryImpl(remoteDataSource: dataSource);
 
@@ -371,35 +380,92 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
         _processingProgress = 0.05;
       });
 
-      final sessionId = await repository.analyzeVideos(videos: _rawFiles);
+      String backendExercise = 'squat';
+      if (_selectedExercise != null) {
+        final name = _selectedExercise!.name.toLowerCase();
+        if (name.contains('squat')) {
+          backendExercise = 'squat';
+        } else if (name.contains('deadlift')) {
+          backendExercise = 'deadlift';
+        } else if (name.contains('push')) {
+          backendExercise = 'pushup';
+        } else if (name.contains('lateral')) {
+          backendExercise = 'side_lateral_raise';
+        } else {
+          backendExercise = name.replaceAll(' ', '_');
+        }
+      }
 
-      // Animate mock upload progress while server processes
-      for (int i = 1; i <= 4; i++) {
-        for (int p = 1; p <= 10; p++) {
-          await Future.delayed(const Duration(milliseconds: 250));
+      final sessionId = await repository.analyzeVideos(
+        videos: _rawFiles,
+        exercise: backendExercise,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _pipelineLogs.add('[00:05] Upload successful! Session ID: $sessionId');
+        _pipelineLogs.add('[00:06] Server started background reconstruction pipeline.');
+        _processingStatus = 'Processing frames on GPU...';
+        _processingProgress = 0.10;
+        _sessionId = sessionId; // Store for results
+      });
+
+      // Real-time backend status polling loop
+      bool completed = false;
+      int pollFailures = 0;
+      final startTime = DateTime.now();
+
+      while (_isProcessing && !completed) {
+        await Future.delayed(const Duration(seconds: 2));
+        if (!mounted || !_isProcessing) return;
+
+        try {
+          final status = await dataSource.fetchSessionStatus(sessionId);
+          pollFailures = 0;
+
+          final progressPct = status['progress_percent'] as int? ?? 0;
+          final isComplete = status['is_complete'] as bool? ?? false;
+          final statusMsg = status['status_message'] as String? ?? 'Processing...';
+          final hasSmplxViewer = status['has_smplx_viewer'] as bool? ?? false;
+
+          final elapsedSec = DateTime.now().difference(startTime).inSeconds;
+          final formattedTime = _formatTime(elapsedSec);
+
           if (!mounted) return;
           setState(() {
-            _processingProgress = 0.05 + ((i - 1) * 0.03) + (p * 0.002);
-            _processingStatus =
-                'Sending camera angle $i... (${(_processingProgress * 100).toInt()}%)';
+            _processingProgress = progressPct / 100.0;
+            _processingStatus = statusMsg;
+
+            // Log unique messages
+            final logLine = '[$formattedTime] $statusMsg';
+            if (_pipelineLogs.isEmpty || !_pipelineLogs.last.contains(statusMsg)) {
+              _pipelineLogs.add(logLine);
+            }
           });
+
+          if (isComplete || hasSmplxViewer || progressPct >= 100) {
+            completed = true;
+          }
+        } catch (e) {
+          pollFailures++;
+          print('Poll error: $e');
+          if (pollFailures > 25) { // 50 seconds of consecutive failures
+            throw Exception('Backend connection lost during analysis.');
+          }
         }
       }
 
       if (!mounted) return;
       setState(() {
-        _processingStatus =
-            'Videos uploaded! Server is processing 3D reconstruction…';
-        _processingProgress = 0.25;
         _isProcessing = false;
-        _sessionId = sessionId; // ← store for SmplxViewerWidget
-        _currentStep = 4;       // ← go to results
+        _currentStep = 4; // Go to results!
       });
     } catch (e) {
       if (mounted) {
         setState(() {
           _isProcessing = false;
           _processingStatus = 'Error: ${e.toString()}';
+          _pipelineLogs.add('[Error] Upload or Analysis failed: ${e.toString()}');
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -410,6 +476,13 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
       }
     }
   }
+
+  String _formatTime(int totalSeconds) {
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
 
   void _startMockProcessing() {
     _startProcessing();
@@ -468,25 +541,39 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
             ),
             const SizedBox(height: 40),
             
-            // Mimic AI logs/activity
+            // Real-time backend pipeline logs
             Container(
               width: double.infinity,
+              height: 180,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withOpacity(0.85),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                border: Border.all(color: Colors.white.withOpacity(0.15)),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildLogLine(l10n.logAnalysisStarted, timestamp: '00:00:00'),
-                  if (_processingProgress > 0.1)
-                    _buildLogLine(l10n.logSyncOk, timestamp: '00:00:04'),
-                  // Future steps hidden as requested
-                ],
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _pipelineLogs.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text(
+                        _pipelineLogs[index],
+                        style: const TextStyle(
+                          color: Colors.greenAccent,
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                          height: 1.3,
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
+
           ],
         ),
       ),
@@ -520,21 +607,45 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
   }
 
   Widget _buildResultsStep(AppLocalizations l10n, ThemeData theme) {
+    String backendExercise = 'squat';
+    if (_selectedExercise != null) {
+      final name = _selectedExercise!.name.toLowerCase();
+      if (name.contains('squat')) {
+        backendExercise = 'squat';
+      } else if (name.contains('deadlift')) {
+        backendExercise = 'deadlift';
+      } else if (name.contains('push')) {
+        backendExercise = 'pushup';
+      } else if (name.contains('lateral')) {
+        backendExercise = 'side_lateral_raise';
+      } else {
+        backendExercise = name.replaceAll(' ', '_');
+      }
+    }
+
     return SingleChildScrollView(
       child: Column(
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Text(
+                'Analysis Results - Comparative View',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.primaryColor,
+                ),
+              ),
               ElevatedButton.icon(
                 onPressed: () {
-                  // RESET for demo
+                  // RESET for new analysis
                   setState(() {
                     _currentStep = 1;
                     _selectedFiles.updateAll((key, value) => null);
                     _rawFiles.updateAll((key, value) => null);
                     _selectedMethod = 'upload';
                     _selectedExercise = null;
+                    _sessionId = null;
                   });
                 },
                 icon: const Icon(Icons.add, size: 18),
@@ -549,23 +660,159 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
             ],
           ),
           const SizedBox(height: 16),
+          // Beautiful interactive dropdown selector
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: theme.cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: theme.primaryColor.withOpacity(0.15)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.compare_arrows, color: theme.primaryColor),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Choose Reference Exercise to Compare:',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                PopupMenuButton<Exercise>(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor,
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _selectedExercise?.name ?? 'Select Exercise',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_drop_down, color: Colors.white),
+                      ],
+                    ),
+                  ),
+                  onSelected: (Exercise exercise) {
+                    setState(() {
+                      _selectedExercise = exercise;
+                    });
+                  },
+                  itemBuilder: (BuildContext context) {
+                    return getMockExercises().map((Exercise exercise) {
+                      return PopupMenuItem<Exercise>(
+                        value: exercise,
+                        child: Text(exercise.name),
+                      );
+                    }).toList();
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Left: Exercise Selection
+              // Left Panel: User Calculated SMPL Model
               Expanded(
                 flex: 1,
-                child: _buildExerciseSelector(theme),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: theme.primaryColor.withOpacity(0.1),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          topRight: Radius.circular(16),
+                        ),
+                        border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.accessibility_new, color: theme.primaryColor),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'YOUR PERFORMANCE',
+                            style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      height: 480,
+                      child: _sessionId != null
+                          ? SmplxViewerWidget(sessionId: _sessionId!)
+                          : Container(
+                              color: theme.cardColor,
+                              child: const Center(child: CircularProgressIndicator()),
+                            ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(width: 24),
-              // Right: User SMPL Preview
+              // Right Panel: Reference SMPL Model from DB
               Expanded(
                 flex: 1,
-                child: _buildSMPLPreview(theme),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          topRight: Radius.circular(16),
+                        ),
+                        border: Border.all(color: Colors.green.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.stars, color: Colors.green),
+                          const SizedBox(width: 8),
+                          Text(
+                            'REFERENCE: ${_selectedExercise?.name ?? 'EXERCISE'}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      height: 480,
+                      child: SmplxViewerWidget(
+                        key: ValueKey('ref_$backendExercise'),
+                        sessionId: backendExercise,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           // Bottom: Analysis Results Section
           _buildAnalysisOverview(theme),
           const SizedBox(height: 32),
@@ -573,6 +820,7 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
       ),
     );
   }
+
 
   Widget _buildExerciseSelector(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
@@ -1062,10 +1310,10 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
                       mainAxisSpacing: 24,
                       childAspectRatio: isMobile ? 2.0 : 1.7,
                       children: [
-                        _buildUploadCard(l10n, theme, 'angle_1', l10n.cameraAngleFront),
-                        _buildUploadCard(l10n, theme, 'angle_2', l10n.cameraAngleLeft),
-                        _buildUploadCard(l10n, theme, 'angle_3', l10n.cameraAngleBack),
-                        _buildUploadCard(l10n, theme, 'angle_4', l10n.cameraAngleRight),
+                        _buildUploadCard(l10n, theme, 'angle_1', 'Arrière Gauche (Lb)'),
+                        _buildUploadCard(l10n, theme, 'angle_2', 'Arrière Droite (RB)'),
+                        _buildUploadCard(l10n, theme, 'angle_3', 'Avant Droite (RF)'),
+                        _buildUploadCard(l10n, theme, 'angle_4', 'Avant Gauche (LF)'),
                       ],
                     ),
                     if (_selectedFiles.length == 4) ...[
@@ -1429,34 +1677,37 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
   }) {
     final isSelected = _selectedMethod == id;
     
-    return InkWell(
-      onTap: () {
-        setState(() => _selectedMethod = id);
-        // Auto-advance to next step for demo purposes
-        Future.delayed(const Duration(milliseconds: 300), () {
-          setState(() => _currentStep = 2);
-        });
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 220),
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isSelected ? theme.primaryColor : theme.dividerColor.withOpacity(0.1),
-              width: isSelected ? 2 : 1,
+    return Container(
+      decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? theme.primaryColor : theme.dividerColor.withOpacity(0.1),
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-        ),
-        child: Column(
+          ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() => _selectedMethod = id);
+            // Auto-advance to next step for demo purposes
+            Future.delayed(const Duration(milliseconds: 300), () {
+              setState(() => _currentStep = 2);
+            });
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 220),
+            padding: const EdgeInsets.all(24),
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1486,6 +1737,8 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
           ],
         ),
       ),
+    ),
+    ),
     );
   }
 

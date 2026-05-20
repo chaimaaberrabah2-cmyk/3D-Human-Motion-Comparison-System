@@ -25,10 +25,12 @@ class AnalysisRepositoryImpl implements AnalysisRepository {
   @override
   Future<String> analyzeVideos({
     required Map<String, dynamic> videos,
+    required String exercise,
   }) async {
     try {
       // Délègue l'envoi des vidéos à la source de données distante
-      return await remoteDataSource.analyzeVideos(videoData: videos);
+      return await remoteDataSource.analyzeVideos(videoData: videos, exercise: exercise);
+
     } catch (e) {
       // Relève l'exception — peut être transformée en erreur domaine si nécessaire
       rethrow;

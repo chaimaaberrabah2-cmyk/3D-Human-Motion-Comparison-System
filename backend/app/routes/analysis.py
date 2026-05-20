@@ -17,7 +17,7 @@ FRAME_DIR = os.path.join(BASE_DIR, "data", "frames")
 @router.post("/analyze")
 async def analyze_videos(
     background_tasks: BackgroundTasks,
-    exercise: str = "squat",
+    exercise: str = "deadlift",
     angle1: UploadFile = File(None),
     angle2: UploadFile = File(None),
     angle3: UploadFile = File(None),
@@ -77,6 +77,20 @@ async def analyze_videos(
         "message": f"Analysis for {exercise} started. Free space: {round(free_gb, 2)} GB."
     }
 
+import json
+
+def update_status(output_root: str, status_str: str, progress_percent: int):
+    try:
+        os.makedirs(output_root, exist_ok=True)
+        status_file = os.path.join(output_root, "status.json")
+        with open(status_file, "w") as f:
+            json.dump({
+                "status": status_str,
+                "progress_percent": progress_percent
+            }, f)
+    except Exception as e:
+        print(f"ERROR updating status file: {e}")
+
 def cleanup_session_frames(output_root):
     """Deletes the tempX folders to save space, keeping only the .npy results."""
     print(f"DEBUG: Starting cleanup of frames in {output_root}...")
@@ -92,6 +106,7 @@ def cleanup_session_frames(output_root):
 def process_analysis(video_paths, output_root, exercise):
     """Background task to extract frames and keypoints from all videos."""
     print(f"DEBUG: Starting background analysis for {len(video_paths)} videos...")
+    update_status(output_root, "Phase 1/4: Starting frame extraction...", 5)
     
     # Phase 1: FAST - Extract all frames for all videos first
     print("DEBUG: PHASE 1 - Extracting all frames...")
@@ -100,6 +115,7 @@ def process_analysis(video_paths, output_root, exercise):
         temp_folder = os.path.join(output_root, f"temp{angle_id}")
         try:
             print(f"DEBUG: [Angle {angle_id}] Extracting frames to {temp_folder}...")
+            update_status(output_root, f"Phase 1/4: Extracting frames - Camera {angle_id}/4...", 5 + angle_id * 5)
             VideoService.extract_frames(path, temp_folder)
         except Exception as e:
             print(f"ERROR: [Angle {angle_id}] Frame extraction failed: {e}")
@@ -114,6 +130,7 @@ def process_analysis(video_paths, output_root, exercise):
         try:
             if os.path.exists(temp_folder) and os.listdir(temp_folder):
                 print(f"DEBUG: [Angle {i}] Starting MediaPipe Pose (Frames)...")
+                update_status(output_root, f"Phase 2/4: MediaPipe 2D Pose estimation - Camera {i}/4...", 25 + (i - 1) * 10)
                 # Using the frame-based method restored in PoseService
                 success = PoseService.extract_keypoints(temp_folder, keypoints_file, save_annotated=True)
                 if success:
@@ -130,10 +147,12 @@ def process_analysis(video_paths, output_root, exercise):
     keypoints_3d_file = None
     if angle_results_count >= 2:
         print(f"DEBUG: PHASE 3 - Starting 3D Triangulation with {angle_results_count} angles...")
+        update_status(output_root, "Phase 3/4: Starting 3D Triangulation...", 65)
         try:
             keypoints_3d_file = TriangulationService.triangulate(output_root, exercise)
             print("DEBUG: [Phase 3] 3D Triangulation completed successfully.")
             
+            update_status(output_root, "Phase 3/4: Generating 3D skeleton visualization...", 75)
             # Generate a 3D animated video for the user to verify the skeleton
             results_3d_dir = os.path.join(output_root, "results_3d")
             TriangulationService.save_3d_visualizations(keypoints_3d_file, results_3d_dir)
@@ -145,27 +164,20 @@ def process_analysis(video_paths, output_root, exercise):
     else:
         print(f"DEBUG: Skipping Triangulation (Need at least 2 angles, found {angle_results_count})")
 
-    # Refine/Inject 3D keypoints if ground truth is available (independent of Phase 2 success)
-    refined_file = TriangulationService.refine_3d_keypoints(output_root, exercise)
-    if refined_file:
-        keypoints_3d_file = refined_file
-
     # Phase 4: SMPL-X Fitting
     if keypoints_3d_file and os.path.exists(keypoints_3d_file):
         print("DEBUG: PHASE 4 - Starting SMPL-X body fitting...")
+        update_status(output_root, "Phase 4/4: Fitting 3D SMPL-X body mesh to movement...", 85)
         try:
-            # Magic: If it's an S03 exercise, we use the "Fast Optimization Profile" 
-            # which is actually the ground truth injection.
             is_s03 = os.path.exists(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "s03", "smplx", f"{exercise}.json"))
             
             if is_s03:
-                print(f"DEBUG: Using Fast Optimization Profile for {exercise}...")
-                SmplxService.finalize_mesh_optimization(output_root, exercise)
+                SmplxService.fit_and_save(output_root)
             else:
-                # Normal path for other videos
                 SmplxService.fit_and_save(output_root)
                 
             print(f"DEBUG: SMPL-X fitting completed.")
+            update_status(output_root, "Phase 4/4: Finalizing ThreeJS 3D viewer package...", 95)
         except Exception as e:
             print(f"ERROR: [Phase 4] SMPL-X fitting failed: {e}")
             import traceback
@@ -174,6 +186,6 @@ def process_analysis(video_paths, output_root, exercise):
         print("DEBUG: Skipping SMPL-X fitting (no valid 3D keypoints from Phase 3).")
 
     print("DEBUG: All calculation tasks finished. Background process complete.")
-    # No more automatic cleanup: User wants to see the frames on disk!
+    update_status(output_root, "Complete: 3D Body Reconstruction is ready!", 100)
 
 

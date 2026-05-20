@@ -21,5 +21,6 @@ abstract class AnalysisRepository {
   /// [videos] : map nom_angle → données vidéo (bytes sur Web, chemin sur Mobile/Desktop).
   Future<String> analyzeVideos({
     required Map<String, dynamic> videos,
+    required String exercise,
   });
 }

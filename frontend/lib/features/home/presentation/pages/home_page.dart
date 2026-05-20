@@ -25,6 +25,7 @@ import '../widgets/home_header.dart';
 import '../widgets/search_filter_bar.dart';
 import '../widgets/exercise_grid.dart';
 import 'exercise_detail_page.dart';
+import '../../../analysis/data/datasources/analysis_remote_datasource.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -34,19 +35,33 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List<Exercise> allExercises = getMockExercises();
+  List<Exercise> allExercises = [];
   List<Exercise> filteredExercises = [];
   String searchQuery = '';
   String selectedFilter = 'All';
   String _username = 'User';
   String _role = 'user';
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadUsernameAndRole();
-    filteredExercises = allExercises;
+    _fetchDatabaseExercises();
   }
+
+  Future<void> _fetchDatabaseExercises() async {
+    final dataSource = AnalysisRemoteDataSource();
+    final list = await dataSource.fetchMovements();
+    if (mounted) {
+      setState(() {
+        allExercises = list;
+        filteredExercises = list;
+        _isLoading = false;
+      });
+    }
+  }
+
 
   Future<void> _loadUsernameAndRole() async {
     final prefs = await SharedPreferences.getInstance();
@@ -131,10 +146,14 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 24),
         
         Expanded(
-          child: ExerciseGrid(
-            exercises: filteredExercises,
-            onExerciseTapped: _onExerciseTapped,
-          ),
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+              : ExerciseGrid(
+                  exercises: filteredExercises,
+                  onExerciseTapped: _onExerciseTapped,
+                ),
         ),
       ],
     );

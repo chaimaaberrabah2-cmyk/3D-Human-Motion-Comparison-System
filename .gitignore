@@ -51,3 +51,7 @@ CLEAN_ARCHITECTURE_GUIDE.md
 PROJECT_STRUCTURE.md
 exhaustive_project_guide.html
 venv310/
+
+# Ignore macOS AppleDouble files
+._*
+**/._*

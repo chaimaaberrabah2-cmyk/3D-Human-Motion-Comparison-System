@@ -37,16 +37,17 @@ class TriangulationService:
         Raises:
             Exception: If any of the required 2D angle keypoint files are missing.
         """
-        # Step 1: Mapping aligned with run_analysis.py camera order.
-        # Maps the sequential angles to their corresponding hardware camera identifier.
-        # Video 1: 50591643Lb, Video 2: 58860488RB, Video 3: 60457274RF, Video 4: 65906101LF
-        camera_ids = ["50591643Lb", "58860488RB", "60457274RF", "65906101LF"]
+        # Step 1: Custom test camera ordering.
+        # Video 1: Lb, Video 2: Rb, Video 3: Rf, Video 4: Lf
+        camera_ids = ["Lb", "Rb", "Rf", "Lf"]
         
         # Determine base directory for calibration files.
         backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         calib_root = os.path.join(backend_dir, "data", "calibration", "camera_parameters")
         
-        print(f"DEBUG: Starting triangulation for exercise: {exercise_name}")
+        # Use custom calibration file.
+        exercise_name = "ikram_dataset"
+        print(f"DEBUG (pipeline_test): Starting triangulation for exercise: {exercise_name}")
         
         projection_matrices = []
         K_matrices = []
