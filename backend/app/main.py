@@ -21,6 +21,28 @@ Interactive documentation: http://127.0.0.1:8000/docs
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import analysis, auth, cameras, sessions, movements
+from app.database.setup import engine, SessionLocal
+from app.database.models import Movement
+from sqlalchemy import text
+
+# Auto-migrate DB (Added for barbell equipment)
+try:
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE movements ADD COLUMN IF NOT EXISTS equipment VARCHAR(100);"))
+        conn.execute(text("ALTER TABLE movements ADD COLUMN IF NOT EXISTS equipment_orientation JSONB;"))
+    db = SessionLocal()
+    deadlift = db.query(Movement).filter(Movement.name == 'deadlift').first()
+    if deadlift:
+        deadlift.equipment = 'barbell'
+        deadlift.equipment_orientation = {
+            "ax": 0.00, "ay": 0.00, "az": 0.00, 
+            "bx": 0.02, "by": -0.07, "bz": -0.10
+        }
+        db.commit()
+    db.close()
+except Exception as e:
+    print(f"DB Migration error: {e}")
+
 
 # Create the main FastAPI application
 app = FastAPI(

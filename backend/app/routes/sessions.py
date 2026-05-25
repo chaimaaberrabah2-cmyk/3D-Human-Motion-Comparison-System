@@ -13,7 +13,7 @@ import json
 import math
 import threading
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel
 from typing import Optional
 
@@ -46,29 +46,12 @@ async def get_session_status(session_id: str):
     has_viewer = os.path.exists(os.path.join(session_path, "smplx_threejs.json"))
     refit_info = _refit_status.get(session_id, None)
 
-    # Read dynamic status file
-    status_file = os.path.join(session_path, "status.json")
-    status_msg = "Initializing..."
-    prog_pct = int((sum([phase1, phase2, phase3, phase4]) / 4) * 100)
-    comparison_results = None
-    if os.path.exists(status_file):
-        try:
-            with open(status_file, "r") as f:
-                s_data = json.load(f)
-                status_msg = s_data.get("status", status_msg)
-                prog_pct = s_data.get("progress_percent", prog_pct)
-                comparison_results = s_data.get("comparison_results", None)
-        except Exception:
-            pass
-
     return {
         "session_id":      session_id,
-        "progress_percent": prog_pct,
+        "progress_percent": int((sum([phase1, phase2, phase3, phase4]) / 4) * 100),
         "is_complete":     phase4,
         "has_smplx_viewer": has_viewer,
         "refit":           refit_info,
-        "status_message":  status_msg,
-        "comparison_results": comparison_results,
         "phases": {
             "phase1_frames_extracted": phase1,
             "phase2_pose_estimated":   phase2,
@@ -76,7 +59,6 @@ async def get_session_status(session_id: str):
             "phase4_smplx_fitted":     phase4,
         },
     }
-
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -87,14 +69,9 @@ async def get_smplx_data(session_id: str):
     json_path = os.path.join(_session_dir(session_id), "smplx_threejs.json")
     if not os.path.exists(json_path):
         raise HTTPException(404, "SMPL-X data not ready yet.")
-
-    def iter_file():
-        with open(json_path, "rb") as f:
-            while chunk := f.read(1024 * 1024):  # 1 MB chunks
-                yield chunk
-
-    from starlette.responses import StreamingResponse
-    return StreamingResponse(iter_file(), media_type="application/json")
+    with open(json_path, "r") as f:
+        data = json.load(f)
+    return JSONResponse(content=data)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -171,10 +148,23 @@ async def refit_session(session_id: str, body: RefitRequest):
 # ──────────────────────────────────────────────────────────────────────────────
 @router.get("/{session_id}/viewer", response_class=HTMLResponse)
 async def get_smplx_viewer(session_id: str):
+    from app.database.setup import SessionLocal
+    from app.database.models import Movement
+    
+    db = SessionLocal()
+    movement = db.query(Movement).filter(Movement.name == session_id).first()
+    db.close()
+    
+    # Orientation par défaut si non trouvée
+    orient = {"ax": -1.571, "ay": 0.0, "az": -1.658, "by": 0.90}
+    if movement and movement.orientation:
+        orient = movement.orientation
+
     json_path = os.path.join(_session_dir(session_id), "smplx_threejs.json")
     if not os.path.exists(json_path):
         return HTMLResponse(content=_loading_page(session_id), status_code=200)
-    return HTMLResponse(content=_viewer_html(session_id), status_code=200)
+        
+    return HTMLResponse(content=_viewer_html(session_id, orient), status_code=200)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -202,10 +192,22 @@ def _loading_page(session_id: str) -> str:
 </body></html>"""
 
 
-def _viewer_html(session_id: str) -> str:
-    api_url   = f"http://127.0.0.1:8000/api/v1/sessions/{session_id}/smplx"
-    refit_url = f"http://127.0.0.1:8000/api/v1/sessions/{session_id}/refit"
-
+def _viewer_html(session_id: str, orient: dict, equip_type: str = None, equip_orient: dict = None) -> str:
+    api_url = f"/api/v1/sessions/{session_id}/smplx"
+    refit_url = f"/api/v1/sessions/{session_id}/refit"
+    
+    # Valeurs par défaut
+    ax = orient.get("ax", -1.571)
+    ay = orient.get("ay", 0.0)
+    az = orient.get("az", -1.658)
+    by = orient.get("by", 0.90)
+    
+    equip_orient = equip_orient or {"ax": 0.00, "ay": 1.48, "az": 0.00, "bx": 0.02, "by": -0.07, "bz": -0.10}
+    bax, bay, baz = equip_orient.get("ax", 0), equip_orient.get("ay", 0), equip_orient.get("az", 0)
+    bbx, bby, bbz = equip_orient.get("bx", 0), equip_orient.get("by", 0), equip_orient.get("bz", 0)
+    
+    show_barbell_ui = 'flex' if equip_type == 'barbell' else 'none'
+    
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -241,18 +243,22 @@ body {{ background:#080818; overflow:hidden; font-family:'Segoe UI',sans-serif; 
 #ui button:hover {{ opacity:.75; }}
 #frame-label {{ font-size:11px; color:#aaa; min-width:80px; text-align:center; }}
 
-/* ── Orientation control panel ── */
-#orient-panel {{
+/* ── Side panels container ── */
+.side-panels {{
   position:fixed; right:16px; top:50%; transform:translateY(-50%);
-  background:rgba(10,10,30,0.85); backdrop-filter:blur(14px);
-  border:1px solid rgba(108,99,255,0.3); border-radius:16px;
-  padding:16px; display:none !important; flex-direction:column; gap:10px;
-  width:200px; color:#fff;
+  display:flex; flex-direction:column; gap:12px; z-index:100;
 }}
-#orient-panel h4 {{
+.ctrl-panel {{
+  background:rgba(10,10,30,0.85); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+  border:1px solid rgba(108,99,255,0.3); border-radius:16px;
+  padding:16px; display:flex; flex-direction:column; gap:10px;
+  width:210px; color:#fff;
+}}
+.ctrl-panel h4 {{
   font-size:12px; color:#6c63ff; letter-spacing:.8px;
   text-transform:uppercase; margin-bottom:2px; text-align:center;
 }}
+.ctrl-panel.bar-panel h4 {{ color:#ff9f43; }}
 .axis-row {{
   display:flex; align-items:center; gap:6px;
 }}
@@ -265,10 +271,15 @@ body {{ background:#080818; overflow:hidden; font-family:'Segoe UI',sans-serif; 
   transition:background .15s; flex:1;
 }}
 .axis-row button:hover {{ background:rgba(108,99,255,0.55); }}
+.bar-panel .axis-row button {{
+  background:rgba(255,159,67,0.2); border-color:rgba(255,159,67,0.4);
+}}
+.bar-panel .axis-row button:hover {{ background:rgba(255,159,67,0.45); }}
 .val-display {{
   font-size:11px; color:#6c63ff; width:42px; text-align:right;
   font-variant-numeric:tabular-nums;
 }}
+.bar-panel .val-display {{ color:#ff9f43; }}
 #orient-values {{
   font-size:10px; color:#555; text-align:center; line-height:1.6;
   background:rgba(0,0,0,0.3); border-radius:8px; padding:6px;
@@ -321,45 +332,37 @@ body {{ background:#080818; overflow:hidden; font-family:'Segoe UI',sans-serif; 
   <button id="btn-rotate">🔄 Auto Rotate</button>
 </div>
 
-<!-- Orientation panel -->
-<div id="orient-panel" style="display:none">
-  <h4>🎯 Orientation</h4>
+<!-- Side panels -->
+<div class="side-panels" style="display:none" id="panels-container">
 
-  <div class="axis-row">
-    <span class="axis-label">X</span>
-    <button onclick="rotateAxis('x',-1)">−</button>
-    <button onclick="rotateAxis('x', 1)">+</button>
-    <span class="val-display" id="val-x">-1.57</span>
-  </div>
-  <div class="axis-row">
-    <span class="axis-label">Y</span>
-    <button onclick="rotateAxis('y',-1)">−</button>
-    <button onclick="rotateAxis('y', 1)">+</button>
-    <span class="val-display" id="val-y">0.00</span>
-  </div>
-  <div class="axis-row">
-    <span class="axis-label">Z</span>
-    <button onclick="rotateAxis('z',-1)">−</button>
-    <button onclick="rotateAxis('z', 1)">+</button>
-    <span class="val-display" id="val-z">-1.66</span>
-  </div>
-
-  <div style="border-top:1px solid rgba(108,99,255,0.2);padding-top:8px;">
-    <div style="font-size:10px;color:#6c63ff;text-align:center;margin-bottom:6px;letter-spacing:.5px;">⬆ POSITION Y ⬇</div>
-    <div class="axis-row">
-      <span class="axis-label" style="font-size:16px;">↕</span>
-      <button onclick="moveY(1)">↑ Haut</button>
-      <button onclick="moveY(-1)">↓ Bas</button>
-      <span class="val-display" id="val-ty">0.90</span>
+  <!-- Panel 1: SMPL-X Orientation -->
+  <div class="ctrl-panel">
+    <h4>🎯 Orientation SMPL-X</h4>
+    <div class="axis-row"><span class="axis-label">X</span><button onclick="rotateAxis('x',-1)">−</button><button onclick="rotateAxis('x', 1)">+</button><span class="val-display" id="val-x">0</span></div>
+    <div class="axis-row"><span class="axis-label">Y</span><button onclick="rotateAxis('y',-1)">−</button><button onclick="rotateAxis('y', 1)">+</button><span class="val-display" id="val-y">0</span></div>
+    <div class="axis-row"><span class="axis-label">Z</span><button onclick="rotateAxis('z',-1)">−</button><button onclick="rotateAxis('z', 1)">+</button><span class="val-display" id="val-z">0</span></div>
+    <div style="border-top:1px solid rgba(108,99,255,0.2);padding-top:8px;">
+      <div class="axis-row"><span class="axis-label">↕</span><button onclick="moveY(1)">↑</button><button onclick="moveY(-1)">↓</button><span class="val-display" id="val-ty">0</span></div>
     </div>
+    <div id="orient-values">ax={ax:.3f}  ay={ay:.3f}  az={az:.3f}  by={by:.2f}</div>
+    <button id="btn-copy" onclick="copyOrientation()" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:6px;font-size:10px;cursor:pointer;">📋 Copier</button>
+    <button id="btn-validate" onclick="validateOrientation()">✅ Valider &amp; Recalculer</button>
+    <div id="refit-status"></div>
   </div>
 
-  <div id="orient-values">ax=-1.571  ay=0.000  az=-1.658</div>
+  <!-- Panel 2: Barbell Orientation -->
+  <div class="ctrl-panel bar-panel" style="display:{show_barbell_ui};">
+    <h4>🏋️ Barbell Orientation</h4>
+    <div class="axis-row"><span class="axis-label">ax</span><button onclick="moveBar('ax',-1)">−</button><button onclick="moveBar('ax',1)">+</button><span class="val-display" id="val-bax">0</span></div>
+    <div class="axis-row"><span class="axis-label">ay</span><button onclick="moveBar('ay',-1)">−</button><button onclick="moveBar('ay',1)">+</button><span class="val-display" id="val-bay">0</span></div>
+    <div class="axis-row"><span class="axis-label">az</span><button onclick="moveBar('az',-1)">−</button><button onclick="moveBar('az',1)">+</button><span class="val-display" id="val-baz">0</span></div>
+    <div style="border-top:1px solid rgba(255,159,67,0.2);margin-top:4px;padding-top:8px;"></div>
+    <div class="axis-row"><span class="axis-label">bx</span><button onclick="moveBar('bx',-1)">−</button><button onclick="moveBar('bx',1)">+</button><span class="val-display" id="val-bbx">0</span></div>
+    <div class="axis-row"><span class="axis-label">by</span><button onclick="moveBar('by',-1)">−</button><button onclick="moveBar('by',1)">+</button><span class="val-display" id="val-bby">0</span></div>
+    <div class="axis-row"><span class="axis-label">bz</span><button onclick="moveBar('bz',-1)">−</button><button onclick="moveBar('bz',1)">+</button><span class="val-display" id="val-bbz">0</span></div>
+    <div id="bar-values" style="font-size:10px;color:#555;text-align:center;background:rgba(0,0,0,0.3);border-radius:8px;padding:6px;margin-top:4px;">ax=0 ay=0 az=0<br>bx=0 by=0 bz=0</div>
+  </div>
 
-  <button id="btn-validate" onclick="validateOrientation()">
-    ✅ Valider &amp; Recalculer
-  </button>
-  <div id="refit-status"></div>
 </div>
 
 <!-- Three.js -->
@@ -370,9 +373,28 @@ body {{ background:#080818; overflow:hidden; font-family:'Segoe UI',sans-serif; 
 // ── Orientation state (in radians, accumulates UI button presses) ──────────
 const STEP   = Math.PI / 36;   // 5° per rotation click
 const STEP_T = 0.05;           // 5 cm per translation click
-let userOrient  = {{ x: -1.571, y: 0.0, z: -1.658 }};
-let meshOffsetY = 0.90;        // hauteur par défaut trouvée par l'utilisateur
+let userOrient  = {{ x: {ax}, y: {ay}, z: {az} }};
+let meshOffsetY = {by};
 let meshGroup   = null;
+let barbell     = null;
+let barOff = {{ ax: {bax}, ay: {bay}, az: {baz}, bx: {bbx}, by: {bby}, bz: {bbz} }};
+const BAR_POS_STEP = 0.01;
+const BAR_ROT_STEP = Math.PI / 36;
+
+function moveBar(axis, sign) {{
+  if (axis === 'ax' || axis === 'ay' || axis === 'az') barOff[axis] += sign * BAR_ROT_STEP;
+  else barOff[axis] += sign * BAR_POS_STEP;
+  document.getElementById('val-bax').textContent = barOff.ax.toFixed(3);
+  document.getElementById('val-bay').textContent = barOff.ay.toFixed(3);
+  document.getElementById('val-baz').textContent = barOff.az.toFixed(3);
+  document.getElementById('val-bbx').textContent = barOff.bx.toFixed(3);
+  document.getElementById('val-bby').textContent = barOff.by.toFixed(3);
+  document.getElementById('val-bbz').textContent = barOff.bz.toFixed(3);
+  document.getElementById('bar-values').innerHTML =
+    'ax=' + barOff.ax.toFixed(2) + ' ay=' + barOff.ay.toFixed(2) + ' az=' + barOff.az.toFixed(2) + '<br>' +
+    'bx=' + barOff.bx.toFixed(2) + ' by=' + barOff.by.toFixed(2) + ' bz=' + barOff.bz.toFixed(2);
+  if (window.applyBarbellOffset) window.applyBarbellOffset();
+}}
 
 function rotateAxis(axis, sign) {{
   userOrient[axis] += sign * STEP;
@@ -384,14 +406,28 @@ function rotateAxis(axis, sign) {{
   document.getElementById('val-x').textContent = userOrient.x.toFixed(2);
   document.getElementById('val-y').textContent = userOrient.y.toFixed(2);
   document.getElementById('val-z').textContent = userOrient.z.toFixed(2);
-  document.getElementById('orient-values').textContent =
-    `ax=${{userOrient.x.toFixed(3)}}  ay=${{userOrient.y.toFixed(3)}}  az=${{userOrient.z.toFixed(3)}}`;
+  updateOrientLabel();
 }}
 
 function moveY(sign) {{
   meshOffsetY += sign * STEP_T;
   if (meshGroup) meshGroup.position.y = meshOffsetY;
   document.getElementById('val-ty').textContent = meshOffsetY.toFixed(2);
+  updateOrientLabel();
+}}
+
+function updateOrientLabel() {{
+  document.getElementById('orient-values').textContent =
+    `ax=${{userOrient.x.toFixed(3)}}  ay=${{userOrient.y.toFixed(3)}}  az=${{userOrient.z.toFixed(3)}}  by=${{meshOffsetY.toFixed(2)}}`;
+}}
+
+function copyOrientation() {{
+  const text = `orientation = {{"ax": ${{userOrient.x.toFixed(3)}}, "ay": ${{userOrient.y.toFixed(3)}}, "az": ${{userOrient.z.toFixed(3)}}, "by": ${{meshOffsetY.toFixed(2)}}}}`;
+  navigator.clipboard.writeText(text);
+  const btn = document.getElementById('btn-copy');
+  const oldText = btn.textContent;
+  btn.textContent = '✅ Copié !';
+  setTimeout(() => btn.textContent = oldText, 2000);
 }}
 
 async function validateOrientation() {{
@@ -540,6 +576,22 @@ function pollRefitStatus() {{
     jMeshes.push(jm);
   }}
 
+  // ── Equipment ────────────────────────────────────────────────────────────────
+  if ('{equip_type}' === 'barbell') {{
+    const g = new THREE.Group();
+    const barGeo = new THREE.CylinderGeometry(0.014, 0.014, 2.2, 12);
+    const barMat = new THREE.MeshStandardMaterial({{ color:0xbbbbbb, metalness:0.85, roughness:0.15 }});
+    const bar = new THREE.Mesh(barGeo, barMat);
+    bar.rotation.z = Math.PI / 2;
+    g.add(bar);
+    const plateGeo = new THREE.CylinderGeometry(0.20, 0.20, 0.07, 32);
+    const plateMat = new THREE.MeshStandardMaterial({{ color:0x111111, metalness:0.3, roughness:0.6 }});
+    const lp = new THREE.Mesh(plateGeo, plateMat); lp.position.x = -0.8; lp.rotation.z = Math.PI/2; g.add(lp);
+    const rp = lp.clone(); rp.position.x = 0.8; g.add(rp);
+    meshGroup.add(g);
+    barbell = g;
+  }}
+
   // Animation loop
   let currentFrame = 0, playing = true, autoRotate = false, lastTime = 0;
   const FPS = meta.fps || 30, FRAME_MS = 1000/FPS;
@@ -559,9 +611,31 @@ function pollRefitStatus() {{
         jArr[j*3+2] + mesh.position.z,
       );
     }}
+    if (window.applyBarbellOffset) window.applyBarbellOffset();
+
     document.getElementById('frame-label').textContent =
       'Frame ' + fi + ' / ' + (nFrames-1);
   }}
+
+  window.applyBarbellOffset = function() {{
+    if (barbell && meta.n_joints > 21) {{
+      const pL = jMeshes[20].position, pR = jMeshes[21].position;
+      // Appliquer les positions (bx, by, bz)
+      barbell.position.set(
+        (pL.x + pR.x) / 2 + barOff.bx,
+        (pL.y + pR.y) / 2 + barOff.by,
+        (pL.z + pR.z) / 2 + barOff.bz
+      );
+      // Aligner la barre entre les poignets
+      const dir = new THREE.Vector3().subVectors(pR, pL).normalize();
+      barbell.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), dir);
+      
+      // Appliquer les rotations relatives aux axes globaux (pour que ce soit visible et intuitif)
+      barbell.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), barOff.ax);
+      barbell.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), barOff.ay);
+      barbell.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), barOff.az);
+    }}
+  }};
 
   function animate(time) {{
     requestAnimationFrame(animate);
@@ -579,6 +653,20 @@ function pollRefitStatus() {{
   document.getElementById('loading').style.display  = 'none';
   document.getElementById('status').style.display   = 'block';
   document.getElementById('ui').style.display       = 'flex';
+  document.getElementById('panels-container').style.display = 'flex';
+  document.getElementById('val-x').textContent = userOrient.x.toFixed(2);
+  document.getElementById('val-y').textContent = userOrient.y.toFixed(2);
+  document.getElementById('val-z').textContent = userOrient.z.toFixed(2);
+  document.getElementById('val-ty').textContent = meshOffsetY.toFixed(2);
+  document.getElementById('val-bax').textContent = barOff.ax.toFixed(3);
+  document.getElementById('val-bay').textContent = barOff.ay.toFixed(3);
+  document.getElementById('val-baz').textContent = barOff.az.toFixed(3);
+  document.getElementById('val-bbx').textContent = barOff.bx.toFixed(3);
+  document.getElementById('val-bby').textContent = barOff.by.toFixed(3);
+  document.getElementById('val-bbz').textContent = barOff.bz.toFixed(3);
+  document.getElementById('bar-values').innerHTML =
+    'ax=' + barOff.ax.toFixed(2) + ' ay=' + barOff.ay.toFixed(2) + ' az=' + barOff.az.toFixed(2) + '<br>' +
+    'bx=' + barOff.bx.toFixed(2) + ' by=' + barOff.by.toFixed(2) + ' bz=' + barOff.bz.toFixed(2);
   requestAnimationFrame(animate);
 
   // Playback controls

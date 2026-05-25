@@ -30,19 +30,33 @@ def run_pipeline(exercise_name):
             print(f"  - {m}")
         return
 
-    # Dossier de sortie
-    output_root = os.path.join(current_dir, "backend", "data", "frames", exercise_name)
+    # Dossier de sortie principal sur le SSD (pour ne pas saturer le disque local)
+    output_root = f"/Volumes/Ikram's SSD/3D-Human-Motion-Comparison-System/resultat/frames/{exercise_name}"
     os.makedirs(output_root, exist_ok=True)
     
-    print(f"📂 Sortie: {output_root}")
+    # Dossier local juste pour le viewer
+    local_viewer_dir = os.path.join(current_dir, "backend", "data", "frames", exercise_name)
+    os.makedirs(local_viewer_dir, exist_ok=True)
     
-    # Lancer le traitement complet (Step 1 à 4)
+    print(f"📂 Traitement complet sur SSD: {output_root}")
+    
+    # Lancer le traitement complet (Step 1 à 4) sur le SSD
     try:
         process_analysis(
             video_paths=video_paths,
             output_root=output_root,
             exercise=exercise_name
         )
+        
+        # Copier uniquement le JSON localement pour que le viewer web fonctionne
+        import shutil
+        ssd_json = os.path.join(output_root, "smplx_threejs.json")
+        local_json = os.path.join(local_viewer_dir, "smplx_threejs.json")
+        
+        if os.path.exists(ssd_json):
+            shutil.copy2(ssd_json, local_json)
+            print(f"✅ Fichier JSON copié localement pour le viewer: {local_json}")
+            
         print(f"\n✅ Pipeline terminé avec succès pour {exercise_name}!")
         print(f"🔗 Visualisation: http://localhost:8000/api/v1/sessions/{exercise_name}/viewer")
     except Exception as e:

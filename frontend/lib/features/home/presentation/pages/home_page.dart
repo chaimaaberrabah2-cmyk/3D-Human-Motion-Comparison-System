@@ -18,6 +18,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../../../core/navigation/navigation_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/exercise.dart';
@@ -25,7 +27,6 @@ import '../widgets/home_header.dart';
 import '../widgets/search_filter_bar.dart';
 import '../widgets/exercise_grid.dart';
 import 'exercise_detail_page.dart';
-import '../../../analysis/data/datasources/analysis_remote_datasource.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -47,21 +48,29 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _loadUsernameAndRole();
-    _fetchDatabaseExercises();
+    _fetchExercises();
   }
 
-  Future<void> _fetchDatabaseExercises() async {
-    final dataSource = AnalysisRemoteDataSource();
-    final list = await dataSource.fetchMovements();
-    if (mounted) {
-      setState(() {
-        allExercises = list;
-        filteredExercises = list;
-        _isLoading = false;
-      });
+  Future<void> _fetchExercises() async {
+    try {
+      final response = await http.get(Uri.parse('http://localhost:8000/api/v1/movements/'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        if (mounted) {
+          setState(() {
+            allExercises = data.map((item) => Exercise.fromJson(item)).toList();
+            filteredExercises = allExercises;
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching exercises: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
-
 
   Future<void> _loadUsernameAndRole() async {
     final prefs = await SharedPreferences.getInstance();
@@ -146,14 +155,12 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 24),
         
         Expanded(
-          child: _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(),
-                )
-              : ExerciseGrid(
-                  exercises: filteredExercises,
-                  onExerciseTapped: _onExerciseTapped,
-                ),
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : ExerciseGrid(
+                exercises: filteredExercises,
+                onExerciseTapped: _onExerciseTapped,
+              ),
         ),
       ],
     );

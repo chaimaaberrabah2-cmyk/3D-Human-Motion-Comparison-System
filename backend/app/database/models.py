@@ -65,16 +65,23 @@ class Movement(Base):
     difficulty = Column(String(50))
     instructions = Column(JSONB)
     thumbnail_path = Column(String(500))
-    reference_video_path = Column(String(500))
+    reference_video_path = Column(JSONB)
+    
+    # Custom orientation parameters (ax, ay, az, by)
+    orientation = Column(JSONB)
+    
+    # Equipment parameters
+    equipment = Column(String(100), nullable=True) # e.g. "barbell", "dumbbells"
+    equipment_orientation = Column(JSONB, nullable=True) # e.g. {"ax": 0, "ay": 1.48...}
     
     # Camera parameters (intrinsics, extrinsics of the lab cameras)
     camera_calibration = Column(JSONB)
     
-    # Reference SMPL-X parameters
-    smpl_ref = Column(JSONB)
+    # Reference SMPL-X parameters (Path to JSON)
+    smpl_ref = Column(String(500))
     
-    # Reference 3D joints
-    joints_3d = Column(JSONB)
+    # Reference 3D joints (Path to NPY)
+    joints_3d = Column(String(500))
     
     # Reference orientation and equipment (stored in PostgreSQL)
     orientation = Column(JSONB)

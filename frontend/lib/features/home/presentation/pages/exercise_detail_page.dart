@@ -1,47 +1,43 @@
 // ============================================================
 // lib/features/home/presentation/pages/exercise_detail_page.dart
 // ============================================================
+// Page affichant les détails complets d'un exercice spécifique.
+//
+// Affiche une grande image d'en-tête (avec Hero animation depuis la Home),
+// le nom, la difficulté, le mode d'analyse, la description et les
+// instructions étape par étape.
+// Un bouton "Démarrer l'analyse" permet de basculer vers l'onglet
+// Nouvelle Analyse (sélectionne l'index 3 du NavigationProvider).
+// ============================================================
+
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 import '../../../analysis/presentation/pages/new_analysis_page.dart';
-import '../../../analysis/presentation/widgets/smplx_viewer_widget.dart';
-import '../../../../core/navigation/navigation_provider.dart';
 
-class ExerciseDetailPage extends StatefulWidget {
+class ExerciseDetailPage extends StatelessWidget {
   final Exercise exercise;
+
   const ExerciseDetailPage({Key? key, required this.exercise}) : super(key: key);
-
-  @override
-  State<ExerciseDetailPage> createState() => _ExerciseDetailPageState();
-}
-
-class _ExerciseDetailPageState extends State<ExerciseDetailPage> {
-
-  String _getBackendExerciseName(Exercise exercise) {
-    final name = exercise.name.toLowerCase();
-    if (name.contains('squat')) return 'squat';
-    if (name.contains('deadlift')) return 'deadlift';
-    if (name.contains('push')) return 'pushup';
-    if (name.contains('lateral')) return 'side_lateral_raise';
-    return name.replaceAll(' ', '_');
-  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
-    final exercise = widget.exercise;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isDesktop = constraints.maxWidth > 900;
+
           return CustomScrollView(
             slivers: [
+              // 1. App Bar / Hero Image Section
               SliverAppBar(
                 expandedHeight: isDesktop ? 400 : 300,
                 pinned: true,
@@ -58,119 +54,199 @@ class _ExerciseDetailPageState extends State<ExerciseDetailPage> {
                   ),
                 ),
                 flexibleSpace: FlexibleSpaceBar(
-                  background: Hero(
-                    tag: 'exercise_${exercise.id}',
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            theme.primaryColor.withOpacity(0.8),
-                            theme.scaffoldBackgroundColor,
-                          ],
+                  background: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Hero Image
+                      Hero(
+                        tag: 'exercise_${exercise.id}',
+                        child: Image.asset(
+                          exercise.imagePath,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: theme.primaryColor.withOpacity(0.1),
+                              child: Center(
+                                child: Icon(
+                                  Icons.fitness_center,
+                                  size: 100,
+                                  color: theme.iconTheme.color?.withOpacity(0.2),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                      child: Center(
-                        child: Icon(Icons.fitness_center, size: 100, color: Colors.white.withOpacity(0.3)),
+                      // Gradient Overlay for readability
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.3),
+                              Colors.transparent,
+                              theme.scaffoldBackgroundColor,
+                            ],
+                            stops: const [0.0, 0.5, 1.0],
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ),
+
+              // 2. Content Section
               SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: isDesktop ? constraints.maxWidth * 0.1 : 24,
+                    horizontal: isDesktop ? constraints.maxWidth * 0.15 : 24,
                     vertical: 24,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Title & Difficulty
+                      // Title & Difficulty Badge
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            child: Text(exercise.name, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                            child: Text(
+                              exercise.name, // Nom propre
+                              style: theme.textTheme.displaySmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: theme.textTheme.titleLarge?.color,
+                              ),
+                            ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
                               color: _getDifficultyColor(exercise.difficulty).withOpacity(0.2),
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: _getDifficultyColor(exercise.difficulty)),
+                              border: Border.all(
+                                color: _getDifficultyColor(exercise.difficulty),
+                                width: 1,
+                              ),
                             ),
                             child: Text(
                               _getLocalizedDifficulty(context, exercise.difficulty),
                               style: theme.textTheme.labelMedium?.copyWith(
-                                color: _getDifficultyColor(exercise.difficulty), fontWeight: FontWeight.bold,
+                                color: _getDifficultyColor(exercise.difficulty),
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text(_getLocalizedCategory(context, exercise.category),
-                        style: theme.textTheme.titleMedium?.copyWith(color: theme.primaryColor, fontWeight: FontWeight.w500)),
+                      Text(
+                        _getLocalizedCategory(context, exercise.category),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.primaryColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+
                       const SizedBox(height: 32),
 
                       // Description
-                      Text(l10n.descriptionLabel, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                      Text(
+                        l10n.descriptionLabel,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 12),
-                      Text(exercise.description, style: theme.textTheme.bodyLarge?.copyWith(height: 1.6, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8))),
+                      Text(
+                        exercise.description,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          height: 1.6,
+                          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8),
+                        ),
+                      ),
+
                       const SizedBox(height: 32),
 
                       // Instructions
-                      Text(l10n.instructionsLabel, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                      Text(
+                        l10n.instructionsLabel,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       ...exercise.instructions.asMap().entries.map((entry) {
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: theme.cardColor,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 32, height: 32,
-                                  decoration: BoxDecoration(color: theme.primaryColor, borderRadius: BorderRadius.circular(10)),
-                                  child: Center(child: Text('${entry.key + 1}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: theme.primaryColor.withOpacity(0.1),
+                                  shape: BoxShape.circle,
                                 ),
-                                const SizedBox(width: 16),
-                                Expanded(child: Text(entry.value, style: theme.textTheme.bodyLarge?.copyWith(height: 1.5))),
-                              ],
-                            ),
+                                child: Center(
+                                  child: Text(
+                                    (entry.key + 1).toString(),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.primaryColor,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  entry.value,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       }).toList(),
 
                       const SizedBox(height: 40),
 
-                      // 3D Title
-                      Text(l10n.motionVisualization, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-
+                      // 3D Model Viewer
+                      Text(
+                        l10n.motionVisualization,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 16),
-
-                      // SMPL Viewer
-                        Container(
-                          width: double.infinity, height: 380,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 15, offset: const Offset(0, 8))],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(24),
-                            child: SmplxViewerWidget(key: ValueKey('s_${_getBackendExerciseName(exercise)}'), sessionId: _getBackendExerciseName(exercise)),
+                      Container(
+                        width: double.infinity,
+                        height: 500, // Plus grand pour mieux voir
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: theme.primaryColor.withOpacity(0.3)),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: InAppWebView(
+                            initialUrlRequest: URLRequest(
+                              url: WebUri('http://localhost:8000/api/v1/movements/${exercise.name}/viewer'),
+                            ),
+                            initialSettings: InAppWebViewSettings(
+                              transparentBackground: true,
+                              supportZoom: false,
+                            ),
                           ),
                         ),
+                      ),
 
-                      const SizedBox(height: 100),
+                      const SizedBox(height: 100), // Bottom padding for FAB
                     ],
                   ),
                 ),
@@ -181,14 +257,17 @@ class _ExerciseDetailPageState extends State<ExerciseDetailPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
+          // Navigate to New Analysis Page pre-selected for this exercise (future work)
+          // For now, just go to New Analysis Page
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => NewAnalysisPage(initialExercise: exercise),
-            ),
+            MaterialPageRoute(builder: (context) => const NewAnalysisPage()),
           );
         },
-        label: Text(l10n.startAnalysis, style: const TextStyle(fontWeight: FontWeight.bold)),
+        label: Text(
+          l10n.startAnalysis, 
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         icon: const Icon(Icons.play_arrow_rounded),
         backgroundColor: theme.primaryColor,
         foregroundColor: Colors.white,
@@ -196,49 +275,46 @@ class _ExerciseDetailPageState extends State<ExerciseDetailPage> {
     );
   }
 
-  Widget _buildViewerHeader(String title, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Row(children: [
-        Icon(Icons.accessibility_new, color: color, size: 18),
-        const SizedBox(width: 8),
-        Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: color, letterSpacing: 0.5)),
-      ]),
-    );
-  }
-
   String _getLocalizedCategory(BuildContext context, String category) {
     final l10n = AppLocalizations.of(context)!;
     switch (category.toLowerCase()) {
-      case 'strength': return l10n.strength;
-      case 'mobility': return l10n.mobility;
-      case 'bodyweight': return l10n.bodyWeight;
-      case 'rehab': return l10n.rehab;
-      default: return category;
+      case 'strength':
+        return l10n.strength;
+      case 'mobility':
+        return l10n.mobility;
+      case 'bodyweight':
+        return l10n.bodyWeight;
+      case 'rehab':
+        return l10n.rehab;
+      default:
+        return category;
     }
   }
 
   String _getLocalizedDifficulty(BuildContext context, String difficulty) {
     final l10n = AppLocalizations.of(context)!;
     switch (difficulty.toLowerCase()) {
-      case 'beginner': return l10n.beginner;
-      case 'intermediate': return l10n.intermediate;
-      case 'advanced': return l10n.advanced;
-      default: return difficulty;
+      case 'beginner':
+        return l10n.beginner;
+      case 'intermediate':
+        return l10n.intermediate;
+      case 'advanced':
+        return l10n.advanced;
+      default:
+        return difficulty;
     }
   }
 
   Color _getDifficultyColor(String difficulty) {
     switch (difficulty.toLowerCase()) {
-      case 'beginner': return Colors.green;
-      case 'intermediate': return Colors.orange;
-      case 'advanced': return Colors.red;
-      default: return Colors.blue;
+      case 'beginner':
+        return Colors.green;
+      case 'intermediate':
+        return Colors.orange;
+      case 'advanced':
+        return Colors.red;
+      default:
+        return Colors.blue;
     }
   }
 }

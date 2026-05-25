@@ -23,22 +23,15 @@
 
 /// Représente un exercice physique dans la bibliothèque de l'application.
 class Exercise {
-  /// Identifiant unique de l'exercice.
   final int id;
-  /// Nom de l'exercice affiché dans l'interface.
   final String name;
-  /// Catégorie de l'exercice (Force, Mobilité, Rééducation…).
   final String category;
-  /// Chemin vers l'image de démonstration dans les assets.
   final String imagePath;
-  /// Mode d'analyse Mocap associé à cet exercice.
   final String mode;
-  /// Description complète de l'exercice.
   final String description;
-  /// Niveau de difficulté (Débutant, Intermédiaire, Avancé).
   final String difficulty;
-  /// Liste des étapes d'exécution de l'exercice.
   final List<String> instructions;
+  final String? smplRef; // Chemin vers le JSON Three.js
 
   Exercise({
     required this.id,
@@ -49,7 +42,22 @@ class Exercise {
     required this.description,
     required this.difficulty,
     required this.instructions,
+    this.smplRef,
   });
+
+  factory Exercise.fromJson(Map<String, dynamic> json) {
+    return Exercise(
+      id: json['movement_id'],
+      name: json['name'],
+      category: json['category'] ?? 'Musculation',
+      imagePath: 'assets/exercises/squat.png', // Fallback image
+      mode: '3D Analysis',
+      description: json['description'] ?? '',
+      difficulty: json['difficulty'] ?? 'Beginner',
+      instructions: List<String>.from(json['instructions'] ?? []),
+      smplRef: json['smpl_ref'],
+    );
+  }
 }
 
 /// Retourne une liste d'exercices fictifs pour le développement et la démonstration.

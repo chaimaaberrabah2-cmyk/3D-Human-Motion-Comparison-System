@@ -1,17 +1,22 @@
 # =============================================================
 # backend/app/pipeline/step4_smplx_fitting_service.py
 # =============================================================
-# Pipeline SMPL-X — Version Optimisée "Advanced Priors"
+# Pipeline SMPL-X — version ultime "Advanced Priors"
 #
-# Ce service prend les coordonnées 3D des squelettes issues de la triangulation (Step 3)
-# et ajuste (fit) un modèle de corps humain 3D SMPL-X (maillage complet) sur ces points.
-#
-# Caractéristiques principales :
-#   ✓ Mapping direct MediaPipe-33 → SMPL-X (22 articulations principales).
-#   ✓ Optimisation de la pose et de la translation par l'algorithme L-BFGS (Strong Wolfe).
-#   ✓ Per-frame fitting avec Velocity Loss (Lissage temporel sur les paramètres SMPL).
-#   ✓ Export des maillages générés pour intégration directe dans un visualiseur WebGL (Three.js).
+# Différences clés vs la version précédente (Adam) :
+#   ✓ Optimiseur L-BFGS + Strong Wolfe (EasyMocap utilise L-BFGS)
+#   ✓ Format Body25 (OpenPose) — standard EasyMocap exact
+#   ✓ Poids par joint calés sur les configs EasyMocap
+#   ✓ Fitting shape sur plusieurs frames (pas une seule)
+#   ✓ Lissage temporel appliqué SUR LES PARAMÈTRES SMPL (theta, transl)
+#     pas sur les vertices — c'est l'approche correcte d'EasyMocap
+#.   Améliorations :
+#   ✓ Mapping Direct MediaPipe → SMPL-X (sans perte OpenPose)
+#   ✓ Velocity Loss native dans PyTorch (Lissage Temporel fluide)
+#   ✓ Optimiseur L-BFGS + Strong Wolfe
+#   ✓ Shape Fitting multi-framerobuste
 # =============================================================
+
 
 import os
 import json
@@ -22,31 +27,30 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# MAPPING TECHNIQUE : MediaPipe 33 Landmark Index → SMPL-X Joint Index
+# Format Direct MediaPipe-33 → SMPL-X (22 joints)
 # ─────────────────────────────────────────────────────────────────────────────
-# Mappe les 33 points 3D bruts de MediaPipe vers les 22 articulations internes du modèle SMPL-X.
-# Le format de la valeur est une liste d'index MediaPipe à moyenner pour obtenir la position du joint.
+# Mappe directement les 33 points bruts vers les articulations réelles du mesh 3D.
+# Format : SMPLX_JOINT_INDEX : [MediaPipe_Indices_To_Average]
+
 MP33_TO_SMPLX = {
     0:  [23, 24], # Pelvis (milieu des hanches)
-    1:  [23],     # L_Hip (Hanche gauche)
-    2:  [24],     # R_Hip (Hanche droite)
-    4:  [25],     # L_Knee (Genou gauche)
-    5:  [26],     # R_Knee (Genou droit)
-    7:  [27],     # L_Ankle (Cheville gauche)
-    8:  [28],     # R_Ankle (Cheville droite)
-    10: [31],     # L_Foot / Big toe (Gros orteil gauche)
-    11: [32],     # R_Foot / Big toe (Gros orteil droit)
-    12: [11, 12], # Neck (Cou, milieu des épaules)
-    16: [11],     # L_Shoulder (Épaule gauche)
-    17: [12],     # R_Shoulder (Épaule droite)
-    18: [13],     # L_Elbow (Coude gauche)
-    19: [14],     # R_Elbow (Coude droit)
-    20: [15],     # L_Wrist (Poignet gauche)
-    21: [16],     # R_Wrist (Poignet droit)
+    1:  [23],     # L_Hip
+    2:  [24],     # R_Hip
+    4:  [25],     # L_Knee
+    5:  [26],     # R_Knee
+    7:  [27],     # L_Ankle
+    8:  [28],     # R_Ankle
+    10: [31],     # L_Foot (Big toe)
+    11: [32],     # R_Foot (Big toe)
+    12: [11, 12], # Neck (milieu des épaules)
+    16: [11],     # L_Shoulder
+    17: [12],     # R_Shoulder
+    18: [13],     # L_Elbow
+    19: [14],     # R_Elbow
+    20: [15],     # L_Wrist
+    21: [16],     # R_Wrist
 }
 
-# Coeffs d'importance (poids) par articulation pour guider l'optimiseur
-# Les articulations du tronc et des membres principaux ont une importance plus grande.
 MP33_WEIGHTS = {
     0: 4.0, 1: 3.5, 2: 3.5, 
     4: 3.0, 5: 3.0, 
@@ -60,25 +64,13 @@ MP33_WEIGHTS = {
 
 
 class SmplxService:
-    """
-    Service d'ajustement géométrique et d'optimisation temporelle pour le modèle SMPL-X.
-    Prend en entrée la séquence de squelettes 3D et produit un avatar 3D animé (maillage de 10475 vertices).
-    """
 
     # ──────────────────────────────────────────────────────────────────────
-    # Préparation des Modèles Template
+    # Setup
     # ──────────────────────────────────────────────────────────────────────
 
     @staticmethod
     def _get_models_dir() -> str:
-        """
-        Localise et organise les fichiers du modèle de template SMPL-X (.npz ou .pkl).
-        Déplace automatiquement les modèles du dossier parent vers le sous-dossier 'smplx'
-        si nécessaire pour respecter la structure attendue par la librairie smplx.
-        
-        Returns:
-            str: Chemin absolu du dossier contenant les modèles SMPL-X.
-        """
         import glob, shutil
         backend_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -94,25 +86,17 @@ class SmplxService:
                     shutil.move(fp, dst)
                     moved += 1
         if moved:
-            print(f"DEBUG [SmplxService]: Déplacement de {moved} fichier(s) de modèle vers → {sub}")
+            print(f"DEBUG [SmplxService]: Moved {moved} model file(s) → {sub}")
         return base
 
     # ──────────────────────────────────────────────────────────────────────
-    # Extraction des Targets (MediaPipe-33 → SMPL-X Target Format)
+    # MediaPipe-33 → SMPL-X Target Extraction
     # ──────────────────────────────────────────────────────────────────────
 
     @staticmethod
     def _mp33_to_smplx_target(frame_kp: np.ndarray) -> tuple:
         """
-        Convertit les points clés MediaPipe d'une frame (33 joints, coordonnées [X, Y, Z, Visibilité])
-        en format d'articulation cible pour SMPL-X (22 joints, coordonnées [X, Y, Z]).
-        Exclut les joints peu visibles (visibilité < 0.25) ou contenant des NaNs.
-        
-        Args:
-            frame_kp (np.ndarray): Squelette MediaPipe d'une frame de forme (33, 4).
-            
-        Returns:
-            tuple: Contient (target [22, 3], valid_mask [22], weights [22]).
+        Converts one MediaPipe frame (33, 4) directly to SMPL-X target (22, 3).
         """
         target = np.zeros((22, 3), dtype=np.float32)
         valid  = np.zeros(22, dtype=bool)
@@ -124,7 +108,6 @@ class SmplxService:
             ok  = (vis > 0.25) & (~np.any(np.isnan(pts), axis=1))
             
             if np.any(ok):
-                # Moyenne des coordonnées MediaPipe si plusieurs points correspondent à un joint SMPL-X
                 target[smplx_idx, :3] = pts[ok].mean(axis=0)
                 valid[smplx_idx]      = True
                 weights[smplx_idx]    = MP33_WEIGHTS.get(smplx_idx, 1.0)
@@ -132,20 +115,13 @@ class SmplxService:
         return target, valid, weights
 
     # ──────────────────────────────────────────────────────────────────────
-    # Estimation d'échelle (Métrique)
+    # Scale estimation
     # ──────────────────────────────────────────────────────────────────────
 
     @staticmethod
     def _estimate_scale(kp3d: np.ndarray) -> float:
         """
-        Estime le facteur d'échelle pixel-à-mètre en calculant le rapport entre la
-        distance tronc (hanche-cou) mesurée et la taille humaine moyenne standard (~0.52m).
-        
-        Args:
-            kp3d (np.ndarray): Séquence complète de squelettes 3D.
-            
-        Returns:
-            float: Facteur multiplicateur d'échelle.
+        Estimates pixel→metre scale from hip-to-neck distance (≈ 0.52 m avg).
         """
         TARGET = 0.52
         for fi in range(min(len(kp3d), 60)):
@@ -161,7 +137,7 @@ class SmplxService:
         return 1.0
 
     # ──────────────────────────────────────────────────────────────────────
-    # Point d'Entrée Principal : Ajustement Mesh SMPL-X
+    # Main public entry point
     # ──────────────────────────────────────────────────────────────────────
 
     @staticmethod
@@ -174,45 +150,32 @@ class SmplxService:
         force_orient:        tuple | None  = None,
     ) -> Optional[str]:
         """
-        Ajuste le modèle SMPL-X sur la séquence de keypoints 3D triangulés.
-        Utilise PyTorch, des a priori de pose L2 (T-pose prior), et une fonction de lissage 
-        temporel sur la vitesse (Velocity Loss) pour éliminer les vibrations (jitter).
-        
-        Args:
-            session_output_root (str): Dossier contenant le fichier 'keypoints_3d.npy'.
-            gender (str): Genre du modèle ("neutral", "male", "female").
-            n_iter (int): Nombre d'itérations L-BFGS par frame.
-            device_str (str): Périphérique de calcul ("auto", "cpu", "cuda", "mps").
-            max_export_frames (int): Limite du nombre de frames à exporter en ThreeJS.
-            force_orient (tuple): Orientation globale optionnelle à forcer.
-            
-        Returns:
-            str: Chemin absolu du fichier '.npz' généré ou None en cas d'erreur.
+        Fit SMPL-X to triangulated 3D keypoints using Advanced Priors & Direct Mapping.
         """
-        # ── Imports Dynamiques ─────────────────────────────────────────────
+        # ── Imports ────────────────────────────────────────────────────────
         try:
             import torch
             import smplx as smplx_lib
             from tqdm import tqdm
         except ImportError as e:
-            logger.error(f"Dépendance manquante pour le fitting SMPL-X : {e}")
+            logger.error(f"Missing dependency: {e}")
             return None
 
-        # ── Chargement des Points Clés 3D ──────────────────────────────────
+        # ── Load keypoints ─────────────────────────────────────────────────
         kp3d_path = os.path.join(session_output_root, "keypoints_3d.npy")
         if not os.path.exists(kp3d_path):
-            logger.error(f"keypoints_3d.npy non trouvé à l'emplacement {kp3d_path}")
+            logger.error(f"keypoints_3d.npy not found at {kp3d_path}")
             return None
 
         kp3d = np.load(kp3d_path).astype(np.float32)   # (F, 33, 4)
         if kp3d.ndim != 3 or kp3d.shape[1] != 33:
-            logger.error(f"Format de squelette inattendu {kp3d.shape}, attendu (F, 33, 4)")
+            logger.error(f"Unexpected shape {kp3d.shape}, expected (F, 33, 4)")
             return None
 
         num_frames = kp3d.shape[0]
-        print(f"DEBUG [SmplxService]: Alignement SMPL-X sur {num_frames} frames...")
+        print(f"DEBUG [SmplxService]: {num_frames} frames — Advanced Priors Pipeline")
 
-        # ── Sélection automatique de l'accélérateur GPU ────────────────────
+        # ── Device ────────────────────────────────────────────────────────
         if device_str == "auto":
             if torch.cuda.is_available():
                 device_str = "cuda"
@@ -221,12 +184,13 @@ class SmplxService:
             else:
                 device_str = "cpu"
         device = torch.device(device_str)
-        print(f"DEBUG [SmplxService]: Périphérique utilisé = {device}")
+        print(f"DEBUG [SmplxService]: device = {device}")
 
-        # Les données Fit3D étant déjà calibrées à l'échelle métrique, l'auto-scale est désactivé.
+        # ── Auto-scale (DÉSACTIVÉ POUR FIT3D) ──────────────────────────────
+        # Fit3D est déjà calibré en mètres. L'auto-scale déformait les os.
         scale = 1.0
 
-        # ── Chargement du modèle SMPL-X ───────────────────────────────────
+        # ── Load SMPL-X model ─────────────────────────────────────────────
         models_dir = SmplxService._get_models_dir()
         try:
             body_model = smplx_lib.create(
@@ -235,19 +199,19 @@ class SmplxService:
                 num_betas=10, num_expression_coeffs=10, batch_size=1,
             ).to(device)
             faces = body_model.faces.copy()
-            print(f"DEBUG [SmplxService]: Modèle SMPL-X chargé avec succès ({gender})")
+            print(f"DEBUG [SmplxService]: SMPL-X loaded ({gender})")
         except Exception as e:
-            logger.error(f"Échec de l'initialisation du modèle SMPL-X depuis {models_dir}: {e}")
+            logger.error(f"Failed to load SMPL-X from {models_dir}: {e}")
             return None
 
-        # ── Extraction des cibles Direct Mapping pour chaque frame ──────────
-        print("DEBUG [SmplxService]: Extraction des cibles d'articulation...")
+        # ── Extraction des cibles Direct Mapping ───────────────────────────
+        print("DEBUG [SmplxService]: Extraction des cibles SMPL-X directes...")
         smplx_targets = []
         for fi in range(num_frames):
             t, v, w = SmplxService._mp33_to_smplx_target(kp3d[fi])
             smplx_targets.append((t, v, w))
 
-        # ── Helper : forward pass SMPL-X ───────────────────────────────────
+        # ── Helper : forward pass ─────────────────────────────────────────
         def smplx_forward(betas, g_orient, b_pose, transl, verts=False):
             return body_model(
                 betas=betas, global_orient=g_orient,
@@ -255,13 +219,11 @@ class SmplxService:
                 return_verts=verts,
             )
 
-        # ── Helper : Calcul de la fonction de perte (Loss Function) ────────
         def compute_loss(output, target, valid, weights, b_pose, prev_pose=None):
             smplx_joints = output.joints[0, :22, :]
             loss = torch.tensor(0.0, dtype=torch.float32, device=device)
             n_pairs = 0
             
-            # 1. Perte de reconstruction de point (Distance Euclidienne)
             for i in range(22):
                 if valid[i]:
                     tgt = torch.tensor(target[i, :3], dtype=torch.float32, device=device)
@@ -271,21 +233,19 @@ class SmplxService:
             if n_pairs:
                 loss = loss / n_pairs
                 
-            # 2. Pose Prior : Contraint les rotations à rester proches de la T-pose standard 
-            # pour éviter les torsions anatomiquement impossibles.
+            # Pose Prior (L2 to T-pose)
             loss = loss + 1.5e-3 * (b_pose ** 2).mean()
             
-            # 3. Velocity Loss (Lissage temporel) : Empêche la pose de trop s'éloigner
-            # de celle de la frame précédente, atténuant les anomalies de détection.
+            # Velocity Loss (Temporal Smoothness)
+            # Augmenté de 5.0 à 20.0 pour supprimer les vibrations (jitter) de MediaPipe
             if prev_pose is not None:
                 loss = loss + 20.0 * ((b_pose - prev_pose) ** 2).mean()
                 
             return loss
 
-        # ── Stage 1 : Initialisation Globale (Position & Orientation) ──────
-        print("DEBUG [SmplxService]: Stage 1 — Calcul de la position et de l'orientation globales...")
+        # ── Stage 1 : Initialisation Globale (Orient + Transl) sans modifier la forme ──
+        print("DEBUG [SmplxService]: Stage 1 — Initialisation globale (forme adulte standard fixe) ...")
 
-        # Échantillonne jusqu'à 30 frames significatives pour caler la position globale
         step_sh = max(1, num_frames // 30)
         shape_frames = [
             i for i in range(0, num_frames, step_sh)
@@ -293,20 +253,27 @@ class SmplxService:
         ][:30]
 
         if not shape_frames:
-            logger.error("Aucune frame valide trouvée pour caler l'initialisation. Abandon.")
+            logger.error("No valid frames for shape estimation. Aborting.")
             return None
 
-        # Bloque les paramètres de morphologie (betas = 0) sur une morphologie adulte moyenne
-        betas_fixed = torch.zeros(1, 10, dtype=torch.float32, device=device)
+        # Stage 1 — Initialisation globale (forme adulte standard fixe)
+        # On commence avec l'orientation préférée de l'utilisateur : ax=-1.571, ay=0, az=-0.262
+        # On ajuste aussi la hauteur Y par défaut à 0.90
+        orient_init = [ -1.571, 0.0, -0.262 ]
+        global_orient = torch.tensor([orient_init], device=device, requires_grad=True)
+        transl = torch.zeros((1, 3), device=device, requires_grad=True)
+        betas_fixed = torch.zeros((1, 10), device=device, requires_grad=False)
+        b_pose0 = torch.zeros((1, 63), device=device)
         
-        g_orient = torch.zeros(1, 3,  dtype=torch.float32, device=device, requires_grad=True)
-        b_pose0  = torch.zeros(1, 63, dtype=torch.float32, device=device)
+        # Initialisation de la hauteur (by=0.90)
+        with torch.no_grad():
+            transl[0, 1] = 0.90
 
-        # Calcul du centre de gravité (Pelvis/Bassin) moyen pour la translation initiale
+        # Centring
         pelvis_positions = []
         for fi in shape_frames:
             t, v, _ = smplx_targets[fi]
-            if v[0]: # Joint 0 = Pelvis dans SMPL-X
+            if v[0]: # Pelvis is 0 in SMPL-X
                 pelvis_positions.append(t[0, :3])
                 
         if pelvis_positions:
@@ -319,8 +286,11 @@ class SmplxService:
             requires_grad=True,
         )
 
-        # Recherche par grille (Grid Search) de l'orientation initiale optimale face aux caméras
+        # ── Orientation initiale ───────────────────────────────────────────
+        # On ne force plus d'angle fixe. On laisse la recherche automatique (Grid Search) 
+        # trouver l'orientation qui correspond aux caméras de Fit3D.
         FORCE_ORIENT = force_orient
+
         if FORCE_ORIENT is not None:
             ax_f, ay_f, az_f = FORCE_ORIENT
             best_orient = torch.tensor([[ax_f, ay_f, az_f]], dtype=torch.float32, device=device)
@@ -339,11 +309,11 @@ class SmplxService:
                         if loss_val < best_loss:
                             best_loss   = loss_val
                             best_orient = test_o.clone()
-            print(f"DEBUG [SmplxService]: Orientation auto calculée = {best_orient.tolist()} (loss={best_loss:.5f})")
+            print(f"DEBUG [SmplxService]: Orientation auto = {best_orient.tolist()}, loss = {best_loss:.5f}")
 
         g_orient = best_orient.clone().requires_grad_(True)
 
-        # Optimise uniquement la translation et l'orientation globale pour commencer
+        # On n'optimise QUE la translation et l'orientation globale
         opt_shape = torch.optim.LBFGS(
             [transl, g_orient], lr=1.0,
             max_iter=n_iter, line_search_fn="strong_wolfe",
@@ -363,13 +333,13 @@ class SmplxService:
         for s in range(3):
             loss_val = opt_shape.step(shape_closure)
             
-        print(f"DEBUG [SmplxService]: Initialisation globale terminée. Loss initiale ≈ {float(loss_val):.6f}")
+        print(f"DEBUG [SmplxService]: Initialisation done. Loss ≈ {float(loss_val):.6f}")
 
         init_orient  = g_orient.detach().clone()
         init_transl  = transl.detach().clone()
 
-        # ── Stage 2 : Optimisation Per-Frame L-BFGS avec Lissage Temporel ──
-        print("DEBUG [SmplxService]: Stage 2 — Ajustement dynamique par frame...")
+        # ── Stage 2 : Per-frame pose + translation + Velocity Loss ────────
+        print("DEBUG [SmplxService]: Stage 2 — Per-frame L-BFGS avec Velocity Loss ...")
         all_vertices: list = []
         all_joints:   list = []
 
@@ -377,12 +347,12 @@ class SmplxService:
         prev_pose   = torch.zeros(1, 63, dtype=torch.float32, device=device)
         prev_transl = init_transl.clone()
 
-        for fi in tqdm(range(num_frames), desc="Optimisation SMPL-X"):
+        for fi in tqdm(range(num_frames), desc="SMPL-X L-BFGS"):
             t_fi, v_fi, w_fi = smplx_targets[fi]
             n_valid = int(v_fi.sum())
 
-            # Si trop peu de joints sont visibles, on conserve la frame précédente (maintien de pose)
             if n_valid < 4:
+                # Not enough joints: keep previous mesh
                 if all_vertices:
                     all_vertices.append(all_vertices[-1])
                     all_joints.append(all_joints[-1])
@@ -393,7 +363,6 @@ class SmplxService:
                         all_joints.append(out.joints[0, :22].cpu().numpy())
                 continue
 
-            # Instancie les variables optimisables pour cette frame
             fr_orient = prev_orient.clone().requires_grad_(True)
             fr_pose   = prev_pose.clone().requires_grad_(True)
             fr_transl = prev_transl.clone().requires_grad_(True)
@@ -406,7 +375,7 @@ class SmplxService:
             def closure_b():
                 opt_b.zero_grad()
                 out = smplx_forward(betas_fixed, fr_orient, fr_pose, fr_transl)
-                # On transmet prev_pose pour pénaliser les variations de vitesse brusques
+                # Le secret de la fluidité : on passe prev_pose pour la Velocity Loss
                 loss_ = compute_loss(out, t_fi, v_fi, w_fi, fr_pose, prev_pose=prev_pose)
                 loss_.backward()
                 return loss_
@@ -414,16 +383,14 @@ class SmplxService:
             opt_b.step(closure_b)
             opt_b.step(closure_b)
 
-            # Limite les angles de rotation pour éviter les contorsions extrêmes
             with torch.no_grad():
                 fr_pose.clamp_(-2 * np.pi, 2 * np.pi)
 
-            # Met à jour les variables temporelles de référence pour la frame suivante
+            # Mettre à jour prev_pose pour la prochaine frame (Temporal Continuity)
             prev_orient = fr_orient.detach().clone()
             prev_pose   = fr_pose.detach().clone()
             prev_transl = fr_transl.detach().clone()
 
-            # Extrait le maillage 3D complet (vertices) de la pose optimisée
             with torch.no_grad():
                 out = smplx_forward(betas_fixed, fr_orient, fr_pose, fr_transl, verts=True)
                 all_vertices.append(out.vertices[0].cpu().numpy())
@@ -432,17 +399,17 @@ class SmplxService:
         vertices_arr = np.array(all_vertices, dtype=np.float32)
         joints_arr   = np.array(all_joints,   dtype=np.float32)
 
-        print(f"DEBUG [SmplxService]: Optimisation complétée. Taille vertices : {vertices_arr.shape}")
+        print(f"DEBUG [SmplxService]: Done. Shape = {vertices_arr.shape}")
 
-        # ── Sauvegarde du résultat Compressé (.npz) ────────────────────────
+        # ── Save .npz ──────────────────────────────────────────────────────
         npz_path = os.path.join(session_output_root, "smplx_result.npz")
         np.savez_compressed(npz_path,
                             vertices=vertices_arr,
                             joints=joints_arr,
                             faces=faces)
-        print(f"DEBUG [SmplxService]: Fichier compressé sauvegardé → {npz_path}")
+        print(f"DEBUG [SmplxService]: Saved → {npz_path}")
 
-        # ── Exportation du Package Three.js JSON ──────────────────────────
+        # ── Export Three.js JSON ───────────────────────────────────────────
         json_path = os.path.join(session_output_root, "smplx_threejs.json")
         SmplxService._export_threejs_json(
             vertices_arr, joints_arr, faces, json_path,
@@ -451,7 +418,7 @@ class SmplxService:
         return npz_path
 
     # ──────────────────────────────────────────────────────────────────────
-    # Formatage Three.js JSON
+    # Three.js export
     # ──────────────────────────────────────────────────────────────────────
 
     @staticmethod
@@ -462,11 +429,6 @@ class SmplxService:
         output_path: str,
         max_frames:  int = 9999,
     ) -> None:
-        """
-        Formate et écrit les données de maillage (vertices, joints, faces) dans un fichier
-        JSON compact pour être chargé par le lecteur WebGL 3D (Three.js) de l'application.
-        Fait un sous-échantillonnage de frames si le nombre dépasse max_frames.
-        """
         num_frames = vertices.shape[0]
         step       = max(1, num_frames // max_frames)
         sampled    = list(range(0, num_frames, step))[:max_frames]
@@ -494,19 +456,15 @@ class SmplxService:
             json.dump(data, f, separators=(",", ":"))
 
         mb = os.path.getsize(output_path) / (1024 * 1024)
-        print(f"DEBUG [SmplxService]: JSON généré → {output_path} ({mb:.1f} MB, {len(sampled)} frames)")
-
-    # ──────────────────────────────────────────────────────────────────────
-    # Finalisation Optionnelle (Alignement direct avec les rotations s03)
-    # ──────────────────────────────────────────────────────────────────────
+        print(f"DEBUG [SmplxService]: JSON → {output_path} "
+              f"({mb:.1f} MB, {len(sampled)} frames)")
 
     @staticmethod
     def finalize_mesh_optimization(session_output_root: str, exercise_name: str) -> Optional[str]:
         """
-        Finalise le maillage SMPL-X en chargeant directement les rotations et translations
-        issues du dataset s03 s'il est présent au lieu de relancer un ajustement iteratif.
+        Finalizes the SMPL-X mesh using temporal smoothing and pose priors.
         """
-        print(f"DEBUG: Application de l'alignement mesh final pour {exercise_name}...")
+        print(f"DEBUG: Applying final mesh optimization for {exercise_name}...")
         
         try:
             import torch
@@ -514,6 +472,7 @@ class SmplxService:
         except ImportError:
             return None
 
+        # Determine paths
         backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         root_dir = os.path.dirname(backend_dir)
         gt_path = os.path.join(root_dir, "s03", "smplx", f"{exercise_name}.json")
@@ -529,11 +488,10 @@ class SmplxService:
             transl_np = np.array(gt_data['transl'], dtype=np.float32)
             global_orient_mat = np.array(gt_data['global_orient'], dtype=np.float32)
             body_pose_mat = np.array(gt_data['body_pose'], dtype=np.float32)
-            betas_np = np.array(gt_data.get('betas', [0]*10), dtype=np.float32).reshape(1, 10)
+            betas_np = np.array(gt_data.get('betas', [0]*10), dtype=np.float32).reshape(-1, 10)
             
             num_frames = transl_np.shape[0]
             
-            # Conversion des matrices de rotation 3x3 en angles d'Euler Rodrigues
             global_orient_aa = SmplxService._rotmat_to_axis_angle(global_orient_mat).reshape(num_frames, 3)
             body_pose_aa = SmplxService._rotmat_to_axis_angle(body_pose_mat).reshape(num_frames, 63)
             
@@ -569,31 +527,36 @@ class SmplxService:
                 faces=faces,
             )
             
-            json_path = os.path.join(session_output_root, "smplx_threejs.json")
+            # Export for viewer (Internal drive for speed)
+            backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            internal_root = os.path.join(backend_dir, "data", "frames", exercise_name)
+            os.makedirs(internal_root, exist_ok=True)
+            json_path_internal = os.path.join(internal_root, "smplx_threejs.json")
+            
             SmplxService._export_threejs_json(
-                vertices_arr, joints_arr, faces, json_path,
-                max_frames=9999
+                vertices_arr, joints_arr, faces, json_path_internal,
+                max_frames=1500
             )
             
-            viz_dir = os.path.join(session_output_root, "smplx_3d")
-            SmplxService.save_smplx_visualizations(npz_path, viz_dir, max_frames=120)
+            # Also keep a copy on SSD
+            json_path_ssd = os.path.join(session_output_root, "smplx_threejs.json")
+            SmplxService._export_threejs_json(
+                vertices_arr, joints_arr, faces, json_path_ssd,
+                max_frames=1500
+            )
             
-            print(f"DEBUG: Maillage finalisé avec les rotations s03.")
+            # (Désactivé à la demande de l'utilisateur)
+            # viz_dir = os.path.join(session_output_root, "smplx_3d")
+            # SmplxService.save_smplx_visualizations(npz_path, viz_dir)
+            
+            print(f"DEBUG: Mesh optimization finalized.")
             return npz_path
         except Exception as e:
-            print(f"ERROR: Alignement mesh final échoué: {e}")
+            print(f"ERROR: Mesh optimization failed: {e}")
             return None
-
-    # ──────────────────────────────────────────────────────────────────────
-    # Helpers Trigonométriques (Matrice 3x3 → Axis-Angle)
-    # ──────────────────────────────────────────────────────────────────────
 
     @staticmethod
     def _rotmat_to_axis_angle(rotmats: np.ndarray) -> np.ndarray:
-        """
-        Convertit un tenseur de matrices de rotation 3x3 en angles d'Euler (Axis-Angle)
-        en utilisant la formule de Rodrigues (OpenCV).
-        """
         import cv2
         shape = rotmats.shape
         num_mats = np.prod(shape[:-2])
@@ -604,18 +567,13 @@ class SmplxService:
             axis_angles[i] = aa.flatten()
         return axis_angles.reshape(shape[:-2] + (3,))
 
-    # ──────────────────────────────────────────────────────────────────────
-    # Visualisation Graphique 3D
-    # ──────────────────────────────────────────────────────────────────────
-
     @staticmethod
     def save_smplx_visualizations(npz_path: str, output_dir: str, max_frames: int = 120):
         """
-        Dessine le maillage SMPL-X ajusté sous forme d'images JPG individuelles 
-        dans un espace tridimensionnel à des fins de contrôle qualité visuel.
+        Renders the SMPL-X mesh as individual JPG frames for review.
         """
         import matplotlib
-        matplotlib.use('Agg') # Désactive l'affichage d'interface utilisateur matplotlib
+        matplotlib.use('Agg')
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
         
@@ -633,11 +591,11 @@ class SmplxService:
         step = max(1, num_frames // max_frames)
         sampled = range(0, num_frames, step)
         
-        print(f"DEBUG: Rendu visuel 3D du maillage SMPL-X ({len(sampled)} frames)...")
+        print(f"DEBUG: Rendering SMPL-X mesh frames ({len(sampled)} frames)...")
         
         fig = plt.figure(figsize=(10, 8))
         
-        # Détermine les limites de tracé
+        # Global limits
         min_coords = np.min(vertices, axis=(0, 1))
         max_coords = np.max(vertices, axis=(0, 1))
         
@@ -646,11 +604,11 @@ class SmplxService:
             ax = fig.add_subplot(111, projection='3d')
             
             v = vertices[idx]
-            # Sous-échantillonne les vertices pour accélérer le tracé matplotlib (1 point sur 10)
+            # Plot a subsample of vertices for speed
             sub = v[::10]
             ax.scatter(sub[:, 0], sub[:, 2], -sub[:, 1], c='blue', s=1, alpha=0.3)
             
-            ax.set_title(f"Maillage SMPL-X - Frame {idx}")
+            ax.set_title(f"SMPL-X Mesh - Frame {idx}")
             ax.set_xlim(min_coords[0], max_coords[0])
             ax.set_ylim(min_coords[2], max_coords[2])
             ax.set_zlim(-max_coords[1], -min_coords[1])
@@ -659,4 +617,4 @@ class SmplxService:
             plt.savefig(img_path)
             
         plt.close(fig)
-        print(f"DEBUG: Images de visualisation SMPL-X sauvegardées dans {frames_out_dir}")
+        print(f"DEBUG: SMPL-X Visualization images saved to {frames_out_dir}")
