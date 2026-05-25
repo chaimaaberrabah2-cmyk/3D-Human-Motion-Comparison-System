@@ -67,21 +67,18 @@ class ExerciseCard extends StatelessWidget {
                     color: theme.scaffoldBackgroundColor,
                   ),
                   child: Hero(
-                    tag:
-                        'exercise_${exercise.id}', // Hero tag for smooth transition
+                    tag: 'exercise_${exercise.id}',
                     child: Image.asset(
                       exercise.imagePath,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        // Placeholder when image not found
                         return Container(
-                          color: theme.primaryColor.withValues(alpha: 0.1),
+                          color: theme.primaryColor.withOpacity(0.1),
                           child: Center(
                             child: Icon(
                               Icons.fitness_center,
-                              size: 64,
-                              color:
-                                  theme.iconTheme.color?.withValues(alpha: 0.5),
+                              size: 48,
+                              color: theme.iconTheme.color?.withOpacity(0.3),
                             ),
                           ),
                         );
@@ -191,5 +188,14 @@ class ExerciseCard extends StatelessWidget {
       return l10n.mobilityAnalysisMode;
     }
     return mode;
+  }
+
+  String _getBackendExerciseName(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('squat')) return 'squat';
+    if (lower.contains('deadlift')) return 'deadlift';
+    if (lower.contains('push')) return 'pushup';
+    if (lower.contains('lateral')) return 'side_lateral_raise';
+    return lower.replaceAll(' ', '_');
   }
 }

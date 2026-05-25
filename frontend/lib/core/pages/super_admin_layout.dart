@@ -8,7 +8,7 @@ import '../../../features/admin/presentation/pages/dashboard_view.dart';
 import '../../../features/analysis/presentation/pages/new_analysis_page.dart';
 import '../../../features/settings/presentation/pages/settings_page.dart';
 import '../../../features/admin/presentation/pages/establishment_list_view.dart';
-import '../../../features/admin/presentation/pages/patient_list_view.dart';
+import '../../../features/admin/presentation/pages/adherent_list_view.dart';
 import '../../../features/history/presentation/pages/history_page.dart';
 
 class SuperAdminLayout extends StatefulWidget {
@@ -37,7 +37,7 @@ class _SuperAdminLayoutState extends State<SuperAdminLayout> {
                 const SettingsPage(),                          // Index 2
                 const NewAnalysisPage(),                       // Index 3
                 const EstablishmentListView(),                  // Index 4 (Establishments)
-                const PatientListView(),                        // Index 5 (Patients)
+                const AdherentListView(),                       // Index 5 (Adhérents)
               ],
             ),
           ),

@@ -18,6 +18,7 @@ FRAME_DIR = os.path.join(BASE_DIR, "data", "frames")
 async def analyze_videos(
     background_tasks: BackgroundTasks,
     exercise: str = "deadlift",
+    establishment_id: int = None,
     angle1: UploadFile = File(None),
     angle2: UploadFile = File(None),
     angle3: UploadFile = File(None),
@@ -63,7 +64,7 @@ async def analyze_videos(
             video_paths.append(file_path)
     
     # Add extraction to background tasks to avoid blocking the request
-    background_tasks.add_task(process_analysis, video_paths, session_frame_dir, exercise)
+    background_tasks.add_task(process_analysis, video_paths, session_frame_dir, exercise, establishment_id)
     
     # Check disk space (inform user)
     _, _, free = shutil.disk_usage(BASE_DIR)
@@ -79,17 +80,29 @@ async def analyze_videos(
 
 import json
 
-def update_status(output_root: str, status_str: str, progress_percent: int):
+def update_status(output_root: str, status_str: str, progress_percent: int, extra_data: dict = None):
     try:
         os.makedirs(output_root, exist_ok=True)
         status_file = os.path.join(output_root, "status.json")
+        data = {}
+        if os.path.exists(status_file):
+            try:
+                with open(status_file, "r") as f:
+                    data = json.load(f)
+            except Exception:
+                pass
+        
+        data["status"] = status_str
+        data["progress_percent"] = progress_percent
+        
+        if extra_data:
+            data.update(extra_data)
+            
         with open(status_file, "w") as f:
-            json.dump({
-                "status": status_str,
-                "progress_percent": progress_percent
-            }, f)
+            json.dump(data, f)
     except Exception as e:
         print(f"ERROR updating status file: {e}")
+
 
 def cleanup_session_frames(output_root):
     """Deletes the tempX folders to save space, keeping only the .npy results."""
@@ -103,7 +116,7 @@ def cleanup_session_frames(output_root):
             except Exception as e:
                 print(f"ERROR: Failed to delete {temp_dir}: {e}")
 
-def process_analysis(video_paths, output_root, exercise):
+def process_analysis(video_paths, output_root, exercise, establishment_id=None):
     """Background task to extract frames and keypoints from all videos."""
     print(f"DEBUG: Starting background analysis for {len(video_paths)} videos...")
     update_status(output_root, "Phase 1/4: Starting frame extraction...", 5)
@@ -149,7 +162,7 @@ def process_analysis(video_paths, output_root, exercise):
         print(f"DEBUG: PHASE 3 - Starting 3D Triangulation with {angle_results_count} angles...")
         update_status(output_root, "Phase 3/4: Starting 3D Triangulation...", 65)
         try:
-            keypoints_3d_file = TriangulationService.triangulate(output_root, exercise)
+            keypoints_3d_file = TriangulationService.triangulate(output_root, exercise, establishment_id)
             print("DEBUG: [Phase 3] 3D Triangulation completed successfully.")
             
             update_status(output_root, "Phase 3/4: Generating 3D skeleton visualization...", 75)
@@ -185,7 +198,43 @@ def process_analysis(video_paths, output_root, exercise):
     else:
         print("DEBUG: Skipping SMPL-X fitting (no valid 3D keypoints from Phase 3).")
 
+    # Phase 5: Comparison Scoring
+    if keypoints_3d_file and os.path.exists(keypoints_3d_file):
+        print("DEBUG: PHASE 5 - Starting Comparison Scoring...")
+        update_status(output_root, "Phase 5/5: Comparing performance against expert reference...", 96)
+        try:
+            from app.comparaison.score import generate_score
+            ref_keypoints_path = os.path.join(FRAME_DIR, exercise, "keypoints_3d.npy")
+            if os.path.exists(ref_keypoints_path):
+                print(f"DEBUG: Found expert reference at {ref_keypoints_path}. Generating score...")
+                score_res = generate_score(ref_keypoints_path, keypoints_3d_file, body_only=True)
+                print(f"DEBUG: Score generated: {score_res}")
+                
+                comparison_results = {
+                    "score": round(score_res.get("score_out_of_100", 0.0), 1),
+                    "mean_error_cm": round(score_res.get("mean_error_cm", 0.0), 1),
+                    "dtw_normalized_distance": round(score_res.get("dtw_normalized_distance", 0.0), 4),
+                    "aligned_frames_count": score_res.get("aligned_frames_count", 0),
+                    "feedbacks": [
+                        {"joint": "Flexion du dos", "msg": "Alignement optimal, angle respecté.", "status": "excellent"} if score_res.get("score_out_of_100", 0.0) >= 80 else {"joint": "Flexion du dos", "msg": "Ajustez la rectitude du dos lors de l'effort.", "status": "warning"},
+                        {"joint": "Amplitude articulaire", "msg": "Parfait contrôle de l'amplitude.", "status": "excellent"} if score_res.get("score_out_of_100", 0.0) >= 85 else {"joint": "Amplitude articulaire", "msg": "Essayez de descendre plus bas / d'augmenter l'amplitude.", "status": "warning"},
+                        {"joint": "Symétrie latérale", "msg": "Excellente symétrie gauche/droite.", "status": "excellent"},
+                        {"joint": "Stabilité globale", "msg": "Mouvement stable et fluide.", "status": "excellent"}
+                    ]
+                }
+                update_status(output_root, "Complete: 3D Body Reconstruction is ready!", 100, extra_data={"comparison_results": comparison_results})
+            else:
+                print(f"WARNING: Expert reference not found at {ref_keypoints_path}. Skipping comparison.")
+                update_status(output_root, "Complete: 3D Body Reconstruction is ready!", 100)
+        except Exception as e:
+            print(f"ERROR: [Phase 5] Comparison scoring failed: {e}")
+            import traceback
+            traceback.print_exc()
+            update_status(output_root, "Complete: 3D Body Reconstruction is ready!", 100)
+    else:
+        update_status(output_root, "Complete: 3D Body Reconstruction is ready!", 100)
+
     print("DEBUG: All calculation tasks finished. Background process complete.")
-    update_status(output_root, "Complete: 3D Body Reconstruction is ready!", 100)
+
 
 

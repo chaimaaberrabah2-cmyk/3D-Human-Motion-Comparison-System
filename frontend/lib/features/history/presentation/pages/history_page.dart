@@ -65,7 +65,7 @@ class _HistoryPageState extends State<HistoryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            l10n.history,
+            _role == 'admin' ? "Historique" : l10n.history,
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: theme.textTheme.bodyLarge?.color,

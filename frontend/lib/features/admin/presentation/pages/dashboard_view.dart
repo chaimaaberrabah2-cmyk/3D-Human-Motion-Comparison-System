@@ -18,7 +18,7 @@ class AdminDashboardView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            role == 'super_admin' ? 'Tableau de Bord Global' : 'Tableau de Bord Clinique',
+            role == 'super_admin' ? 'Tableau de Bord Global' : 'Tableau de Bord Club',
             style: theme.textTheme.headlineMedium?.copyWith(
               color: AppColors.textWhite,
               fontWeight: FontWeight.bold,
@@ -27,8 +27,8 @@ class AdminDashboardView extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             role == 'super_admin' 
-              ? 'Gérez l\'ensemble des cliniques et la configuration moteur.' 
-              : 'Gérez vos patients et consultez les analyses du cabinet.',
+              ? 'Gérez l\'ensemble des clubs et la configuration moteur.' 
+              : 'Gérez vos adhérents et consultez les analyses du club.',
             style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textGray),
           ),
           const SizedBox(height: 48),
@@ -40,7 +40,7 @@ class AdminDashboardView extends StatelessWidget {
             children: [
               _buildStatCard(
                 context,
-                title: role == 'super_admin' ? 'Cliniques Actives' : 'Mes Patients',
+                title: role == 'super_admin' ? 'Clubs Actifs' : 'Mes Adhérents',
                 value: role == 'super_admin' ? '12' : '24',
                 icon: role == 'super_admin' ? Icons.business : Icons.people,
                 color: AppColors.accentBlue,
@@ -93,16 +93,6 @@ class AdminDashboardView extends StatelessWidget {
                     context.read<NavigationProvider>().setIndex(3);
                   },
                 ),
-              if (role != 'super_admin')
-                _buildActionButton(
-                  context,
-                  label: 'Modifier Calibration',
-                  icon: Icons.settings_input_component,
-                  onPressed: () {
-                    // Navigate to Calibration index 6
-                    context.read<NavigationProvider>().setIndex(6);
-                  },
-                ),
             ],
           ),
         ],
@@ -127,7 +117,7 @@ class AdminDashboardView extends StatelessWidget {
               controller: nameController,
               style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(
-                labelText: "Nom de la Clinique",
+                labelText: "Nom du Club",
                 labelStyle: TextStyle(color: AppColors.textGray),
                 enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.cardStroke)),
               ),

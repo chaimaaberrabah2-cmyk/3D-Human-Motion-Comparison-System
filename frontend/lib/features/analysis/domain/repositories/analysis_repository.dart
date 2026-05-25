@@ -22,5 +22,6 @@ abstract class AnalysisRepository {
   Future<String> analyzeVideos({
     required Map<String, dynamic> videos,
     required String exercise,
+    int? establishmentId,
   });
 }

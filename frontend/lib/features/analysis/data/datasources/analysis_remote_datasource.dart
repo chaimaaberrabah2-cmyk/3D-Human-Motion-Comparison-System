@@ -38,6 +38,7 @@ class AnalysisRemoteDataSource {
   Future<String> analyzeVideos({
     required Map<String, dynamic> videoData,
     required String exercise,
+    int? establishmentId,
   }) async {
     final formDataMap = <String, dynamic>{};
 
@@ -58,8 +59,12 @@ class AnalysisRemoteDataSource {
 
     try {
       final response = await dio.post(
-        '$baseUrl/analyze?exercise=$exercise',
+        '$baseUrl/analyze',
         data: formData,
+        queryParameters: {
+          'exercise': exercise,
+          if (establishmentId != null) 'establishment_id': establishmentId,
+        },
         onSendProgress: (sent, total) {
           print('Upload: ${(sent / total * 100).toStringAsFixed(0)}%');
         },

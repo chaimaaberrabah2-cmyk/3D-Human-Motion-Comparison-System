@@ -4,6 +4,8 @@ import numpy as np
 import cv2
 import logging
 from scipy.signal import savgol_filter
+from app.database.setup import SessionLocal
+from app.database.models import Establishment
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +22,7 @@ class TriangulationService:
     """
 
     @staticmethod
-    def triangulate(session_output_root: str, exercise_name: str = "deadlift") -> str:
+    def triangulate(session_output_root: str, exercise_name: str = "deadlift", establishment_id: int = None) -> str:
         """
         Loads 2D keypoints and camera calibration to generate 3D keypoints using
         multi-view triangulation.
@@ -30,6 +32,7 @@ class TriangulationService:
                                        for each angle.
             exercise_name (str): Name of the exercise to fetch the correct calibration JSON.
                                  Defaults to "deadlift".
+            establishment_id (int): Optional ID of the establishment to load database calibration from.
                                  
         Returns:
             str: Path to the generated 3D keypoints .npy file.
@@ -53,15 +56,39 @@ class TriangulationService:
         dist_coefficients = []
         
         # Step 2: Load calibration metrics and build the Projection Matrices (P = K * [R|T]).
+        db_calibration = None
+        if establishment_id is not None:
+            try:
+                db = SessionLocal()
+                establishment = db.query(Establishment).filter(Establishment.establishment_id == establishment_id).first()
+                if establishment and establishment.calibration_data:
+                    db_calibration = establishment.calibration_data
+                    print(f"DEBUG: Found database calibration data for establishment {establishment_id}")
+            except Exception as e:
+                logger.error(f"Error querying database calibration: {e}")
+            finally:
+                if 'db' in locals():
+                    db.close()
+
         for cam_id in camera_ids:
-            json_path = os.path.join(calib_root, cam_id, f"{exercise_name}.json")
-            if not os.path.exists(json_path):
-                # Fallback to squat if exercise-specific calibration is missing.
-                logger.warning(f"Calibration file {json_path} not found. Falling back to squat.json")
-                json_path = os.path.join(calib_root, cam_id, "squat.json")
-            
-            with open(json_path, 'r') as f:
-                data = json.load(f)
+            data = None
+            if db_calibration:
+                if cam_id in db_calibration:
+                    data = db_calibration[cam_id]
+                    print(f"DEBUG: Using database calibration for camera {cam_id}")
+                elif str(cam_id) in db_calibration:
+                    data = db_calibration[str(cam_id)]
+                    print(f"DEBUG: Using database calibration for camera {cam_id}")
+
+            if data is None:
+                json_path = os.path.join(calib_root, cam_id, f"{exercise_name}.json")
+                if not os.path.exists(json_path):
+                    # Fallback to squat if exercise-specific calibration is missing.
+                    logger.warning(f"Calibration file {json_path} not found. Falling back to squat.json")
+                    json_path = os.path.join(calib_root, cam_id, "squat.json")
+                
+                with open(json_path, 'r') as f:
+                    data = json.load(f)
                 
             # Intrinsic camera matrix (K) - accounts for focal lengths (f) and principal points (c).
             intrinsics = data["intrinsics_w_distortion"]

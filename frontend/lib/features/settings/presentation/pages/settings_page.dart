@@ -6,23 +6,17 @@
 // Permet à l'utilisateur de configurer :
 //   - Son profil (Informations personnelles, Changer de mot de passe)
 //   - L'application (Langue FR/EN/AR, Thème Sombre/Clair, Déconnexion)
-//   - Le matériel (Calibration de la caméra)
-//   - L'analyse IA (Paramètres de traitement, Modèle d'IA, Exportation)
 //
 // Structure :
-//   Utilise des onglets (TabBar) pour séparer "Profil", "Application",
-//   "Matériel" et "Analyse IA".
+//   Affiche uniquement le profil utilisateur. Les onglets Calibration
+//   et Traitement IA ont été retirés de l'interface.
 // ============================================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/navigation/navigation_provider.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import '../widgets/settings_tab_button.dart';
 import '../widgets/personal_info_section.dart';
-import '../widgets/camera_calibration_section.dart';
-import '../widgets/ai_processing_section.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/settings_actions.dart';
@@ -37,21 +31,11 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  String selectedTab = 'Account Profile';
-  final GlobalKey<CameraCalibrationSectionState> _calibrationKey =
-      GlobalKey<CameraCalibrationSectionState>();
-
   String _role = 'user';
 
   // Track original values on page load
   Locale? _originalLocale;
   bool? _originalIsDarkMode;
-  String _originalEngine = 'deep_learning';
-  String _originalAlgorithm = 'blaze_pose';
-
-  // Current values
-  String _currentEngine = 'deep_learning';
-  String _currentAlgorithm = 'blaze_pose';
 
   // Track if changes were made
   bool _hasUnsavedChanges = false;
@@ -99,38 +83,6 @@ class _SettingsPageState extends State<SettingsPage> {
       Provider.of<ThemeProvider>(context, listen: false)
           .toggleTheme(_originalIsDarkMode!);
     }
-    setState(() {
-      _currentEngine = _originalEngine;
-      _currentAlgorithm = _originalAlgorithm;
-    });
-  }
-
-  Future<void> _onTabChanged(String newTab) async {
-    if (selectedTab == newTab) {
-      if (newTab == 'Camera Calibration') {
-        _calibrationKey.currentState?.resetView();
-      }
-      return;
-    }
-
-    if (_hasUnsavedChanges) {
-      // Show confirmation dialog
-      final result = await _showUnsavedChangesDialog();
-
-      if (result == 'save') {
-        _onSave();
-        setState(() => selectedTab = newTab);
-      } else if (result == 'discard') {
-        _revertChanges();
-        setState(() {
-          _hasUnsavedChanges = false;
-          selectedTab = newTab;
-        });
-      }
-      // If 'cancel', do nothing
-    } else {
-      setState(() => selectedTab = newTab);
-    }
   }
 
   Future<String?> _showUnsavedChangesDialog() async {
@@ -165,8 +117,6 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       _originalLocale = localeProvider.locale;
       _originalIsDarkMode = themeProvider.isDarkMode;
-      _originalEngine = _currentEngine;
-      _originalAlgorithm = _currentAlgorithm;
       _hasUnsavedChanges = false;
     });
   }
@@ -239,255 +189,31 @@ class _SettingsPageState extends State<SettingsPage> {
 
         const SizedBox(height: 32),
 
-        // Responsive Layout Content
+        // Profile Content
         Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth > 800) {
-                return _buildDesktopLayout(l10n);
-              } else {
-                return _buildMobileLayout(l10n);
-              }
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDesktopLayout(AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left Panel: Fixed Tabs
-          SizedBox(
-            width: 250,
-            child: _buildDesktopTabs(l10n),
-          ),
-
-          const SizedBox(width: 32),
-
-          // Right Panel: Scrollable Content
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 32),
-              child: _buildDesktopContent(l10n),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileLayout(AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Horizontal Scrollable Tabs
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24).copyWith(bottom: 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildMobileTab(
-                  l10n.accountProfile,
-                  'Account Profile',
-                  'assets/icons/user.svg',
+                const PersonalInfoSection(),
+                const SizedBox(height: 24),
+                LanguageSelector(
+                  onLanguageChanged: (locale) {
+                    setState(() => _hasUnsavedChanges = true);
+                  },
+                  onThemeChanged: (isDark) {
+                    setState(() => _hasUnsavedChanges = true);
+                  },
                 ),
-                if (_role == 'admin') ...[
-                  const SizedBox(width: 12),
-                  _buildMobileTab(
-                    l10n.cameraCalibration,
-                    'Camera Calibration',
-                    'assets/icons/video.svg',
-                  ),
-                  const SizedBox(width: 12),
-                  _buildMobileTab(
-                    l10n.aiProcessing,
-                    'Ai Processing',
-                    'assets/icons/processing.svg',
-                  ),
-                ],
+                const SizedBox(height: 32),
+                _buildActions(l10n),
               ],
             ),
           ),
-
-          const SizedBox(height: 24),
-
-          // Scrollable Content
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 32),
-              child: _buildDesktopContent(l10n),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileTab(String label, String id, String iconPath) {
-    final isSelected = selectedTab == id;
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: () => _onTabChanged(id),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? theme.primaryColor : theme.cardColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? Colors.transparent : theme.dividerColor,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: theme.primaryColor.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              : null,
         ),
-        child: Row(
-          children: [
-            SvgPicture.asset(
-              iconPath,
-              width: 18,
-              height: 18,
-              colorFilter: ColorFilter.mode(
-                isSelected
-                    ? theme.colorScheme.onPrimary
-                    : (theme.textTheme.bodyMedium?.color ?? Colors.grey),
-                BlendMode.srcIn,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected
-                    ? theme.colorScheme.onPrimary
-                    : theme.textTheme.bodyLarge?.color,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDesktopTabs(AppLocalizations l10n) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SettingsTabButton(
-          iconPath: 'assets/icons/user.svg',
-          label: l10n.accountProfile,
-          isSelected: selectedTab == 'Account Profile',
-          onTap: () => _onTabChanged('Account Profile'),
-        ),
-        if (_role == 'admin') ...[
-          const SizedBox(height: 8),
-          SettingsTabButton(
-            iconPath: 'assets/icons/video.svg',
-            label: l10n.cameraCalibration,
-            isSelected: selectedTab == 'Camera Calibration',
-            onTap: () => _onTabChanged('Camera Calibration'),
-          ),
-          const SizedBox(height: 8),
-          SettingsTabButton(
-            iconPath: 'assets/icons/processing.svg',
-            label: l10n.aiProcessing,
-            isSelected: selectedTab == 'Ai Processing',
-            onTap: () => _onTabChanged('Ai Processing'),
-          ),
-        ],
       ],
     );
-  }
-
-  Widget _buildDesktopContent(AppLocalizations l10n) {
-    switch (selectedTab) {
-      case 'Account Profile':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const PersonalInfoSection(),
-            const SizedBox(height: 24),
-            LanguageSelector(
-              onLanguageChanged: (locale) {
-                setState(() => _hasUnsavedChanges = true);
-              },
-              onThemeChanged: (isDark) {
-                setState(() => _hasUnsavedChanges = true);
-              },
-            ),
-            const SizedBox(height: 32),
-            _buildActions(l10n),
-          ],
-        );
-      case 'Camera Calibration':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CameraCalibrationSection(key: _calibrationKey),
-            const SizedBox(height: 32),
-            _buildActions(l10n),
-          ],
-        );
-      case 'Ai Processing':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AiProcessingSection(
-              selectedEngine: _currentEngine,
-              selectedAlgorithm: _currentAlgorithm,
-              onEngineChanged: (engine) {
-                setState(() {
-                  _currentEngine = engine;
-                  _hasUnsavedChanges = true;
-                });
-              },
-              onAlgorithmChanged: (algo) {
-                setState(() {
-                  _currentAlgorithm = algo;
-                  _hasUnsavedChanges = true;
-                });
-              },
-            ),
-            const SizedBox(height: 32),
-            _buildActions(l10n),
-          ],
-        );
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
-  Future<void> _handleNavigation(String routeName) async {
-    if (_hasUnsavedChanges) {
-      final result = await _showUnsavedChangesDialog();
-
-      if (result == 'save' && mounted) {
-        _onSave();
-        context.read<NavigationProvider>().setIndexByRoute(routeName);
-      } else if (result == 'discard' && mounted) {
-        _revertChanges();
-        setState(() => _hasUnsavedChanges = false);
-        context.read<NavigationProvider>().setIndexByRoute(routeName);
-      }
-      // If 'cancel', do nothing
-    } else {
-      context.read<NavigationProvider>().setIndexByRoute(routeName);
-    }
   }
 
   Widget _buildActions(AppLocalizations l10n) {

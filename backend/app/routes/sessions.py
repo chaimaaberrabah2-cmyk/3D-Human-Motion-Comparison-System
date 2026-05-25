@@ -50,12 +50,14 @@ async def get_session_status(session_id: str):
     status_file = os.path.join(session_path, "status.json")
     status_msg = "Initializing..."
     prog_pct = int((sum([phase1, phase2, phase3, phase4]) / 4) * 100)
+    comparison_results = None
     if os.path.exists(status_file):
         try:
             with open(status_file, "r") as f:
                 s_data = json.load(f)
                 status_msg = s_data.get("status", status_msg)
                 prog_pct = s_data.get("progress_percent", prog_pct)
+                comparison_results = s_data.get("comparison_results", None)
         except Exception:
             pass
 
@@ -66,6 +68,7 @@ async def get_session_status(session_id: str):
         "has_smplx_viewer": has_viewer,
         "refit":           refit_info,
         "status_message":  status_msg,
+        "comparison_results": comparison_results,
         "phases": {
             "phase1_frames_extracted": phase1,
             "phase2_pose_estimated":   phase2,
@@ -73,6 +76,7 @@ async def get_session_status(session_id: str):
             "phase4_smplx_fitted":     phase4,
         },
     }
+
 
 
 # ──────────────────────────────────────────────────────────────────────────────

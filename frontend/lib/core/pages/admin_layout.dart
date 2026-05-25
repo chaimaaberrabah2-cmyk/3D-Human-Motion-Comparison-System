@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../features/admin/presentation/pages/calibration_editor_view.dart';
 import '../navigation/navigation_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/admin_sidebar.dart';
 import '../../../features/admin/presentation/pages/dashboard_view.dart';
-import '../../../features/admin/presentation/pages/patient_list_view.dart';
+import '../../../features/admin/presentation/pages/adherent_list_view.dart';
 import '../../../features/analysis/presentation/pages/new_analysis_page.dart';
 import '../../../features/settings/presentation/pages/settings_page.dart';
 import '../../../features/history/presentation/pages/history_page.dart';
@@ -52,11 +51,7 @@ class _AdminLayoutState extends State<AdminLayout> {
                 const HistoryPage(),                      // Index 1
                 const SettingsPage(),                     // Index 2
                 const NewAnalysisPage(),                  // Index 3
-                const PatientListView(),                  // Index 4 (Global 5)
-                Padding(
-                  padding: const EdgeInsets.all(40),
-                  child: CalibrationEditorView(establishmentId: _establishmentId), // Index 5 (Global 6)
-                ),
+                const AdherentListView(),                 // Index 4 (Global 5)
               ],
             ),
           ),
@@ -67,7 +62,6 @@ class _AdminLayoutState extends State<AdminLayout> {
 
   int _getMappedIndex(int globalIndex) {
     if (globalIndex == 5) return 4;
-    if (globalIndex == 6) return 5;
     if (globalIndex >= 0 && globalIndex <= 3) return globalIndex;
     return 0;
   }

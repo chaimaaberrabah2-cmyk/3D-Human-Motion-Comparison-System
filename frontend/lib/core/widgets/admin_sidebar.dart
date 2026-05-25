@@ -67,7 +67,7 @@ class _AdminSidebarState extends State<AdminSidebar> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _role == 'super_admin' ? 'SUPER ADMIN' : 'CLINIC ADMIN',
+                      _role == 'super_admin' ? 'SUPER ADMIN' : 'CLUB ADMIN',
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -108,22 +108,12 @@ class _AdminSidebarState extends State<AdminSidebar> {
               onTap: () => context.read<NavigationProvider>().setIndex(4),
             ),
 
-          // ── Pour Admin : Calibration (Index 6) ─────────────
-          if (_role == 'admin')
-            _buildNavItem(
-              context,
-              iconData: Icons.settings_input_component,
-              label: "Ma Calibration",
-              isSelected: currentIndex == 6,
-              onTap: () => context.read<NavigationProvider>().setIndex(6),
-            ),
-
-          // ── Pour Admin : Mes Patients (Index 5) ──────────────────────
+          // ── Pour Admin : Mes Adhérents (Index 5) ──────────────────────
           if (_role == 'admin') // Masqué pour le Super Admin (accessible via Établissements)
             _buildNavItem(
               context,
               iconData: Icons.people_alt_rounded,
-              label: "Liste des Patients",
+              label: "Liste des Adhérents",
               isSelected: currentIndex == 5,
               onTap: () => context.read<NavigationProvider>().setIndex(5),
             ),
@@ -145,7 +135,7 @@ class _AdminSidebarState extends State<AdminSidebar> {
             _buildNavItem(
               context,
               iconData: Icons.history_rounded,
-              label: "Historique Global",
+              label: _role == 'admin' ? "Mon Historique" : "Historique Global",
               isSelected: currentIndex == 1,
               onTap: () => context.read<NavigationProvider>().setIndex(1),
             ),

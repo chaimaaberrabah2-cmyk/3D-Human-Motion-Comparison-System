@@ -2,13 +2,12 @@
 // lib/features/home/presentation/pages/exercise_detail_page.dart
 // ============================================================
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 import '../../../analysis/presentation/pages/new_analysis_page.dart';
 import '../../../analysis/presentation/widgets/smplx_viewer_widget.dart';
-import 'package:provider/provider.dart';
 import '../../../../core/navigation/navigation_provider.dart';
 
 class ExerciseDetailPage extends StatefulWidget {
@@ -20,8 +19,6 @@ class ExerciseDetailPage extends StatefulWidget {
 }
 
 class _ExerciseDetailPageState extends State<ExerciseDetailPage> {
-  bool _isComparing = false;
-  Exercise? _compareExercise;
 
   String _getBackendExerciseName(Exercise exercise) {
     final name = exercise.name.toLowerCase();
@@ -155,105 +152,12 @@ class _ExerciseDetailPageState extends State<ExerciseDetailPage> {
 
                       const SizedBox(height: 40),
 
-                      // 3D Title + Compare Button
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(l10n.motionVisualization, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                _isComparing = !_isComparing;
-                                if (!_isComparing) _compareExercise = null;
-                              });
-                            },
-                            icon: Icon(_isComparing ? Icons.close : Icons.compare_arrows, size: 18),
-                            label: Text(_isComparing ? 'Fermer' : 'Comparer', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _isComparing ? Colors.red : theme.primaryColor,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // Compare dropdown
-                      if (_isComparing) ...[
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.green.withOpacity(0.2)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.compare, color: Colors.green),
-                              const SizedBox(width: 12),
-                              const Text('Comparer avec :', style: TextStyle(fontWeight: FontWeight.w600)),
-                              const SizedBox(width: 12),
-                              PopupMenuButton<Exercise>(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(20)),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(_compareExercise?.name ?? 'Choisir', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                      const SizedBox(width: 8),
-                                      const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
-                                    ],
-                                  ),
-                                ),
-                                onSelected: (ex) => setState(() => _compareExercise = ex),
-                                itemBuilder: (ctx) => getMockExercises()
-                                    .where((e) => e.name != exercise.name)
-                                    .map((e) => PopupMenuItem<Exercise>(value: e, child: Text(e.name)))
-                                    .toList(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      // 3D Title
+                      Text(l10n.motionVisualization, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
 
                       const SizedBox(height: 16),
 
-                      // SMPL Viewer(s)
-                      if (_isComparing && _compareExercise != null)
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(children: [
-                                _buildViewerHeader(exercise.name, theme.primaryColor),
-                                SizedBox(
-                                  height: 420,
-                                  child: ClipRRect(
-                                    borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16)),
-                                    child: SmplxViewerWidget(key: ValueKey('d_${_getBackendExerciseName(exercise)}'), sessionId: _getBackendExerciseName(exercise)),
-                                  ),
-                                ),
-                              ]),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(children: [
-                                _buildViewerHeader(_compareExercise!.name, Colors.green),
-                                SizedBox(
-                                  height: 420,
-                                  child: ClipRRect(
-                                    borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16)),
-                                    child: SmplxViewerWidget(key: ValueKey('c_${_getBackendExerciseName(_compareExercise!)}'), sessionId: _getBackendExerciseName(_compareExercise!)),
-                                  ),
-                                ),
-                              ]),
-                            ),
-                          ],
-                        )
-                      else
+                      // SMPL Viewer
                         Container(
                           width: double.infinity, height: 380,
                           decoration: BoxDecoration(
@@ -277,10 +181,12 @@ class _ExerciseDetailPageState extends State<ExerciseDetailPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // Pop detail page to return to dashboard structure
-          Navigator.pop(context);
-          // Go to 'New Analysis' tab
-          context.read<NavigationProvider>().setIndex(3);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => NewAnalysisPage(initialExercise: exercise),
+            ),
+          );
         },
         label: Text(l10n.startAnalysis, style: const TextStyle(fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.play_arrow_rounded),

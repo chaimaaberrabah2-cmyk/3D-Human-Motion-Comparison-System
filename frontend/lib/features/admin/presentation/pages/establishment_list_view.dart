@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/theme/app_colors.dart';
-import 'patient_list_view.dart';
+import 'adherent_list_view.dart';
 import 'calibration_editor_view.dart';
 
 class EstablishmentListView extends StatefulWidget {
@@ -76,7 +76,7 @@ class _EstablishmentListViewState extends State<EstablishmentListView> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Visualisez et gérez les cliniques utilisant MOTION AI.',
+                    'Visualisez et gérez les clubs de sport utilisant MOTION AI.',
                     style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textGray),
                   ),
                 ],
@@ -157,6 +157,7 @@ class _EstablishmentListViewState extends State<EstablishmentListView> {
   }
 
   Widget _buildDetailView() {
+    final estId = _selectedEstablishment!['establishment_id'] as int;
     return DefaultTabController(
       length: 2,
       child: Container(
@@ -191,7 +192,7 @@ class _EstablishmentListViewState extends State<EstablishmentListView> {
                   ],
                 ),
                 ElevatedButton.icon(
-                  onPressed: () => _showCreateAdminDialog(context, _selectedEstablishment!['establishment_id']),
+                  onPressed: () => _showCreateAdminDialog(context, estId),
                   icon: const Icon(Icons.person_add_alt_1_rounded),
                   label: const Text("Créer un Administrateur"),
                   style: ElevatedButton.styleFrom(
@@ -203,27 +204,26 @@ class _EstablishmentListViewState extends State<EstablishmentListView> {
                 ),
               ],
             ),
-            const SizedBox(height: 32),
-            
-            // Tabs
+            const SizedBox(height: 24),
+
+            // Tab bar
             const TabBar(
-              isScrollable: true,
               labelColor: AppColors.accentBlue,
               unselectedLabelColor: AppColors.textGray,
               indicatorColor: AppColors.accentBlue,
               tabs: [
-                Tab(text: "Patients"),
-                Tab(text: "Calibration"),
+                Tab(icon: Icon(Icons.people_alt_rounded), text: 'Adhérents'),
+                Tab(icon: Icon(Icons.camera_alt_rounded), text: 'Calibration Caméra'),
               ],
             ),
-            const SizedBox(height: 24),
-            
-            // Tab Content
+            const SizedBox(height: 16),
+
+            // Tab content
             Expanded(
               child: TabBarView(
                 children: [
-                  PatientListView(establishmentId: _selectedEstablishment!['establishment_id']),
-                  CalibrationEditorView(establishmentId: _selectedEstablishment!['establishment_id']),
+                  AdherentListView(establishmentId: estId),
+                  CalibrationEditorView(establishmentId: estId),
                 ],
               ),
             ),

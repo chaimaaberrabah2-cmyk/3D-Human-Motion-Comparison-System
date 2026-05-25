@@ -219,6 +219,32 @@ class SmplxService:
         # Prétraitement et interpolation des points clés
         kp3d = SmplxService._preprocess_keypoints(kp3d_raw)
 
+        # ── Prétraitement Anti-Collision des Mains ─────────────────────────
+        # Évite que les mains ne se croisent (ex: curl, pompes). Maintient une distance minimale de 10cm.
+        l_shoulder_seq = kp3d[:, 11, :3]
+        r_shoulder_seq = kp3d[:, 12, :3]
+        shoulder_vec = l_shoulder_seq - r_shoulder_seq  # Vecteur pointant vers la gauche (+X du corps)
+        lateral_dir = shoulder_vec / (np.linalg.norm(shoulder_vec, axis=1, keepdims=True) + 1e-8)
+        
+        l_wrist_seq = kp3d[:, 15, :3]
+        r_wrist_seq = kp3d[:, 16, :3]
+        wrist_dist = np.linalg.norm(l_wrist_seq - r_wrist_seq, axis=1)
+        
+        collision_mask = wrist_dist < 0.10
+        if np.any(collision_mask):
+            print(f"DEBUG [SmplxService]: Anti-collision activée sur {np.sum(collision_mask)} frames.")
+            # Repousser les poignets et coudes d'une distance (0.10 - dist) / 2
+            push_dist = (0.10 - wrist_dist[collision_mask]) / 2.0
+            push_vec = lateral_dir[collision_mask] * push_dist[:, np.newaxis]
+            
+            # Repousser le bras gauche vers la gauche (+lateral_dir)
+            for j in [13, 15, 17, 19, 21]:
+                kp3d[collision_mask, j, :3] += push_vec
+                
+            # Repousser le bras droit vers la droite (-lateral_dir)
+            for j in [14, 16, 18, 20, 22]:
+                kp3d[collision_mask, j, :3] -= push_vec
+
         # ── Sélection automatique de l'accélérateur GPU ────────────────────
         if device_str == "auto":
             if torch.cuda.is_available():
@@ -307,10 +333,15 @@ class SmplxService:
             R_r_ankle = rotate_vector_to_vector(np.array([0, 0, 1]), np.dot(R_shin_abs_r.T, d_r_foot))
 
             # 6. Bras Gauche (en T-Pose, le bras gauche pointe vers +X)
-            d_l_arm = (l_elbow - l_shoulder) / (np.linalg.norm(l_elbow - l_shoulder) + 1e-8)
+            raw_d_l_arm = (l_elbow - l_shoulder) / (np.linalg.norm(l_elbow - l_shoulder) + 1e-8)
             d_l_forearm = (l_wrist - l_elbow) / (np.linalg.norm(l_wrist - l_elbow) + 1e-8)
             l_hand_mid = (l_index + l_pinky) / 2.0
             d_l_hand = (l_hand_mid - l_wrist) / (np.linalg.norm(l_hand_mid - l_wrist) + 1e-8)
+
+            # Soft-constraint : initialisation en T-pose puis pénalité constante d'adduction
+            t_weight = max(0.05, 1.0 - (fi / 10.0))
+            d_l_arm = raw_d_l_arm * (1.0 - t_weight) + x_axis * t_weight
+            d_l_arm = d_l_arm / (np.linalg.norm(d_l_arm) + 1e-8)
 
             R_l_shoulder = rotate_vector_to_vector(np.array([1, 0, 0]), np.dot(R_pelvis.T, d_l_arm))
             R_arm_abs = np.dot(R_pelvis, R_l_shoulder)
@@ -322,10 +353,15 @@ class SmplxService:
             R_l_wrist = rotate_vector_to_vector(np.array([1, 0, 0]), np.dot(R_forearm_abs.T, d_l_hand))
 
             # 7. Bras Droit (en T-Pose, le bras droit pointe vers -X)
-            d_r_arm = (r_elbow - r_shoulder) / (np.linalg.norm(r_elbow - r_shoulder) + 1e-8)
+            raw_d_r_arm = (r_elbow - r_shoulder) / (np.linalg.norm(r_elbow - r_shoulder) + 1e-8)
             d_r_forearm = (r_wrist - r_elbow) / (np.linalg.norm(r_wrist - r_elbow) + 1e-8)
             r_hand_mid = (r_index + r_pinky) / 2.0
             d_r_hand = (r_hand_mid - r_wrist) / (np.linalg.norm(r_hand_mid - r_wrist) + 1e-8)
+
+            # Soft-constraint : initialisation en T-pose puis pénalité constante d'adduction
+            t_weight = max(0.05, 1.0 - (fi / 10.0))
+            d_r_arm = raw_d_r_arm * (1.0 - t_weight) + (-x_axis) * t_weight
+            d_r_arm = d_r_arm / (np.linalg.norm(d_r_arm) + 1e-8)
 
             R_r_shoulder = rotate_vector_to_vector(np.array([-1, 0, 0]), np.dot(R_pelvis.T, d_r_arm))
             R_arm_abs_r = np.dot(R_pelvis, R_r_shoulder)
