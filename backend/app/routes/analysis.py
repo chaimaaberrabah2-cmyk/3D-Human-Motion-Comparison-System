@@ -5,7 +5,7 @@ import shutil
 from app.pipeline.step1_frame_extractor_service import VideoService
 from app.pipeline.step2_2d_keypoints_service import PoseService
 from app.pipeline.step3_3d_keypoints_service import TriangulationService
-from app.pipeline.step4_smplx_fitting_service import SmplxService
+from app.pipeline.step4_smplx_ik_service import SmplxService
 
 router = APIRouter()
 

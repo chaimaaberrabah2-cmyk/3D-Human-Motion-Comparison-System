@@ -21,11 +21,6 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# MAPPING TECHNIQUE : MediaPipe 33 Landmark Index → SMPL-X Joint Index
-# ─────────────────────────────────────────────────────────────────────────────
-# Mappe les 33 points 3D bruts de MediaPipe vers les 22 articulations internes du modèle SMPL-X.
-# Le format de la valeur est une liste d'index MediaPipe à moyenner pour obtenir la position du joint.
 MP33_TO_SMPLX = {
     0:  [23, 24], # Pelvis (milieu des hanches)
     1:  [23],     # L_Hip (Hanche gauche)
@@ -43,6 +38,12 @@ MP33_TO_SMPLX = {
     19: [14],     # R_Elbow (Coude droit)
     20: [15],     # L_Wrist (Poignet gauche)
     21: [16],     # R_Wrist (Poignet droit)
+    27: [21],     # L_Thumb (MediaPipe 21)
+    30: [19],     # L_Index (MediaPipe 19)
+    39: [17],     # L_Pinky (MediaPipe 17)
+    42: [22],     # R_Thumb (MediaPipe 22)
+    45: [20],     # R_Index (MediaPipe 20)
+    54: [18],     # R_Pinky (MediaPipe 18)
 }
 
 # Coeffs d'importance (poids) par articulation pour guider l'optimiseur
@@ -55,7 +56,9 @@ MP33_WEIGHTS = {
     12: 3.0, 
     16: 2.5, 17: 2.5, 
     18: 2.0, 19: 2.0, 
-    20: 1.5, 21: 1.5
+    20: 1.5, 21: 1.5,
+    27: 1.0, 30: 1.0, 39: 1.0,
+    42: 1.0, 45: 1.0, 54: 1.0
 }
 
 
@@ -112,11 +115,11 @@ class SmplxService:
             frame_kp (np.ndarray): Squelette MediaPipe d'une frame de forme (33, 4).
             
         Returns:
-            tuple: Contient (target [22, 3], valid_mask [22], weights [22]).
+            tuple: Contient (target [55, 3], valid_mask [55], weights [55]).
         """
-        target = np.zeros((22, 3), dtype=np.float32)
-        valid  = np.zeros(22, dtype=bool)
-        weights = np.zeros(22, dtype=np.float32)
+        target = np.zeros((55, 3), dtype=np.float32)
+        valid  = np.zeros(55, dtype=bool)
+        weights = np.zeros(55, dtype=np.float32)
 
         for smplx_idx, mp_indices in MP33_TO_SMPLX.items():
             pts = frame_kp[mp_indices, :3]
@@ -231,7 +234,7 @@ class SmplxService:
         try:
             body_model = smplx_lib.create(
                 models_dir, model_type="smplx", gender=gender,
-                use_pca=False, flat_hand_mean=True,
+                use_pca=True, num_pca_comps=6, flat_hand_mean=True,
                 num_betas=10, num_expression_coeffs=10, batch_size=1,
             ).to(device)
             faces = body_model.faces.copy()
@@ -271,39 +274,63 @@ class SmplxService:
         print(f"DEBUG [SmplxService]: Axe Y orienté vers le {'BAS' if y_points_down else 'HAUT'}")
         print(f"DEBUG [SmplxService]: Altitude du sol détectée = {ground_y:.4f}")
 
+        # ── Détection dynamique de contact statique avec le sol ───────────
+        # Articulations concernées : pieds (7, 8, 10, 11) et mains (20, 21)
+        # Conditions de contact : vitesse verticale < 0.003 m/frame AND distance au sol < 0.15 m
+        is_static = np.zeros((num_frames, 55), dtype=bool)
+        for fi in range(1, num_frames):
+            for j in [7, 8, 10, 11, 20, 21]:
+                if smplx_targets[fi][1][j] and smplx_targets[fi-1][1][j]:
+                    y_curr = smplx_targets[fi][0][j, 1]
+                    y_prev = smplx_targets[fi-1][0][j, 1]
+                    vel = abs(y_curr - y_prev)
+                    dist_to_ground = abs(y_curr - ground_y)
+                    if vel < 0.003 and dist_to_ground < 0.15:
+                        is_static[fi, j] = True
+        if num_frames > 1:
+            is_static[0] = is_static[1]
+
         # ── Helper : forward pass SMPL-X ───────────────────────────────────
-        def smplx_forward(betas, g_orient, b_pose, transl, verts=False):
+        def smplx_forward(betas, g_orient, b_pose, transl, lhand_pose=None, rhand_pose=None, verts=False):
             return body_model(
                 betas=betas, global_orient=g_orient,
                 body_pose=b_pose, transl=transl,
+                left_hand_pose=lhand_pose, right_hand_pose=rhand_pose,
                 return_verts=verts,
             )
 
         # ── Helper : Calcul de la fonction de perte (Loss Function) ────────
-        def compute_loss(output, target, valid, weights, b_pose, prev_pose=None, betas=None):
-            smplx_joints = output.joints[0, :22, :]
+        def compute_loss(output, target, valid, weights, b_pose, prev_pose=None, betas=None, is_static_frame=None,
+                         lhand_pose=None, rhand_pose=None, prev_lhand=None, prev_rhand=None):
+            smplx_joints = output.joints[0, :55, :]
             loss = torch.tensor(0.0, dtype=torch.float32, device=device)
             n_pairs = 0
             
             # 1. Perte de reconstruction de point (Distance Euclidienne)
-            for i in range(22):
+            loss_recon = torch.tensor(0.0, dtype=torch.float32, device=device)
+            for i in range(55):
                 if valid[i]:
                     tgt = torch.tensor(target[i, :3], dtype=torch.float32, device=device)
-                    loss = loss + weights[i] * ((smplx_joints[i] - tgt) ** 2).sum()
+                    loss_recon = loss_recon + weights[i] * ((smplx_joints[i] - tgt) ** 2).sum()
                     n_pairs += 1
                     
             if n_pairs:
-                loss = loss / n_pairs
+                loss = loss + 500.0 * (loss_recon / n_pairs)
                 
             # 2. Pose Prior : Contraint les rotations à rester proches de la T-pose standard 
             loss = loss + 1.5e-3 * (b_pose ** 2).mean()
+            if lhand_pose is not None and rhand_pose is not None:
+                loss = loss + 1.0e-3 * (lhand_pose ** 2).mean()
+                loss = loss + 1.0e-3 * (rhand_pose ** 2).mean()
             
             # 3. Velocity Loss (Lissage temporel)
             if prev_pose is not None:
                 loss = loss + 20.0 * ((b_pose - prev_pose) ** 2).mean()
+            if prev_lhand is not None and prev_rhand is not None:
+                loss = loss + 10.0 * ((lhand_pose - prev_lhand) ** 2).mean()
+                loss = loss + 10.0 * ((rhand_pose - prev_rhand) ** 2).mean()
                 
-            # 4. Ground Contact Constraint : Empêche les pieds de traverser le sol
-            # Articulations des pieds: 7, 8 (chevilles), 10, 11 (orteils)
+            # 4. Ground Safety Constraint : Empêche les pieds de traverser le sol
             foot_joints_y = smplx_joints[[7, 8, 10, 11], 1]
             if y_points_down:
                 loss_ground = torch.clamp(foot_joints_y - ground_y, min=0.0).pow(2).mean()
@@ -314,6 +341,28 @@ class SmplxService:
             # 5. Regularisation L2 sur les betas
             if betas is not None:
                 loss = loss + 0.05 * (betas ** 2).mean()
+
+            # 6. Generic Static Anchoring & Flat Foot Loss (Module 1)
+            if is_static_frame is not None:
+                loss_height = torch.tensor(0.0, dtype=torch.float32, device=device)
+                n_static = 0
+                for j in [7, 8, 10, 11, 20, 21]:
+                    if is_static_frame[j]:
+                        loss_height = loss_height + (smplx_joints[j, 1] - ground_y).pow(2)
+                        n_static += 1
+                if n_static > 0:
+                    loss = loss + 25.0 * (loss_height / n_static)
+
+                loss_flat = torch.tensor(0.0, dtype=torch.float32, device=device)
+                n_flat = 0
+                if is_static_frame[7] or is_static_frame[10]:
+                    loss_flat = loss_flat + (smplx_joints[10, 1] - smplx_joints[7, 1]).pow(2)
+                    n_flat += 1
+                if is_static_frame[8] or is_static_frame[11]:
+                    loss_flat = loss_flat + (smplx_joints[11, 1] - smplx_joints[8, 1]).pow(2)
+                    n_flat += 1
+                if n_flat > 0:
+                    loss = loss + 20.0 * (loss_flat / n_flat)
                 
             return loss
 
@@ -336,6 +385,8 @@ class SmplxService:
         
         g_orient = torch.zeros(1, 3,  dtype=torch.float32, device=device, requires_grad=True)
         b_pose0  = torch.zeros(1, 63, dtype=torch.float32, device=device)
+        lhand0   = torch.zeros(1, 6,  dtype=torch.float32, device=device)
+        rhand0   = torch.zeros(1, 6,  dtype=torch.float32, device=device)
 
         # Calcul du centre de gravité (Pelvis/Bassin) moyen pour la translation initiale
         pelvis_positions = []
@@ -369,8 +420,8 @@ class SmplxService:
                 for ay in [0.0, np.pi/2, np.pi, 3*np.pi/2]:
                     for ax in [0.0, np.pi]:
                         test_o = torch.tensor([[ax, ay, 0.0]], dtype=torch.float32, device=device)
-                        out = smplx_forward(betas.detach(), test_o, b_pose0, transl)
-                        loss_val = compute_loss(out, t0, v0, w0, b_pose0, betas=betas.detach()).item()
+                        out = smplx_forward(betas.detach(), test_o, b_pose0, transl, lhand0, rhand0)
+                        loss_val = compute_loss(out, t0, v0, w0, b_pose0, betas=betas.detach(), is_static_frame=is_static[fi0]).item()
                         if loss_val < best_loss:
                             best_loss   = loss_val
                             best_orient = test_o.clone()
@@ -389,8 +440,8 @@ class SmplxService:
             total = torch.tensor(0.0, dtype=torch.float32, device=device)
             for fi in shape_frames:
                 t_fi, v_fi, w_fi = smplx_targets[fi]
-                out = smplx_forward(betas, g_orient, b_pose0.detach(), transl)
-                total = total + compute_loss(out, t_fi, v_fi, w_fi, b_pose0, betas=betas)
+                out = smplx_forward(betas, g_orient, b_pose0.detach(), transl, lhand0, rhand0)
+                total = total + compute_loss(out, t_fi, v_fi, w_fi, b_pose0, betas=betas, is_static_frame=is_static[fi])
             total = total / len(shape_frames)
             total.backward()
             return total
@@ -413,6 +464,8 @@ class SmplxService:
         prev_orient = init_orient.clone()
         prev_pose   = torch.zeros(1, 63, dtype=torch.float32, device=device)
         prev_transl = init_transl.clone()
+        prev_lhand  = torch.zeros(1, 6,  dtype=torch.float32, device=device)
+        prev_rhand  = torch.zeros(1, 6,  dtype=torch.float32, device=device)
 
         for fi in tqdm(range(num_frames), desc="Optimisation SMPL-X"):
             t_fi, v_fi, w_fi = smplx_targets[fi]
@@ -425,7 +478,7 @@ class SmplxService:
                     all_joints.append(all_joints[-1])
                 else:
                     with torch.no_grad():
-                        out = smplx_forward(init_betas, prev_orient, prev_pose, prev_transl, verts=True)
+                        out = smplx_forward(init_betas, prev_orient, prev_pose, prev_transl, prev_lhand, prev_rhand, verts=True)
                         all_vertices.append(out.vertices[0].cpu().numpy())
                         all_joints.append(out.joints[0, :22].cpu().numpy())
                 continue
@@ -434,35 +487,45 @@ class SmplxService:
             fr_orient = prev_orient.clone().requires_grad_(True)
             fr_pose   = prev_pose.clone().requires_grad_(True)
             fr_transl = prev_transl.clone().requires_grad_(True)
+            fr_lhand  = prev_lhand.clone().requires_grad_(True)
+            fr_rhand  = prev_rhand.clone().requires_grad_(True)
 
             opt_b = torch.optim.LBFGS(
-                [fr_orient, fr_pose, fr_transl], lr=1.0,
-                max_iter=n_iter, line_search_fn="strong_wolfe",
+                [fr_orient, fr_pose, fr_transl, fr_lhand, fr_rhand], lr=1.0,
+                max_iter=max(5, n_iter // 2), line_search_fn="strong_wolfe",
             )
             
             def closure_b():
                 opt_b.zero_grad()
-                out = smplx_forward(init_betas, fr_orient, fr_pose, fr_transl)
+                out = smplx_forward(init_betas, fr_orient, fr_pose, fr_transl, fr_lhand, fr_rhand)
                 # On transmet prev_pose pour pénaliser les variations de vitesse brusques
-                loss_ = compute_loss(out, t_fi, v_fi, w_fi, fr_pose, prev_pose=prev_pose, betas=init_betas)
+                loss_ = compute_loss(
+                    out, t_fi, v_fi, w_fi, fr_pose, prev_pose=prev_pose, betas=init_betas,
+                    is_static_frame=is_static[fi],
+                    lhand_pose=fr_lhand, rhand_pose=fr_rhand,
+                    prev_lhand=prev_lhand, prev_rhand=prev_rhand
+                )
                 loss_.backward()
                 return loss_
                 
-            opt_b.step(closure_b)
             opt_b.step(closure_b)
 
             # Limite les angles de rotation pour éviter les contorsions extrêmes
             with torch.no_grad():
                 fr_pose.clamp_(-2 * np.pi, 2 * np.pi)
+                fr_lhand.clamp_(-np.pi, np.pi)
+                fr_rhand.clamp_(-np.pi, np.pi)
 
             # Met à jour les variables temporelles de référence pour la frame suivante
             prev_orient = fr_orient.detach().clone()
             prev_pose   = fr_pose.detach().clone()
             prev_transl = fr_transl.detach().clone()
+            prev_lhand  = fr_lhand.detach().clone()
+            prev_rhand  = fr_rhand.detach().clone()
 
             # Extrait le maillage 3D complet (vertices) de la pose optimisée
             with torch.no_grad():
-                out = smplx_forward(init_betas, fr_orient, fr_pose, fr_transl, verts=True)
+                out = smplx_forward(init_betas, fr_orient, fr_pose, fr_transl, fr_lhand, fr_rhand, verts=True)
                 all_vertices.append(out.vertices[0].cpu().numpy())
                 all_joints.append(out.joints[0, :22].cpu().numpy())
 

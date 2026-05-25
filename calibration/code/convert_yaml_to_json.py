@@ -39,7 +39,7 @@ def load_opencv_yaml(filepath):
     return data
 
 def convert():
-    base_dir = "/Volumes/SSD_Ikram/test dataset/easymocap_calib/extri"
+    base_dir = "/Volumes/SSD_Ikram/3D-Human-Motion-Comparison-System/calibration/resultat"
     intri_path = os.path.join(base_dir, "intri.yml")
     extri_path = os.path.join(base_dir, "extri.yml")
     
