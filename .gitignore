@@ -54,4 +54,4 @@ venv310/
 
 # Ignore macOS AppleDouble files
 ._*
-**/._*
+**/._*FlutterBuild.dmg
