@@ -27,39 +27,52 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Format Direct MediaPipe-33 → SMPL-X (22 joints)
+# OpenPose-25 BODY_25 → SMPL-X (22 joints)  [standard SMPLify-X mapping]
 # ─────────────────────────────────────────────────────────────────────────────
-# Mappe directement les 33 points bruts vers les articulations réelles du mesh 3D.
-# Format : SMPLX_JOINT_INDEX : [MediaPipe_Indices_To_Average]
+# OP25: 0:Nose 1:Neck 2:RShoulder 3:RElbow 4:RWrist 5:LShoulder 6:LElbow
+#   7:LWrist 8:MidHip 9:RHip 10:RKnee 11:RAnkle 12:LHip 13:LKnee 14:LAnkle
+#   15:REye 16:LEye 17:REar 18:LEar 19:LBigToe 20:LSmallToe 21:LHeel
+#   22:RBigToe 23:RSmallToe 24:RHeel
+# Format: SMPLX_JOINT_INDEX : [OP25_indices_to_average]
 
-MP33_TO_SMPLX = {
-    0:  [23, 24], # Pelvis (milieu des hanches)
-    1:  [23],     # L_Hip
-    2:  [24],     # R_Hip
-    4:  [25],     # L_Knee
-    5:  [26],     # R_Knee
-    7:  [27],     # L_Ankle
-    8:  [28],     # R_Ankle
-    10: [31],     # L_Foot (Big toe)
-    11: [32],     # R_Foot (Big toe)
-    12: [11, 12], # Neck (milieu des épaules)
-    16: [11],     # L_Shoulder
-    17: [12],     # R_Shoulder
-    18: [13],     # L_Elbow
-    19: [14],     # R_Elbow
-    20: [15],     # L_Wrist
-    21: [16],     # R_Wrist
+OP25_TO_SMPLX = {
+    0:  [8],    # Pelvis  ← MidHip
+    1:  [12],   # L_Hip   ← LHip
+    2:  [9],    # R_Hip   ← RHip
+    4:  [13],   # L_Knee  ← LKnee
+    5:  [10],   # R_Knee  ← RKnee
+    7:  [14],   # L_Ankle ← LAnkle
+    8:  [11],   # R_Ankle ← RAnkle
+    10: [19],   # L_Foot  ← LBigToe
+    11: [22],   # R_Foot  ← RBigToe
+    12: [1],    # Neck    ← Neck
+    15: [0],    # Head    ← Nose
+    16: [5],    # L_Shoulder ← LShoulder
+    17: [2],    # R_Shoulder ← RShoulder
+    18: [6],    # L_Elbow    ← LElbow
+    19: [3],    # R_Elbow    ← RElbow
+    20: [7],    # L_Wrist    ← LWrist
+    21: [4],    # R_Wrist    ← RWrist
 }
 
-MP33_WEIGHTS = {
-    0: 4.0, 1: 3.5, 2: 3.5, 
-    4: 3.0, 5: 3.0, 
-    7: 2.5, 8: 2.5, 
-    10: 1.5, 11: 1.5,
-    12: 3.0, 
-    16: 2.5, 17: 2.5, 
-    18: 2.0, 19: 2.0, 
-    20: 1.5, 21: 1.5
+OP25_WEIGHTS = {
+    0:  4.0,   # Pelvis
+    1:  3.5,   # L_Hip
+    2:  3.5,   # R_Hip
+    4:  6.0,   # L_Knee
+    5:  6.0,   # R_Knee
+    7:  4.0,   # L_Ankle  (↑ from 2.5 — better foot placement)
+    8:  4.0,   # R_Ankle  (↑ from 2.5 — better foot placement)
+    10: 3.5,   # L_Foot   (↑ from 1.5 — prevents foot twist)
+    11: 3.5,   # R_Foot   (↑ from 1.5 — prevents foot twist)
+    12: 3.0,   # Neck
+    15: 3.5,   # Head     (↑ from 1.0 — face must follow)
+    16: 5.0,   # L_Shoulder (↑ from 2.5 — anchor arm position)
+    17: 5.0,   # R_Shoulder (↑ from 2.5 — anchor arm position)
+    18: 5.5,   # L_Elbow   (↑ from 3.5 — key for curl motion)
+    19: 5.5,   # R_Elbow   (↑ from 3.5 — key for curl motion)
+    20: 5.5,   # L_Wrist
+    21: 5.5,   # R_Wrist
 }
 
 
@@ -95,22 +108,19 @@ class SmplxService:
 
     @staticmethod
     def _mp33_to_smplx_target(frame_kp: np.ndarray) -> tuple:
-        """
-        Converts one MediaPipe frame (33, 4) directly to SMPL-X target (22, 3).
-        """
-        target = np.zeros((22, 3), dtype=np.float32)
-        valid  = np.zeros(22, dtype=bool)
+        """Convert one OpenPose-25 frame (25, 4) to SMPL-X target (22, 3)."""
+        target  = np.zeros((22, 3), dtype=np.float32)
+        valid   = np.zeros(22, dtype=bool)
         weights = np.zeros(22, dtype=np.float32)
 
-        for smplx_idx, mp_indices in MP33_TO_SMPLX.items():
-            pts = frame_kp[mp_indices, :3]
-            vis = frame_kp[mp_indices, 3]
+        for smplx_idx, op_indices in OP25_TO_SMPLX.items():
+            pts = frame_kp[op_indices, :3]
+            vis = frame_kp[op_indices, 3]
             ok  = (vis > 0.25) & (~np.any(np.isnan(pts), axis=1))
-            
             if np.any(ok):
                 target[smplx_idx, :3] = pts[ok].mean(axis=0)
                 valid[smplx_idx]      = True
-                weights[smplx_idx]    = MP33_WEIGHTS.get(smplx_idx, 1.0)
+                weights[smplx_idx]    = OP25_WEIGHTS.get(smplx_idx, 1.0)
 
         return target, valid, weights
 
@@ -120,17 +130,15 @@ class SmplxService:
 
     @staticmethod
     def _estimate_scale(kp3d: np.ndarray) -> float:
-        """
-        Estimates pixel→metre scale from hip-to-neck distance (≈ 0.52 m avg).
-        """
+        """Estimates scale from MidHip→Neck distance (OP25: joint 8=MidHip, 1=Neck)."""
         TARGET = 0.52
         for fi in range(min(len(kp3d), 60)):
             f = kp3d[fi]
-            ok = all(f[i, 3] > 0.3 for i in [11, 12, 23, 24])
+            ok = all(f[i, 3] > 0.3 for i in [1, 8, 9, 12])  # Neck, MidHip, RHip, LHip
             if not ok:
                 continue
-            pelvis = (f[23, :3] + f[24, :3]) / 2
-            neck   = (f[11, :3] + f[12, :3]) / 2
+            pelvis = f[8, :3]   # OP25 MidHip
+            neck   = f[1, :3]   # OP25 Neck
             d      = float(np.linalg.norm(neck - pelvis))
             if d > 1e-4:
                 return TARGET / d
@@ -167,9 +175,9 @@ class SmplxService:
             logger.error(f"keypoints_3d.npy not found at {kp3d_path}")
             return None
 
-        kp3d = np.load(kp3d_path).astype(np.float32)   # (F, 33, 4)
-        if kp3d.ndim != 3 or kp3d.shape[1] != 33:
-            logger.error(f"Unexpected shape {kp3d.shape}, expected (F, 33, 4)")
+        kp3d = np.load(kp3d_path).astype(np.float32)   # (F, 25, 4) OpenPose-25
+        if kp3d.ndim != 3 or kp3d.shape[1] != 25:
+            logger.error(f"Unexpected shape {kp3d.shape}, expected (F, 25, 4)")
             return None
 
         num_frames = kp3d.shape[0]
@@ -233,14 +241,39 @@ class SmplxService:
             if n_pairs:
                 loss = loss / n_pairs
                 
-            # Pose Prior (L2 to T-pose)
+            # Pose Prior
             loss = loss + 1.5e-3 * (b_pose ** 2).mean()
-            
-            # Velocity Loss (Temporal Smoothness)
-            # Augmenté de 5.0 à 20.0 pour supprimer les vibrations (jitter) de MediaPipe
+
+            # Spine + neck + collar stability (head excluded — must follow target)
+            # body_pose: spine1=[6:9], spine2=[15:18], spine3=[24:27], neck=[33:36],
+            #            L_collar=[36:39], R_collar=[39:42]
+            _stable_spine = torch.tensor(
+                [6,7,8, 15,16,17, 24,25,26, 33,34,35, 36,37,38, 39,40,41],
+                device=device
+            )
+            loss = loss + 3.0 * (b_pose[0, _stable_spine] ** 2).mean()
+
+            # Head: light regularization only — allows nodding/tilting to follow target
+            loss = loss + 0.3 * (b_pose[0, 42:45] ** 2).mean()
+
+            # Ankle twist: prevent inversion/eversion and toe-in/toe-out
+            # L_Ankle=[18:21], R_Ankle=[21:24]
+            loss = loss + 6.0 * (b_pose[0, 18:24] ** 2).mean()
+
+            # Foot rotation: prevent L_Foot (27:30) and R_Foot (30:33) from rotating
+            loss = loss + 12.0 * (b_pose[0, 27:33] ** 2).mean()
+
+            # Velocity — 4 groups: knees free, feet planted, arms light, spine moderate
             if prev_pose is not None:
-                loss = loss + 20.0 * ((b_pose - prev_pose) ** 2).mean()
-                
+                diff  = (b_pose - prev_pose) ** 2
+                vel_w = torch.full((63,), 15.0, device=device)
+                vel_w[0:6]   = 12.0  # hips
+                vel_w[9:15]  = 6.0   # knees — free to bend
+                vel_w[18:24] = 18.0  # ankles
+                vel_w[27:33] = 25.0  # feet — planted
+                vel_w[45:63] = 5.0   # arms — light
+                loss = loss + (diff[0] * vel_w).mean()
+
             return loss
 
         # ── Stage 1 : Initialisation Globale (Orient + Transl) sans modifier la forme ──
@@ -256,18 +289,11 @@ class SmplxService:
             logger.error("No valid frames for shape estimation. Aborting.")
             return None
 
-        # Stage 1 — Initialisation globale (forme adulte standard fixe)
-        # On commence avec l'orientation préférée de l'utilisateur : ax=-1.571, ay=0, az=-0.262
-        # On ajuste aussi la hauteur Y par défaut à 0.90
-        orient_init = [ -1.571, 0.0, -0.262 ]
-        global_orient = torch.tensor([orient_init], device=device, requires_grad=True)
-        transl = torch.zeros((1, 3), device=device, requires_grad=True)
-        betas_fixed = torch.zeros((1, 10), device=device, requires_grad=False)
-        b_pose0 = torch.zeros((1, 63), device=device)
+        # Fixer la morphologie à une personne adulte "standard" (betas = 0)
+        betas_fixed = torch.zeros(1, 10, dtype=torch.float32, device=device)
         
-        # Initialisation de la hauteur (by=0.90)
-        with torch.no_grad():
-            transl[0, 1] = 0.90
+        g_orient = torch.zeros(1, 3,  dtype=torch.float32, device=device, requires_grad=True)
+        b_pose0  = torch.zeros(1, 63, dtype=torch.float32, device=device)
 
         # Centring
         pelvis_positions = []
@@ -375,8 +401,9 @@ class SmplxService:
             def closure_b():
                 opt_b.zero_grad()
                 out = smplx_forward(betas_fixed, fr_orient, fr_pose, fr_transl)
-                # Le secret de la fluidité : on passe prev_pose pour la Velocity Loss
                 loss_ = compute_loss(out, t_fi, v_fi, w_fi, fr_pose, prev_pose=prev_pose)
+                # Orient velocity — allows gradual body tilt (deadlift) but no sudden jumps
+                loss_ = loss_ + 40.0 * ((fr_orient - prev_orient) ** 2).mean()
                 loss_.backward()
                 return loss_
                 
@@ -488,7 +515,7 @@ class SmplxService:
             transl_np = np.array(gt_data['transl'], dtype=np.float32)
             global_orient_mat = np.array(gt_data['global_orient'], dtype=np.float32)
             body_pose_mat = np.array(gt_data['body_pose'], dtype=np.float32)
-            betas_np = np.array(gt_data.get('betas', [0]*10), dtype=np.float32).reshape(-1, 10)
+            betas_np = np.array(gt_data.get('betas', [0]*10), dtype=np.float32).reshape(1, 10)
             
             num_frames = transl_np.shape[0]
             
@@ -527,27 +554,14 @@ class SmplxService:
                 faces=faces,
             )
             
-            # Export for viewer (Internal drive for speed)
-            backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            internal_root = os.path.join(backend_dir, "data", "frames", exercise_name)
-            os.makedirs(internal_root, exist_ok=True)
-            json_path_internal = os.path.join(internal_root, "smplx_threejs.json")
-            
+            json_path = os.path.join(session_output_root, "smplx_threejs.json")
             SmplxService._export_threejs_json(
-                vertices_arr, joints_arr, faces, json_path_internal,
-                max_frames=1500
+                vertices_arr, joints_arr, faces, json_path,
+                max_frames=60
             )
             
-            # Also keep a copy on SSD
-            json_path_ssd = os.path.join(session_output_root, "smplx_threejs.json")
-            SmplxService._export_threejs_json(
-                vertices_arr, joints_arr, faces, json_path_ssd,
-                max_frames=1500
-            )
-            
-            # (Désactivé à la demande de l'utilisateur)
-            # viz_dir = os.path.join(session_output_root, "smplx_3d")
-            # SmplxService.save_smplx_visualizations(npz_path, viz_dir)
+            viz_dir = os.path.join(session_output_root, "smplx_3d")
+            SmplxService.save_smplx_visualizations(npz_path, viz_dir, max_frames=120)
             
             print(f"DEBUG: Mesh optimization finalized.")
             return npz_path

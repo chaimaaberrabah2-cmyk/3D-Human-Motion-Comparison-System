@@ -67,9 +67,11 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
   Exercise? _selectedExercise;
   String _role = 'user';
   int? _establishmentId;
+  int? _userId;
   String? _sessionId; // Set after upload success → used by SmplxViewerWidget
   final List<String> _pipelineLogs = [];
   Map<String, dynamic>? _comparisonResults;
+  Map<String, dynamic>? _detectedExercise; // Auto-detection result from backend
 
   @override
   void initState() {
@@ -77,6 +79,26 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
     _selectedExercise = widget.initialExercise;
     _loadRole();
     _loadMovements();
+    // Stop processing if user navigates away from this tab
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final nav = context.read<NavigationProvider>();
+      nav.addListener(_onNavigationChanged);
+    });
+  }
+
+  @override
+  void dispose() {
+    final nav = context.read<NavigationProvider>();
+    nav.removeListener(_onNavigationChanged);
+    super.dispose();
+  }
+
+  void _onNavigationChanged() {
+    final nav = context.read<NavigationProvider>();
+    // Tab 3 = NewAnalysisPage; if user switches away while processing, stop polling
+    if (nav.currentIndex != 3 && _isProcessing) {
+      setState(() => _isProcessing = false);
+    }
   }
 
   Future<void> _loadMovements() async {
@@ -114,6 +136,7 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
       setState(() {
         _role = prefs.getString('user_role') ?? 'user';
         _establishmentId = prefs.getInt('user_establishment_id');
+        _userId = prefs.getInt('user_id');
       });
     }
   }
@@ -528,6 +551,7 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
         videos: _rawFiles,
         exercise: backendExercise,
         establishmentId: _establishmentId,
+        userId: _userId,
       );
 
       if (!mounted) return;
@@ -557,18 +581,36 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
           final statusMsg = status['status_message'] as String? ?? 'Processing...';
           final hasSmplxViewer = status['has_smplx_viewer'] as bool? ?? false;
 
-          final elapsedSec = DateTime.now().difference(startTime).inSeconds;
-          final formattedTime = _formatTime(elapsedSec);
-
           if (!mounted) return;
           setState(() {
             _processingProgress = progressPct / 100.0;
             _processingStatus = statusMsg;
 
-            // Log unique messages
-            final logLine = '[$formattedTime] $statusMsg';
-            if (_pipelineLogs.isEmpty || !_pipelineLogs.last.contains(statusMsg)) {
-              _pipelineLogs.add(logLine);
+            // Sync all backend logs (replace local list with server's authoritative list)
+            final backendLogs = status['logs'];
+            if (backendLogs is List && backendLogs.isNotEmpty) {
+              _pipelineLogs
+                ..clear()
+                ..addAll(backendLogs.cast<String>());
+            } else {
+              // Fallback: append unique status messages locally
+              final elapsedSec = DateTime.now().difference(startTime).inSeconds;
+              final logLine = '[${_formatTime(elapsedSec)}] $statusMsg';
+              if (_pipelineLogs.isEmpty || _pipelineLogs.last != logLine) {
+                _pipelineLogs.add(logLine);
+              }
+            }
+
+            if (status.containsKey('detected_exercise') && status['detected_exercise'] != null) {
+              _detectedExercise = Map<String, dynamic>.from(status['detected_exercise'] as Map);
+              final detName = _detectedExercise!['detected'] as String?;
+              if (detName != null && _selectedExercise == null) {
+                final match = _dbMovements.cast<Exercise?>().firstWhere(
+                  (e) => e!.name.toLowerCase() == detName.toLowerCase(),
+                  orElse: () => null,
+                );
+                if (match != null) _selectedExercise = match;
+              }
             }
 
             if (status.containsKey('comparison_results') && status['comparison_results'] != null) {
@@ -868,6 +910,8 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
               ],
             ),
           ),
+          // ── Auto-detection banner ──────────────────────────────────────────
+          if (_detectedExercise != null) _buildDetectionBanner(theme),
           const SizedBox(height: 24),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -960,6 +1004,73 @@ class _NewAnalysisPageState extends State<NewAnalysisPage> {
     );
   }
 
+
+  Widget _buildDetectionBanner(ThemeData theme) {
+    final det = _detectedExercise!;
+    final detName = det['detected'] as String?;
+    final conf = (det['confidence'] as num?)?.toDouble() ?? 0.0;
+    final unclear = det['unclear'] as bool? ?? true;
+
+    final color = unclear ? Colors.orange : Colors.green;
+    final icon = unclear ? Icons.help_outline : Icons.check_circle_outline;
+    final label = unclear
+        ? 'Exercise unclear — please select manually'
+        : 'Auto-detected: ${detName ?? "unknown"} (${(conf * 100).toInt()}% confidence)';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(color: color, fontWeight: FontWeight.w600),
+            ),
+          ),
+          // Override dropdown
+          PopupMenuButton<Exercise>(
+            tooltip: 'Override exercise',
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: color.withOpacity(0.4)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _selectedExercise?.name ?? 'Select',
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.arrow_drop_down, color: color, size: 18),
+                ],
+              ),
+            ),
+            onSelected: (exercise) => setState(() => _selectedExercise = exercise),
+            itemBuilder: (_) {
+              final list = _dbMovements.isNotEmpty ? _dbMovements : getMockExercises();
+              return list.map((e) => PopupMenuItem<Exercise>(value: e, child: Text(e.name))).toList();
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildExerciseSelector(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;

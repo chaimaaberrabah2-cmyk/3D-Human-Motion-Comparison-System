@@ -238,13 +238,17 @@ def create_establishment_admin(
 @router.get("/establishments/{establishment_id}/users", response_model=List[UserSchema])
 def get_establishment_users(
     establishment_id: int,
+    role: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
     """
-    Récupère la liste des utilisateurs (patients) d'un établissement spécifique.
+    Récupère la liste des utilisateurs d'un établissement.
+    Filtrer avec ?role=user pour n'obtenir que les adhérents.
     """
-    users = db.query(User).filter(User.establishment_id == establishment_id).all()
-    return users
+    query = db.query(User).filter(User.establishment_id == establishment_id)
+    if role:
+        query = query.filter(User.role == role)
+    return query.order_by(User.pseudo).all()
 
 @router.put("/update_password")
 def update_password(

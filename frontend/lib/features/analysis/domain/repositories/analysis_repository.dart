@@ -23,5 +23,6 @@ abstract class AnalysisRepository {
     required Map<String, dynamic> videos,
     required String exercise,
     int? establishmentId,
+    int? userId,
   });
 }

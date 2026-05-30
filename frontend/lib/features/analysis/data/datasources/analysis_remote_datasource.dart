@@ -39,6 +39,7 @@ class AnalysisRemoteDataSource {
     required Map<String, dynamic> videoData,
     required String exercise,
     int? establishmentId,
+    int? userId,
   }) async {
     final formDataMap = <String, dynamic>{};
 
@@ -64,6 +65,7 @@ class AnalysisRemoteDataSource {
         queryParameters: {
           'exercise': exercise,
           if (establishmentId != null) 'establishment_id': establishmentId,
+          if (userId != null) 'user_id': userId,
         },
         onSendProgress: (sent, total) {
           print('Upload: ${(sent / total * 100).toStringAsFixed(0)}%');
@@ -100,12 +102,69 @@ class AnalysisRemoteDataSource {
   }
 
   /// Returns the URL of the Three.js SMPL-X viewer for a session or movement reference.
-  String getViewerUrl(String sessionId) {
+  /// [embed] hides orientation calibration panels in the WebView (Flutter app).
+  String getViewerUrl(String sessionId, {bool embed = true}) {
+    final String path;
     if (sessionId.contains('-') || sessionId.length > 20) {
-      return '$sessionsUrl/$sessionId/viewer';
+      path = '$sessionsUrl/$sessionId/viewer';
     } else {
-      return '$backendBase/api/v1/movements/$sessionId/viewer';
+      path = '$backendBase/api/v1/movements/$sessionId/viewer';
     }
+    if (!embed) return path;
+    return '$path?embed=1';
+  }
+
+  /// Fetches performance history for a user from the DB.
+  Future<List<Map<String, dynamic>>> fetchHistory(int userId) async {
+    try {
+      final response = await dio.get(
+        '$backendBase/api/v1/performances/',
+        queryParameters: {'user_id': userId},
+      );
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(
+          (response.data as List).map((e) => Map<String, dynamic>.from(e)),
+        );
+      }
+    } catch (e) {
+      print('Error fetching history: $e');
+    }
+    return [];
+  }
+
+  /// Fetches time-series progress for a user (optionally filtered by exercise).
+  Future<List<Map<String, dynamic>>> fetchProgress(int userId, {String? exercise}) async {
+    try {
+      final params = <String, dynamic>{'user_id': userId};
+      if (exercise != null) params['exercise'] = exercise;
+      final response = await dio.get(
+        '$backendBase/api/v1/performances/progress',
+        queryParameters: params,
+      );
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(
+          (response.data as List).map((e) => Map<String, dynamic>.from(e)),
+        );
+      }
+    } catch (e) {
+      print('Error fetching progress: $e');
+    }
+    return [];
+  }
+
+  /// Fetches establishment-level stats (admin dashboard).
+  Future<Map<String, dynamic>?> fetchEstablishmentStats(int establishmentId) async {
+    try {
+      final response = await dio.get(
+        '$backendBase/api/v1/performances/establishment/$establishmentId/stats',
+      );
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data as Map);
+      }
+    } catch (e) {
+      print('Error fetching establishment stats: $e');
+    }
+    return null;
   }
 
   /// Fetches movements from PostgreSQL database. Falls back to mock data if empty or offline.

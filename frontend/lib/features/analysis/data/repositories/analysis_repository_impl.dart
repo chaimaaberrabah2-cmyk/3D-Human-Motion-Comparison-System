@@ -27,16 +27,16 @@ class AnalysisRepositoryImpl implements AnalysisRepository {
     required Map<String, dynamic> videos,
     required String exercise,
     int? establishmentId,
+    int? userId,
   }) async {
     try {
-      // Délègue l'envoi des vidéos à la source de données distante
       return await remoteDataSource.analyzeVideos(
         videoData: videos,
         exercise: exercise,
         establishmentId: establishmentId,
+        userId: userId,
       );
     } catch (e) {
-      // Relève l'exception — peut être transformée en erreur domaine si nécessaire
       rethrow;
     }
   }

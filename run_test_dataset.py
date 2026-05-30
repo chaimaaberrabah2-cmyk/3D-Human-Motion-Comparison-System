@@ -1,9 +1,11 @@
 import os
 import sys
+import json
 import argparse
-import shutil
+_PYENV_PY = "/Users/HP/.pyenv/versions/3.11.7/bin/python3"
+if os.path.exists(_PYENV_PY) and sys.executable != _PYENV_PY:
+    os.execv(_PYENV_PY, [_PYENV_PY] + sys.argv)
 
-# Ajouter le backend au path pour pouvoir importer les modules
 current_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.join(current_dir, "backend")
 sys.path.append(backend_dir)
@@ -13,107 +15,139 @@ from app.pipeline.step2_2d_keypoints_service import PoseService
 from app.pipeline.step3_3d_keypoints_service import TriangulationService
 from app.pipeline.step4_smplx_fitting_service import SmplxService
 
+MAX_FRAMES   = 900
+DATASET_ROOT  = "/Volumes/SSD_Ikram/test dataset"
+CAMERAS       = ["Lb", "Lf", "Rb", "Rf"]
+CALIB_ROOT    = "/Volumes/SSD_Ikram/test_dataset"   # calibration.json per camera
+
+
+def save_status(output_root, phase, message):
+    path = os.path.join(output_root, "status.json")
+    data = {}
+    if os.path.exists(path):
+        try:
+            data = json.load(open(path))
+        except Exception:
+            pass
+    data["phase"] = phase
+    data["message"] = message
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+    print(f"\n[status] {phase}: {message}")
+
+
 def run_test_pipeline(exercise_name):
-    print(f"🚀 Lancement du pipeline complet pour l'exercice: {exercise_name} (Test Dataset)")
-    
-    dataset_root = "/Volumes/SSD_Ikram/test dataset"
-    cameras = ["Lb", "Lf", "Rb", "Rf"]
-    
+    # Output named test_{exercise} to avoid overwriting reference data
+    output_name = f"test_{exercise_name}"
+    output_root = os.path.join(current_dir, "backend", "data", "frames", output_name)
+    os.makedirs(output_root, exist_ok=True)
+
+    print(f"🚀 Pipeline test_dataset: {exercise_name}")
+    print(f"📂 Output: {output_root}")
+
+    # ── Find videos ──────────────────────────────────────────────────────────
     video_paths = []
-    for cam in cameras:
-        # Some videos are .MOV, some might be .mp4. We check.
-        mov_path = os.path.join(dataset_root, f"videos {cam}", f"{exercise_name}.MOV")
-        mp4_path = os.path.join(dataset_root, f"videos {cam}", f"{exercise_name}.mp4")
-        if os.path.exists(mov_path):
-            video_paths.append(mov_path)
-        elif os.path.exists(mp4_path):
-            video_paths.append(mp4_path)
+    for cam in CAMERAS:
+        found = None
+        for ext in ["MOV", "mp4"]:
+            p = os.path.join(DATASET_ROOT, f"videos {cam}", f"{exercise_name}.{ext}")
+            if os.path.exists(p):
+                found = p
+                break
+        if found:
+            video_paths.append(found)
         else:
-            video_paths.append(mov_path) # Fallback to print error on MOV
-    
-    missing = [p for p in video_paths if not os.path.exists(p)]
-    if missing:
-        print(f"❌ Erreur: Vidéos manquantes pour {exercise_name}:")
-        for m in missing:
-            print(f"  - {m}")
+            print(f"❌ Vidéo manquante: videos {cam}/{exercise_name}.[MOV|mp4]")
+            return
+
+    # ── Phase 1: Frame extraction ─────────────────────────────────────────────
+    save_status(output_root, "Phase 1/4", "Extraction des frames...")
+    for i, path in enumerate(video_paths):
+        cam = CAMERAS[i]
+        temp_folder = os.path.join(output_root, f"temp{i+1}")
+        os.makedirs(temp_folder, exist_ok=True)
+        print(f"\n[Phase 1] {cam}: {path}")
+        VideoService.extract_frames(path, temp_folder, max_frames=MAX_FRAMES)
+        n = len([f for f in os.listdir(temp_folder) if f.endswith(".jpg")])
+        print(f"  → {n} frames extraites dans {temp_folder}")
+
+    # ── Phase 2: MediaPipe 2D ─────────────────────────────────────────────────
+    save_status(output_root, "Phase 2/4", "Pose 2D MediaPipe...")
+    angle_results_count = 0
+    for i in range(1, 5):
+        temp_folder = os.path.join(output_root, f"temp{i}")
+        keypoints_file = os.path.join(output_root, f"keypoints_angle{i}.npy")
+        print(f"\n[Phase 2] Camera {i}: {temp_folder}")
+        if os.path.exists(temp_folder) and os.listdir(temp_folder):
+            success = PoseService.extract_keypoints(temp_folder, keypoints_file, save_annotated=True)
+            if success:
+                import numpy as np
+                kp = np.load(keypoints_file)
+                print(f"  → keypoints_angle{i}.npy  shape={kp.shape}  ✅")
+                angle_results_count += 1
+            else:
+                print(f"  → ❌ Pose estimation échouée")
+        else:
+            print(f"  → ❌ Dossier vide ou absent")
+
+    if angle_results_count < 2:
+        save_status(output_root, "ERREUR", f"Seulement {angle_results_count}/4 angles valides")
+        print(f"\n❌ Pas assez d'angles ({angle_results_count}/4). Arrêt.")
         return
 
-    output_root = f"/Volumes/SSD_Ikram/3D-Human-Motion-Comparison/{exercise_name}"
-    os.makedirs(output_root, exist_ok=True)
-    
-    local_viewer_dir = os.path.join(current_dir, "backend", "data", "frames", exercise_name)
-    os.makedirs(local_viewer_dir, exist_ok=True)
-    
-    print(f"📂 Traitement complet sur SSD: {output_root}")
-    
-    try:
-        # Phase 1: Extraction
-        print("\n--- PHASE 1: Extraction de frames ---")
-        for i, path in enumerate(video_paths):
-            angle_id = i + 1
-            temp_folder = os.path.join(output_root, f"temp{angle_id}")
-            print(f"Extraction {path} -> {temp_folder}")
-            VideoService.extract_frames(path, temp_folder)
-            
-        # Phase 2: MediaPipe 2D
-        print("\n--- PHASE 2: MediaPipe 2D Pose ---")
-        angle_results_count = 0
-        for i in range(1, 5):
-            temp_folder = os.path.join(output_root, f"temp{i}")
-            keypoints_file = os.path.join(output_root, f"keypoints_angle{i}.npy")
-            if os.path.exists(temp_folder) and os.listdir(temp_folder):
-                # save_annotated=True ensures we see the 2D results for debugging
-                success = PoseService.extract_keypoints(temp_folder, keypoints_file, save_annotated=True)
-                if success: angle_results_count += 1
-                
-        # Phase 3: Triangulation 3D
-        keypoints_3d_file = None
-        if angle_results_count >= 2:
-            print("\n--- PHASE 3: Triangulation 3D (Résolution: 1920x1440) ---")
-            # PASSING THE CORRECT RESOLUTION 1920x1440
-            keypoints_3d_file = TriangulationService.triangulate(
-                output_root, exercise_name, dataset_type="test_dataset",
-                img_w=1920, img_h=1440
-            )
-            
-            # Save 3D vis
-            if keypoints_3d_file:
-                results_3d_dir = os.path.join(output_root, "results_3d")
-                TriangulationService.save_3d_visualizations(keypoints_3d_file, results_3d_dir)
-        else:
-            print(f"❌ Échec Phase 2: Pas assez de vues valides ({angle_results_count}/4).")
+    # ── Phase 3: Triangulation 3D ─────────────────────────────────────────────
+    save_status(output_root, "Phase 3/4", "Triangulation 3D...")
+    # Build calibration file list — one per camera, same order as CAMERAS
+    calib_files = [os.path.join(CALIB_ROOT, cam, "calibration.json") for cam in CAMERAS]
+    for cf in calib_files:
+        if not os.path.exists(cf):
+            print(f"❌ Calibration manquante: {cf}")
             return
-            
-        # Refinement is bypassed for test_dataset inside refine_3d_keypoints
-        TriangulationService.refine_3d_keypoints(output_root, exercise_name, dataset_type="test_dataset")
-        
-        # Phase 4: SMPL-X
-        if keypoints_3d_file and os.path.exists(keypoints_3d_file):
-            print("\n--- PHASE 4: Optimisation SMPL-X ---")
-            SmplxService.fit_and_save(output_root, n_iter=20)
-        else:
-            print("❌ Échec Phase 3: Fichier keypoints_3d_file introuvable.")
-            return
+    print(f"\n[Phase 3] Triangulation 3D avec calibration test_dataset...")
+    for cam, cf in zip(CAMERAS, calib_files):
+        print(f"  {cam}: {cf}")
+    keypoints_3d_file = TriangulationService.triangulate(output_root, exercise_name,
+                                                          calib_files=calib_files,
+                                                          img_w=1920, img_h=1440)
+    if not keypoints_3d_file or not os.path.exists(keypoints_3d_file):
+        save_status(output_root, "ERREUR", "Triangulation échouée")
+        print("❌ Triangulation échouée. Arrêt.")
+        return
 
-        # Copie JSON localement
-        ssd_json = os.path.join(output_root, "smplx_threejs.json")
-        local_json = os.path.join(local_viewer_dir, "smplx_threejs.json")
-        
-        if os.path.exists(ssd_json):
-            shutil.copy2(ssd_json, local_json)
-            print(f"\n✅ Fichier JSON copié localement pour le viewer: {local_json}")
-            
-        print(f"\n✅ Pipeline terminé avec succès pour {exercise_name}!")
-        print(f"🔗 Visualisation: http://localhost:8000/api/v1/sessions/{exercise_name}/viewer")
-        
-    except Exception as e:
-        print(f"❌ Échec du pipeline: {e}")
-        import traceback
-        traceback.print_exc()
+    import numpy as np
+    kp3d = np.load(keypoints_3d_file)
+    print(f"  → keypoints_3d.npy  shape={kp3d.shape}  ✅")
+
+    print(f"\n[Phase 3] Génération visualisations 3D...")
+    results_3d_dir = os.path.join(output_root, "results_3d")
+    TriangulationService.save_3d_visualizations(keypoints_3d_file, results_3d_dir)
+    n_imgs = len(os.listdir(results_3d_dir)) if os.path.exists(results_3d_dir) else 0
+    print(f"  → {n_imgs} images sauvegardées dans results_3d/")
+
+    # ── Phase 4: SMPL-X fitting ───────────────────────────────────────────────
+    save_status(output_root, "Phase 4/4", "Fitting SMPL-X...")
+    print(f"\n[Phase 4] SMPL-X body fitting...")
+    SmplxService.fit_and_save(output_root)
+
+    # Verify outputs
+    smplx_npz  = os.path.join(output_root, "smplx_result.npz")
+    smplx_json = os.path.join(output_root, "smplx_threejs.json")
+    if os.path.exists(smplx_npz):
+        d = np.load(smplx_npz)
+        print(f"  → smplx_result.npz  joints={d['joints'].shape}  ✅")
+    if os.path.exists(smplx_json):
+        with open(smplx_json) as f:
+            meta = json.load(f).get("meta", {})
+        print(f"  → smplx_threejs.json  frames={meta.get('exported_frames')}  ✅")
+
+    save_status(output_root, "Terminé", "Pipeline complet ✅")
+    print(f"\n✅ Pipeline terminé! Résultats dans: {output_root}")
+    print(f"\n▶  Voir le comparateur:")
+    print(f"   python compare_viewer.py {output_name}")
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Lancer le pipeline sur Test Dataset")
-    parser.add_argument("exercise", help="Nom de l'exercice (ex: deadlift)")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("exercise", help="ex: deadlift, squat, dumbbell_biceps_curls1")
     args = parser.parse_args()
-    
     run_test_pipeline(args.exercise)

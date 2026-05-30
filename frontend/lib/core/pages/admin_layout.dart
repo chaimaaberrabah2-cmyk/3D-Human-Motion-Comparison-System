@@ -18,7 +18,7 @@ class AdminLayout extends StatefulWidget {
 }
 
 class _AdminLayoutState extends State<AdminLayout> {
-  int _establishmentId = 0;
+  int? _establishmentId;
 
   @override
   void initState() {
@@ -28,8 +28,10 @@ class _AdminLayoutState extends State<AdminLayout> {
 
   Future<void> _loadEstablishment() async {
     final prefs = await SharedPreferences.getInstance();
+    final id = prefs.getInt('user_establishment_id');
+    if (!mounted) return;
     setState(() {
-      _establishmentId = prefs.getInt('user_establishment_id') ?? 1;
+      _establishmentId = (id != null && id > 0) ? id : null;
     });
   }
 
@@ -51,7 +53,10 @@ class _AdminLayoutState extends State<AdminLayout> {
                 const HistoryPage(),                      // Index 1
                 const SettingsPage(),                     // Index 2
                 const NewAnalysisPage(),                  // Index 3
-                const AdherentListView(),                 // Index 4 (Global 5)
+                AdherentListView(
+                  key: ValueKey('adherents_${_establishmentId ?? 0}'),
+                  establishmentId: _establishmentId,
+                ),                                        // Index 4 (Global 5)
               ],
             ),
           ),

@@ -46,12 +46,34 @@ async def get_session_status(session_id: str):
     has_viewer = os.path.exists(os.path.join(session_path, "smplx_threejs.json"))
     refit_info = _refit_status.get(session_id, None)
 
+    # Read real status message and logs from status.json
+    status_msg = "Processing..."
+    logs = []
+    progress_override = None
+    comparison_results = None
+    status_file = os.path.join(session_path, "status.json")
+    if os.path.exists(status_file):
+        try:
+            with open(status_file) as f:
+                sdata = json.load(f)
+            status_msg = sdata.get("status_message", sdata.get("status", "Processing..."))
+            logs = sdata.get("logs", [])
+            progress_override = sdata.get("progress_percent")
+            comparison_results = sdata.get("comparison_results")
+        except Exception:
+            pass
+
+    progress = progress_override if progress_override is not None else int((sum([phase1, phase2, phase3, phase4]) / 4) * 100)
+
     return {
-        "session_id":      session_id,
-        "progress_percent": int((sum([phase1, phase2, phase3, phase4]) / 4) * 100),
-        "is_complete":     phase4,
+        "session_id":       session_id,
+        "progress_percent": progress,
+        "status_message":   status_msg,
+        "logs":             logs,
+        "is_complete":      phase4,
         "has_smplx_viewer": has_viewer,
-        "refit":           refit_info,
+        "refit":            refit_info,
+        "comparison_results": comparison_results,
         "phases": {
             "phase1_frames_extracted": phase1,
             "phase2_pose_estimated":   phase2,
@@ -147,14 +169,14 @@ async def refit_session(session_id: str, body: RefitRequest):
 # GET /sessions/{id}/viewer
 # ──────────────────────────────────────────────────────────────────────────────
 @router.get("/{session_id}/viewer", response_class=HTMLResponse)
-async def get_smplx_viewer(session_id: str):
+async def get_smplx_viewer(session_id: str, embed: bool = False):
     from app.database.setup import SessionLocal
     from app.database.models import Movement
-    
+
     db = SessionLocal()
     movement = db.query(Movement).filter(Movement.name == session_id).first()
     db.close()
-    
+
     # Orientation par défaut si non trouvée
     orient = {"ax": -1.571, "ay": 0.0, "az": -1.658, "by": 0.90}
     if movement and movement.orientation:
@@ -163,8 +185,8 @@ async def get_smplx_viewer(session_id: str):
     json_path = os.path.join(_session_dir(session_id), "smplx_threejs.json")
     if not os.path.exists(json_path):
         return HTMLResponse(content=_loading_page(session_id), status_code=200)
-        
-    return HTMLResponse(content=_viewer_html(session_id, orient), status_code=200)
+
+    return HTMLResponse(content=_viewer_html(session_id, orient, embed=embed), status_code=200)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -192,21 +214,23 @@ def _loading_page(session_id: str) -> str:
 </body></html>"""
 
 
-def _viewer_html(session_id: str, orient: dict, equip_type: str = None, equip_orient: dict = None) -> str:
+def _viewer_html(session_id: str, orient: dict, equip_type: str = None, equip_orient: dict = None, embed: bool = False) -> str:
     api_url = f"/api/v1/sessions/{session_id}/smplx"
     refit_url = f"/api/v1/sessions/{session_id}/refit"
-    
+
     # Valeurs par défaut
     ax = orient.get("ax", -1.571)
     ay = orient.get("ay", 0.0)
     az = orient.get("az", -1.658)
     by = orient.get("by", 0.90)
-    
+
     equip_orient = equip_orient or {"ax": 0.00, "ay": 1.48, "az": 0.00, "bx": 0.02, "by": -0.07, "bz": -0.10}
     bax, bay, baz = equip_orient.get("ax", 0), equip_orient.get("ay", 0), equip_orient.get("az", 0)
     bbx, bby, bbz = equip_orient.get("bx", 0), equip_orient.get("by", 0), equip_orient.get("bz", 0)
-    
+
     show_barbell_ui = 'flex' if equip_type == 'barbell' else 'none'
+    panels_display = 'none' if embed else 'flex'
+    frame_label_display = 'none' if embed else 'inline'
     
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -328,7 +352,7 @@ body {{ background:#080818; overflow:hidden; font-family:'Segoe UI',sans-serif; 
   <button id="btn-play">▶ Play</button>
   <button id="btn-pause">⏸ Pause</button>
   <button id="btn-reset">↺ Reset</button>
-  <span id="frame-label">Frame 0 / 0</span>
+  <span id="frame-label" style="display:{frame_label_display}">Frame 0 / 0</span>
   <button id="btn-rotate">🔄 Auto Rotate</button>
 </div>
 
@@ -653,7 +677,7 @@ function pollRefitStatus() {{
   document.getElementById('loading').style.display  = 'none';
   document.getElementById('status').style.display   = 'block';
   document.getElementById('ui').style.display       = 'flex';
-  document.getElementById('panels-container').style.display = 'flex';
+  document.getElementById('panels-container').style.display = '{panels_display}';
   document.getElementById('val-x').textContent = userOrient.x.toFixed(2);
   document.getElementById('val-y').textContent = userOrient.y.toFixed(2);
   document.getElementById('val-z').textContent = userOrient.z.toFixed(2);

@@ -55,6 +55,7 @@ class UserLogin(BaseModel):
 class UserInDBBase(UserBase):
     user_id: int
     role: str
+    establishment_id: Optional[int] = None
     profile_json: Optional[Dict[str, Any]] = None
 
     class Config:

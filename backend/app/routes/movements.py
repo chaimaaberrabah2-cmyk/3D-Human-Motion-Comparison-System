@@ -58,21 +58,17 @@ async def get_movement_smplx(name: str, db: Session = Depends(get_db)):
     return JSONResponse(content=data)
 
 @router.get("/{name}/viewer")
-async def get_movement_viewer(name: str, db: Session = Depends(get_db)):
+async def get_movement_viewer(name: str, embed: bool = False, db: Session = Depends(get_db)):
     movement = db.query(Movement).filter(Movement.name == name).first()
     if not movement:
         raise HTTPException(status_code=404, detail="Movement not found")
-        
+
     from app.routes.sessions import _viewer_html
-    # On utilise l'orientation stockée dans la base
     orient = movement.orientation or {"ax": -1.571, "ay": 0.0, "az": -1.658, "by": 0.90}
     equip_type = movement.equipment
     equip_orient = movement.equipment_orientation or {"ax": 0.00, "ay": 0.00, "az": 0.00, "bx": 0.02, "by": -0.07, "bz": -0.10}
-    
-    # Génération du HTML avec la nouvelle interface
-    html = _viewer_html(name, orient, equip_type, equip_orient)
-    
-    # On s'assure que le chemin SMPL-X pointe vers le mouvement et non vers une session
+
+    html = _viewer_html(name, orient, equip_type, equip_orient, embed=embed)
     html = html.replace(f"/api/v1/sessions/{name}/smplx", f"/api/v1/movements/{name}/smplx")
-    
+
     return HTMLResponse(content=html)

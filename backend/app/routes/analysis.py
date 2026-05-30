@@ -1,84 +1,69 @@
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException
 import os
 import uuid
+import json
 import shutil
+import traceback
+from datetime import datetime
 from app.pipeline.step1_frame_extractor_service import VideoService
 from app.pipeline.step2_2d_keypoints_service import PoseService
 from app.pipeline.step3_3d_keypoints_service import TriangulationService
-from app.pipeline.step4_smplx_ik_service import SmplxService
+from app.pipeline.step4_smplx_fitting_service import SmplxService
 
 router = APIRouter()
 
-# Base directories for data
 BASE_DIR = os.getcwd()
 UPLOAD_DIR = os.path.join(BASE_DIR, "data", "uploaded")
 FRAME_DIR = os.path.join(BASE_DIR, "data", "frames")
+
 
 @router.post("/analyze")
 async def analyze_videos(
     background_tasks: BackgroundTasks,
     exercise: str = "deadlift",
     establishment_id: int = None,
+    user_id: int = None,
     angle1: UploadFile = File(None),
     angle2: UploadFile = File(None),
     angle3: UploadFile = File(None),
-    angle4: UploadFile = File(None)
+    angle4: UploadFile = File(None),
 ):
-    """
-    Receives 4 videos, saves them, and starts frame extraction in the background.
-    """
-    # Debug logging
     print(f"Received files: angle1={angle1.filename if angle1 else 'None'}, "
           f"angle2={angle2.filename if angle2 else 'None'}, "
           f"angle3={angle3.filename if angle3 else 'None'}, "
           f"angle4={angle4.filename if angle4 else 'None'}")
 
-    # Strictly require 4 videos for complete 3D analysis
     if not all([angle1, angle2, angle3, angle4]):
-        missing = []
-        if not angle1: missing.append("angle1")
-        if not angle2: missing.append("angle2")
-        if not angle3: missing.append("angle3")
-        if not angle4: missing.append("angle4")
+        missing = [f"angle{i+1}" for i, a in enumerate([angle1, angle2, angle3, angle4]) if not a]
         raise HTTPException(status_code=400, detail=f"Missing files: {', '.join(missing)}")
-    
-    all_angles = [angle1, angle2, angle3, angle4]
 
     session_id = str(uuid.uuid4())
     session_upload_dir = os.path.join(UPLOAD_DIR, session_id)
     session_frame_dir = os.path.join(FRAME_DIR, session_id)
-    
-    # Ensure directories exist
     os.makedirs(session_upload_dir, exist_ok=True)
     os.makedirs(session_frame_dir, exist_ok=True)
-    
-    videos = [angle1, angle2, angle3, angle4]
+
     video_paths = []
-    
-    # Save the uploaded files
-    for i, video in enumerate(all_angles):
-        if video is not None:
-            file_path = os.path.join(session_upload_dir, f"video_{i+1}.mp4")
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(video.file, buffer)
-            video_paths.append(file_path)
-    
-    # Add extraction to background tasks to avoid blocking the request
-    background_tasks.add_task(process_analysis, video_paths, session_frame_dir, exercise, establishment_id)
-    
-    # Check disk space (inform user)
+    for i, video in enumerate([angle1, angle2, angle3, angle4]):
+        file_path = os.path.join(session_upload_dir, f"video_{i+1}.mp4")
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(video.file, buffer)
+        video_paths.append(file_path)
+
+    background_tasks.add_task(
+        process_analysis, video_paths, session_frame_dir, exercise,
+        establishment_id=establishment_id, user_id=user_id
+    )
+
     _, _, free = shutil.disk_usage(BASE_DIR)
-    free_gb = free / (1024**3)
-    
     return {
         "status": "processing",
         "session_id": session_id,
         "exercise": exercise,
-        "free_space_gb": round(free_gb, 2),
-        "message": f"Analysis for {exercise} started. Free space: {round(free_gb, 2)} GB."
+        "free_space_gb": round(free / (1024 ** 3), 2),
+        "message": f"Analysis for {exercise} started.",
     }
 
-import json
 
 def update_status(output_root: str, status_str: str, progress_percent: int, extra_data: dict = None):
     try:
@@ -87,17 +72,24 @@ def update_status(output_root: str, status_str: str, progress_percent: int, extr
         data = {}
         if os.path.exists(status_file):
             try:
-                with open(status_file, "r") as f:
+                with open(status_file) as f:
                     data = json.load(f)
             except Exception:
                 pass
-        
+
         data["status"] = status_str
+        data["status_message"] = status_str
         data["progress_percent"] = progress_percent
-        
+
+        # Append timestamped log entry
+        logs = data.get("logs", [])
+        ts = datetime.now().strftime("%H:%M:%S")
+        logs.append(f"[{ts}] {status_str}")
+        data["logs"] = logs
+
         if extra_data:
             data.update(extra_data)
-            
+
         with open(status_file, "w") as f:
             json.dump(data, f)
     except Exception as e:
@@ -105,136 +97,209 @@ def update_status(output_root: str, status_str: str, progress_percent: int, extr
 
 
 def cleanup_session_frames(output_root):
-    """Deletes the tempX folders to save space, keeping only the .npy results."""
-    print(f"DEBUG: Starting cleanup of frames in {output_root}...")
     for i in range(1, 5):
         temp_dir = os.path.join(output_root, f"temp{i}")
         if os.path.exists(temp_dir):
             try:
                 shutil.rmtree(temp_dir)
-                print(f"DEBUG: Deleted temporary folder {temp_dir}")
             except Exception as e:
                 print(f"ERROR: Failed to delete {temp_dir}: {e}")
 
-def process_analysis(video_paths, output_root, exercise, establishment_id=None):
-    """Background task to extract frames and keypoints from all videos."""
+
+def _get_establishment_calibration(establishment_id: int, output_root: str):
+    """
+    Fetch calibration from DB for the given establishment.
+    Returns (calib_files, img_w, img_h) or (None, None, None) to fall back to s03.
+    """
+    try:
+        from app.database.setup import SessionLocal
+        from app.database.models import Establishment
+        db = SessionLocal()
+        est = db.query(Establishment).filter(
+            Establishment.establishment_id == establishment_id
+        ).first()
+        db.close()
+
+        if not est or not est.calibration_data:
+            print(f"DEBUG: No calibration in DB for establishment {establishment_id}. Using s03 default.")
+            return None, None, None
+
+        calib_data = est.calibration_data
+        cameras = calib_data.get("cameras", ["Lb", "Lf", "Rb", "Rf"])
+        img_w = calib_data.get("img_w", 1920)
+        img_h = calib_data.get("img_h", 1440)
+
+        calib_dir = os.path.join(output_root, "_calibration")
+        os.makedirs(calib_dir, exist_ok=True)
+        calib_files = []
+        for cam in cameras:
+            cam_data = calib_data.get(cam)
+            if not cam_data:
+                print(f"WARNING: Missing calibration for camera {cam}. Using s03 default.")
+                return None, None, None
+            cam_file = os.path.join(calib_dir, f"{cam}_calibration.json")
+            with open(cam_file, "w") as f:
+                json.dump(cam_data, f)
+            calib_files.append(cam_file)
+
+        print(f"DEBUG: Using establishment calibration for {cameras}, img={img_w}x{img_h}")
+        return calib_files, img_w, img_h
+
+    except Exception as e:
+        print(f"WARNING: Could not load establishment calibration: {e}")
+        return None, None, None
+
+
+def _save_performance_to_db(user_id: int, exercise: str, score_res: dict, output_root: str):
+    """Save completed analysis to the performances table."""
+    try:
+        from app.database.setup import SessionLocal
+        from app.database.models import Performance, Movement
+        db = SessionLocal()
+
+        movement = db.query(Movement).filter(Movement.name == exercise).first()
+        if not movement:
+            db.close()
+            print(f"WARNING: Movement '{exercise}' not found in DB. Skipping performance save.")
+            return
+
+        perf = Performance(
+            user_id=user_id,
+            movement_id=movement.movement_id,
+            score=score_res.get("score_out_of_100"),
+            feedback_txt=json.dumps(score_res.get("feedbacks", [])),
+            results_3d={"session_path": output_root},
+        )
+        db.add(perf)
+        db.commit()
+        db.refresh(perf)
+        db.close()
+        print(f"DEBUG: Performance saved with id={perf.performance_id}")
+    except Exception as e:
+        print(f"ERROR saving performance to DB: {e}")
+        traceback.print_exc()
+
+
+def process_analysis(video_paths, output_root, exercise, establishment_id=None, user_id=None):
+    """Background task: extract frames, pose, triangulate, fit SMPL-X, score."""
     print(f"DEBUG: Starting background analysis for {len(video_paths)} videos...")
     update_status(output_root, "Phase 1/4: Starting frame extraction...", 5)
-    
-    # Phase 1: FAST - Extract all frames for all videos first
-    print("DEBUG: PHASE 1 - Extracting all frames...")
+
+    # ── Phase 1: Frame extraction ────────────────────────────────────────────
     for i, path in enumerate(video_paths):
         angle_id = i + 1
         temp_folder = os.path.join(output_root, f"temp{angle_id}")
         try:
-            print(f"DEBUG: [Angle {angle_id}] Extracting frames to {temp_folder}...")
-            update_status(output_root, f"Phase 1/4: Extracting frames - Camera {angle_id}/4...", 5 + angle_id * 5)
+            update_status(output_root, f"Phase 1/4: Extracting frames — Camera {angle_id}/4...", 5 + angle_id * 5)
             VideoService.extract_frames(path, temp_folder)
         except Exception as e:
             print(f"ERROR: [Angle {angle_id}] Frame extraction failed: {e}")
 
-    # Phase 2: SLOW - Process Pose estimation for each video from frames
-    print("DEBUG: PHASE 2 - Starting Pose estimation from frames...")
+    # ── Phase 2: 2D Pose estimation ──────────────────────────────────────────
+    update_status(output_root, "Phase 2/4: Running MediaPipe 2D pose detection...", 25)
     angle_results_count = 0
     for i in range(1, 5):
         temp_folder = os.path.join(output_root, f"temp{i}")
         keypoints_file = os.path.join(output_root, f"keypoints_angle{i}.npy")
-        
         try:
             if os.path.exists(temp_folder) and os.listdir(temp_folder):
-                print(f"DEBUG: [Angle {i}] Starting MediaPipe Pose (Frames)...")
-                update_status(output_root, f"Phase 2/4: MediaPipe 2D Pose estimation - Camera {i}/4...", 25 + (i - 1) * 10)
-                # Using the frame-based method restored in PoseService
+                update_status(output_root, f"Phase 2/4: MediaPipe 2D pose — Camera {i}/4...", 25 + (i - 1) * 10)
                 success = PoseService.extract_keypoints(temp_folder, keypoints_file, save_annotated=True)
                 if success:
-                    print(f"DEBUG: [Angle {i}] Pose estimation completed.")
                     angle_results_count += 1
-                else:
-                    print(f"DEBUG: [Angle {i}] Pose estimation failed (no frames found).")
-            else:
-                print(f"DEBUG: [Angle {i}] Skipping Pose: No frames extracted.")
+                    update_status(output_root, f"Phase 2/4: Camera {i}/4 pose done ✓", 25 + i * 10)
         except Exception as e:
             print(f"ERROR: [Angle {i}] Pose processing failed: {e}")
 
-    # Phase 3: 3D Triangulation
+    # ── Phase 3: 3D Triangulation ────────────────────────────────────────────
     keypoints_3d_file = None
     if angle_results_count >= 2:
-        print(f"DEBUG: PHASE 3 - Starting 3D Triangulation with {angle_results_count} angles...")
-        update_status(output_root, "Phase 3/4: Starting 3D Triangulation...", 65)
+        update_status(output_root, "Phase 3/4: Triangulating 3D skeleton (DLT solver)...", 65)
+
+        # Determine calibration: use establishment's if available, else s03 default
+        calib_files, img_w, img_h = None, None, None
+        if establishment_id:
+            calib_files, img_w, img_h = _get_establishment_calibration(establishment_id, output_root)
+
         try:
-            keypoints_3d_file = TriangulationService.triangulate(output_root, exercise, establishment_id)
-            print("DEBUG: [Phase 3] 3D Triangulation completed successfully.")
-            
-            update_status(output_root, "Phase 3/4: Generating 3D skeleton visualization...", 75)
-            # Generate a 3D animated video for the user to verify the skeleton
-            results_3d_dir = os.path.join(output_root, "results_3d")
-            TriangulationService.save_3d_visualizations(keypoints_3d_file, results_3d_dir)
-            print(f"DEBUG: 3D Visualization photos saved to {results_3d_dir}")
+            kwargs = {}
+            if calib_files:
+                kwargs["calib_files"] = calib_files
+            if img_w:
+                kwargs["img_w"] = img_w
+            if img_h:
+                kwargs["img_h"] = img_h
+            keypoints_3d_file = TriangulationService.triangulate(output_root, exercise, **kwargs)
+            update_status(output_root, "Phase 3/4: Generating 3D skeleton visualizations...", 75)
+            TriangulationService.save_3d_visualizations(
+                keypoints_3d_file, os.path.join(output_root, "results_3d")
+            )
+            update_status(output_root, "Phase 3/4: 3D triangulation complete ✓", 78)
+
+            # ── Auto exercise detection ──────────────────────────────────────
+            try:
+                from app.comparaison.auto_detect import detect_exercise
+                detection = detect_exercise(keypoints_3d_file, FRAME_DIR)
+                det_name = detection.get("detected") or "unclear"
+                det_conf = detection.get("confidence", 0.0)
+                update_status(
+                    output_root,
+                    f"Auto-detected exercise: {det_name} (confidence={det_conf:.0%})",
+                    80,
+                    extra_data={"detected_exercise": detection},
+                )
+            except Exception as e:
+                print(f"WARNING: Auto-detect failed: {e}")
+
         except Exception as e:
             print(f"ERROR: [Phase 3] Triangulation failed: {e}")
-            import traceback
             traceback.print_exc()
     else:
-        print(f"DEBUG: Skipping Triangulation (Need at least 2 angles, found {angle_results_count})")
+        update_status(output_root, f"Phase 3/4: Skipped (only {angle_results_count}/4 cameras valid)", 65)
 
-    # Phase 4: SMPL-X Fitting
+    # ── Phase 4: SMPL-X Fitting ──────────────────────────────────────────────
     if keypoints_3d_file and os.path.exists(keypoints_3d_file):
-        print("DEBUG: PHASE 4 - Starting SMPL-X body fitting...")
-        update_status(output_root, "Phase 4/4: Fitting 3D SMPL-X body mesh to movement...", 85)
+        update_status(output_root, "Phase 4/4: Fitting SMPL-X body mesh (L-BFGS optimizer)...", 85)
         try:
-            is_s03 = os.path.exists(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "s03", "smplx", f"{exercise}.json"))
-            
-            if is_s03:
-                SmplxService.fit_and_save(output_root)
-            else:
-                SmplxService.fit_and_save(output_root)
-                
-            print(f"DEBUG: SMPL-X fitting completed.")
-            update_status(output_root, "Phase 4/4: Finalizing ThreeJS 3D viewer package...", 95)
+            SmplxService.fit_and_save(output_root)
+            update_status(output_root, "Phase 4/4: SMPL-X fitting complete ✓. Packaging 3D viewer...", 95)
         except Exception as e:
             print(f"ERROR: [Phase 4] SMPL-X fitting failed: {e}")
-            import traceback
             traceback.print_exc()
     else:
-        print("DEBUG: Skipping SMPL-X fitting (no valid 3D keypoints from Phase 3).")
+        update_status(output_root, "Phase 4/4: Skipped SMPL-X (no valid 3D keypoints)", 85)
 
-    # Phase 5: Comparison Scoring
+    # ── Phase 5: Comparison Scoring ──────────────────────────────────────────
+    comparison_results = None
+    score_res = {}
     if keypoints_3d_file and os.path.exists(keypoints_3d_file):
-        print("DEBUG: PHASE 5 - Starting Comparison Scoring...")
-        update_status(output_root, "Phase 5/5: Comparing performance against expert reference...", 96)
+        update_status(output_root, "Phase 5/5: Comparing against expert reference (DTW)...", 96)
         try:
-            from app.comparaison.score import generate_score
-            ref_keypoints_path = os.path.join(FRAME_DIR, exercise, "keypoints_3d.npy")
-            if os.path.exists(ref_keypoints_path):
-                print(f"DEBUG: Found expert reference at {ref_keypoints_path}. Generating score...")
-                score_res = generate_score(ref_keypoints_path, keypoints_3d_file, body_only=True)
-                print(f"DEBUG: Score generated: {score_res}")
-                
+            from app.comparaison.angle_score import generate_angle_score
+            ref_path = os.path.join(FRAME_DIR, exercise, "keypoints_3d.npy")
+            if os.path.exists(ref_path):
+                score_res = generate_angle_score(ref_path, keypoints_3d_file)
                 comparison_results = {
-                    "score": round(score_res.get("score_out_of_100", 0.0), 1),
-                    "mean_error_cm": round(score_res.get("mean_error_cm", 0.0), 1),
-                    "dtw_normalized_distance": round(score_res.get("dtw_normalized_distance", 0.0), 4),
+                    "score": score_res.get("score_out_of_100", 0.0),
+                    "mean_angle_error_deg": score_res.get("mean_angle_error_deg", 0.0),
+                    "dtw_normalized_distance": score_res.get("dtw_normalized_distance", 0.0),
                     "aligned_frames_count": score_res.get("aligned_frames_count", 0),
-                    "feedbacks": [
-                        {"joint": "Flexion du dos", "msg": "Alignement optimal, angle respecté.", "status": "excellent"} if score_res.get("score_out_of_100", 0.0) >= 80 else {"joint": "Flexion du dos", "msg": "Ajustez la rectitude du dos lors de l'effort.", "status": "warning"},
-                        {"joint": "Amplitude articulaire", "msg": "Parfait contrôle de l'amplitude.", "status": "excellent"} if score_res.get("score_out_of_100", 0.0) >= 85 else {"joint": "Amplitude articulaire", "msg": "Essayez de descendre plus bas / d'augmenter l'amplitude.", "status": "warning"},
-                        {"joint": "Symétrie latérale", "msg": "Excellente symétrie gauche/droite.", "status": "excellent"},
-                        {"joint": "Stabilité globale", "msg": "Mouvement stable et fluide.", "status": "excellent"}
-                    ]
+                    "per_joint_errors_deg": score_res.get("per_joint_errors_deg", {}),
+                    "feedbacks": score_res.get("feedbacks", []),
                 }
-                update_status(output_root, "Complete: 3D Body Reconstruction is ready!", 100, extra_data={"comparison_results": comparison_results})
+                update_status(output_root, "Complete: 3D Body Reconstruction is ready!", 100,
+                              extra_data={"comparison_results": comparison_results})
             else:
-                print(f"WARNING: Expert reference not found at {ref_keypoints_path}. Skipping comparison.")
                 update_status(output_root, "Complete: 3D Body Reconstruction is ready!", 100)
         except Exception as e:
-            print(f"ERROR: [Phase 5] Comparison scoring failed: {e}")
-            import traceback
+            print(f"ERROR: [Phase 5] Scoring failed: {e}")
             traceback.print_exc()
             update_status(output_root, "Complete: 3D Body Reconstruction is ready!", 100)
     else:
         update_status(output_root, "Complete: 3D Body Reconstruction is ready!", 100)
 
-    print("DEBUG: All calculation tasks finished. Background process complete.")
+    # ── Save Performance to DB ───────────────────────────────────────────────
+    if user_id and comparison_results:
+        _save_performance_to_db(user_id, exercise, score_res, output_root)
 
-
-
+    print("DEBUG: Background process complete.")

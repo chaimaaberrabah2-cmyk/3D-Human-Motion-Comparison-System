@@ -20,7 +20,7 @@ Interactive documentation: http://127.0.0.1:8000/docs
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import analysis, auth, cameras, sessions, movements
+from app.routes import analysis, auth, cameras, sessions, movements, performances
 from app.database.setup import engine, SessionLocal
 from app.database.models import Movement
 from sqlalchemy import text
@@ -69,6 +69,7 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(cameras.router, prefix="/api/v1/cameras", tags=["cameras"])
 app.include_router(sessions.router, prefix="/api/v1/sessions", tags=["sessions"])
 app.include_router(movements.router, prefix="/api/v1/movements", tags=["movements"])
+app.include_router(performances.router, prefix="/api/v1/performances", tags=["performances"])
 
 @app.get("/")
 async def root():
