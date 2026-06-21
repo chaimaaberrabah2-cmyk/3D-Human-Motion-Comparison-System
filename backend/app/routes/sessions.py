@@ -134,7 +134,7 @@ async def refit_session(session_id: str, body: RefitRequest):
 
     def _run():
         try:
-            from app.pipeline.step4_smplx_fitting_service import SmplxService
+            from app.pipeline.step4_smplx_ik_service import SmplxService
             result = SmplxService.fit_and_save(
                 session_output_root=session_path,
                 gender=body.gender,
